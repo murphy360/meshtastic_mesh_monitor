@@ -1,38 +1,59 @@
 import meshtastic
 import meshtastic.tcp_interface
 from pubsub import pub
+# import sitrep
+from sitrep import SITREP   
 
 reply_message = "Message Received"
-interface = meshtastic.tcp_interface.TCPInterface(hostname='192.168.1.131')
-print("Connected to Mesh")
+# global variable to store the local node
+localNode = ""
+sitrep = ""
+print("Starting Mesh Monitor")
+host = '192.168.1.131' # TODO parameterize
 
-localNode = interface.getNode('^local')
-print(f'Our node preferences:{localNode.localConfig}')
+interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
 
-# print node id
 
-print(f'Our node id: {localNode.nodeNum}')
+def onConnection(interface, topic=pub.AUTO_TOPIC):
+    print("On Connection")
+    '''
+    This function is called when the connection is established with the Meshtastic device.
+    
+    It sets the localNode variable to the interface object that is connected to the Meshtastic device.
+    It also prints basic information about the node and the connection.
 
-###### TEXT MESSAGE APP Message Format ######
-'''
-id: 164568121
-rx_time: 1715476439
-rx_snr: -12.75
-hop_limit: 2
-rx_rssi: -123
-, 'fromId': '!29c1937f', 'toId': '^all'}
-Received: {'from': 3662930676, 'to': 4294967295, 'decoded': {'portnum': 'TEXT_MESSAGE_APP', 'payload': b'Glad I can help AYBC I run that node', 'text': 'Glad I can help AYBC I run that node'}, 'id': 1633640990, 'rxTime': 1715476584, 'rxSnr': -7.5, 'rxRssi': -117, 'raw': from: 3662930676
-to: 4294967295
-decoded {
-  portnum: TEXT_MESSAGE_APP
-  payload: "Glad I can help AYBC I run that node"
-}
-'''
+    :param interface: The interface object that is connected to the Meshtastic device.
+    :param topic: The topic of the connection.
+    '''
+    global localNode
+    localNode = interface.getNode('^local')
+
+    global sitrep
+    sitrep = SITREP(localNode)
+    print(f"Connected to {interface.getNode('^local').nodeNum}")
+    print(f'Our node preferences:{localNode.localConfig}')
 
 def onReceive(packet, interface):
+    print("On Receive")
+    ''' 
+    This function is called when a packet is received from the Meshtastic device.
+    
+    It checks if the packet is a TEXT_MESSAGE_APP packet and decodes the payload to a string.
+    It then checks if the message is sent to the local node, broadcast to all nodes, or sent to a channel.
+    If the message is sent to the local node, it replies to the sender.
+    If the message is broadcast to all nodes, it checks if it should respond.
+    If the message is sent to a channel, it checks if it should respond.
+    
+    :param packet: The packet received from the Meshtastic device.
+    :param interface: The interface object that is connected to the Meshtastic device.
+    '''
     try:
+        if localNode == "":
+            print("Local Node not set")
+            return
+        
         if 'decoded' in packet and packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
-            print(f"Received Packet: {packet}")
+            print(f"Received Text Message Packet: {packet}")
             message_bytes = packet['decoded']['payload']
             
             print(f"Message Bytes: {message_bytes}")
@@ -45,51 +66,58 @@ def onReceive(packet, interface):
                 to_id = packet['to']
                 # If the message is sent to local node, reply to the sender
                 if to_id == localNode.nodeNum:
-                    reply_message = get_reply_message(message_string)
-                    if reply_message == "None":
-                        reply_message = "Message Received"
-                    send_message_to_node(reply_message, packet['from'])
+                    print ("Message sent directly to local node")
+                    reply_to_message(message_string, 0, packet['from'])
                     return   
-                # If the message is broadcast to all nodes, check if we should respond  
-                elif packet['toId'] == "^all":
-                    reply_message = get_reply_message(message_string)
-                    if reply_message != "None":
-                        send_message_broadcast(reply_message)
-                    else:
-                        print(f"Received: {message_string} from {packet['from']}. Not replying")
-                    return  
                 # If the message is sent to a channel, check if we should respond      
                 elif 'channel' in packet:
-                    channel = packet['channel']
-                    reply_message = get_reply_message(message_string)
-                    if reply_message != "None":
-                        send_message_to_channel(reply_message, channel)
-                    else:
-                        print(f"Received: {message_string} from channel {channel}. Not replying")
+                    print (f"Message sent to channel {packet['channel']} from {packet['from']}")
+                    #converst string to integer
+                    channelId = int(packet['channel'])
+                    reply_to_message(message_string, channelId, "^all")
                     return
+                # If the message is broadcast to all nodes, check if we should respond  
+                elif packet['toId'] == "^all":
+                    print ("Message broadcast to all nodes from {packet['from']}")
+                    reply_to_message(message_string, 0, "^all")
+                    return  
+        elif 'portnum' in packet['decoded']:
+            packet_type = packet['decoded']['portnum']
+            print(f"Received Packet: {packet_type}")
+            sitrep.log_packet_received(packet_type)
+            return
+
+               
     except KeyError as e:
         print(f"Error processing packet: {e}")
 
-pub.subscribe(onReceive, 'meshtastic.receive')
-
-def get_reply_message(message):
+def reply_to_message(message, channel, to_id):
     message = message.lower()
     if message == "ping":
-        return "pong"
+        send_message("pong", channel, to_id)
+        sitrep.log_message_sent("ping-pong")
+        return
+    elif message == "sitrep":
+        # instantiate a new sitrep object
+        
+        sitrep.update_sitrep(interface)
+        sitrep.send_report(interface, channel, to_id)
+        sitrep.log_message_sent("sitrep-requested")
+        return 
+    elif to_id == localNode.nodeNum:
+        send_message(reply_message, channel, to_id)
+        sitrep.log_message_sent("reply-direct")
+        return
     else:
-        return "None"
+        print(f"Message not recognized: {message}. Not replying.")
+        return 
 
-def send_message_to_channel(message, channel):
-    interface.sendText(message, channelIndex=channel)
-    print (f"Sent: {message} to channel {channel}")
+def send_message (message, channel, to_id):
+    interface.sendText(message, channelIndex=channel, destinationId=to_id)
+    print (f"Sent: {message} to channel {channel} and node {to_id}")
 
-def send_message_to_node(message, node_id):
-    interface.sendText(message, destinationId=node_id)
-    print (f"Sent: {message} to {node_id}")
-
-def send_message_broadcast(message):
-    interface.sendText(message)
-    print (f"Sent: {message}")
+pub.subscribe(onReceive, 'meshtastic.receive')
+pub.subscribe(onConnection, "meshtastic.connection.established")
 
 while True:
     pass
