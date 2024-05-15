@@ -10,7 +10,8 @@ localNode = ""
 sitrep = ""
 print("Starting Mesh Monitor")
 host = '192.168.1.131' # TODO parameterize
-
+short_name = 'Monitor' # Overwritten in onConnection
+long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
 
 
@@ -27,11 +28,21 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     '''
     global localNode
     localNode = interface.getNode('^local')
+   
+    global short_name
+    short_name = lookup_short_name(localNode.nodeNum)
+    global long_name
+    long_name = lookup_long_name(localNode.nodeNum)
+    print ("**************************************************************")
+    print ("**************************************************************")
+    print (f"Mesh Monitor connected to {long_name} on {interface.hostname}")
+    print ("**************************************************************")
+    print ("**************************************************************")
 
     global sitrep
-    sitrep = SITREP(localNode)
-    print(f"Connected to {interface.getNode('^local').nodeNum}")
-    print(f'Our node preferences:{localNode.localConfig}')
+    sitrep = SITREP(localNode, short_name, long_name)
+    return
+    
 
 def onReceive(packet, interface):
     print("On Receive")
@@ -51,6 +62,7 @@ def onReceive(packet, interface):
         if localNode == "":
             print("Local Node not set")
             return
+
         
         if 'decoded' in packet and packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
             print(f"Received Text Message Packet: {packet}")
@@ -58,9 +70,6 @@ def onReceive(packet, interface):
             
             print(f"Message Bytes: {message_bytes}")
             message_string = message_bytes.decode('utf-8')
-            
-            reply_message = "Message Received"
-
             
             if 'toId' in packet:
                 to_id = packet['to']
@@ -90,7 +99,8 @@ def onReceive(packet, interface):
                 if altitude > 1000:
                     sitrep.log_packet_received("position_app_aircraft")
                     # send message and report the node name, altitude, speed, heading and location
-                    message = f"Aircraft Detected: {packet['from']} Altitude: {altitude}"
+                    node_short_name = lookup_short_name(packet['from'])
+                    message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
                     send_message(message, 2, "^all")
                     return
         
@@ -99,7 +109,8 @@ def onReceive(packet, interface):
 
         elif 'portnum' in packet['decoded']:
             packet_type = packet['decoded']['portnum']
-            print(f"Received Packet: {packet_type}")
+            from_name = lookup_short_name(packet['from'])
+            print(f"Received Packet: {packet_type} from {from_name}")
             sitrep.log_packet_received(packet_type)
             return
 
@@ -128,9 +139,24 @@ def reply_to_message(message, channel, to_id):
         print(f"Message not recognized: {message}. Not replying.")
         return 
 
+def lookup_short_name(node_num):
+    for n in interface.nodes.values():
+        if n["num"] == node_num:
+            return n["user"]["shortName"]
+    return "Unknown"
+
+def lookup_long_name(node_num):
+    for n in interface.nodes.values():
+        if n["num"] == node_num:
+            return n["user"]["longName"]
+    return "Unknown"
+
 def send_message (message, channel, to_id):
     interface.sendText(message, channelIndex=channel, destinationId=to_id)
-    print (f"Sent: {message} to channel {channel} and node {to_id}")
+    node_name = to_id
+    if to_id != "^all":
+        node_name = lookup_short_name(to_id)
+    print (f"Sent: {message} to channel {channel} and node {node_name}")
 
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")

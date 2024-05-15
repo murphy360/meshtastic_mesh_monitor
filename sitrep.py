@@ -27,27 +27,30 @@ import time
 
 
 class SITREP:
-    def __init__(self, localNode):
+    def __init__(self, localNode, shortName, longName):
         self.localNode = localNode
+        self.shortName = shortName
+        self.longName = longName
         self.date = self.get_date_time_in_zulu()
         self.messages_received = []
         # Dictionary to store the number of packets received for each packet type
         self.packets_received = {}
-        self.channels_monitored = 0
+        self.packets_received["position_app_aircraft"] = 0
+        self.aircraft_tracks = {}
         self.messages_sent = {}
         self.nodes_connected = 0
         self.reportHeader = ""
         self.line1 = "" # Local Nodes
         self.line2 = "" # Messages Received
         self.line3 = "" # Messages Sent
-        self.line4 = "" # Channels Monitored
+        self.line4 = "" # Aircraft Tracks
         self.line5 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
 
     def update_sitrep(self, interface):
         self.lines = []
-        self.reportHeader = f"CQ CQ CQ de {self.localNode.nodeNum}.  My {self.get_date_time_in_zulu()} SITREP is as follows:"
+        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.get_date_time_in_zulu()} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Nodes connected in the past 24 hours: " + str(self.count_nodes_connected(interface))
         self.lines.append(self.line1)
@@ -55,11 +58,11 @@ class SITREP:
         self.lines.append(self.line2)
         self.line3 = "Line 3: Messages Sent: " + str(self.count_messages_sent())
         self.lines.append(self.line3)
-        self.line4 = "Line 4: Channels Monitored: " + str(self.channels_monitored)
+        self.line4 = "Line 4: Aircraft Tracks: " + str(self.packets_received["position_app_aircraft"])
         self.lines.append(self.line4)
-        self.line5 = "Line 5: Intentions: Continue to monitor channels and respond to messages as needed."
+        self.line5 = "Line 5: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line5)
-        self.reportFooter = f"de {self.localNode.nodeNum} out"
+        self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
         return
 
