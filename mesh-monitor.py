@@ -81,6 +81,22 @@ def onReceive(packet, interface):
                     print ("Message broadcast to all nodes from {packet['from']}")
                     reply_to_message(message_string, 0, "^all")
                     return  
+        if 'decoded' in packet and packet['decoded']['portnum'] == 'POSITION_APP':
+            print(f"Received Position Packet: {packet}")
+            # if altitude is present and high enough to be an aircraft, log it
+            # Also send a message to the channel 2 and the suspected aircraft
+            if 'altitude' in packet['decoded']['position']:
+                altitude = int(packet['decoded']['position']['altitude'])
+                if altitude > 1000:
+                    sitrep.log_packet_received("position_app_aircraft")
+                    # send message and report the node name, altitude, speed, heading and location
+                    message = f"Aircraft Detected: {packet['from']} Altitude: {altitude}"
+                    send_message(message, 2, "^all")
+                    return
+        
+            sitrep.log_packet_received("position_app")
+            return
+
         elif 'portnum' in packet['decoded']:
             packet_type = packet['decoded']['portnum']
             print(f"Received Packet: {packet_type}")
