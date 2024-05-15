@@ -108,10 +108,15 @@ class SITREP:
     def count_nodes_connected(self, interface):
         self.nodes_connected = 0
         for node in interface.nodes.values():
-            print("Node ID:", node["user"]["id"])
+            log_message = f"Node ID: {node['user']['id']} Long Name: {node['user']['longName']} Short Name: {node['user']['shortName']}"
             if "lastHeard" in node:
-                print("Last Heard:", node["lastHeard"])
+                #print("Last Heard:", node["lastHeard"])
+                log_message += f" Last Heard: {node['lastHeard']}"
                 self.nodes_connected += 1
+            if "hopsAway" in node:
+                log_message += f" Hops Away: {node['hopsAway']}"
+                print("Hops Away:", node["hopsAway"])
+            print(log_message)
         return self.nodes_connected
     
     def send_report(self, interface, channelId, to_id):
