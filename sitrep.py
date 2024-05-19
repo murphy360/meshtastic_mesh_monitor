@@ -21,6 +21,8 @@
 # Line 4: Channels: {channels}
 # Line 5: Messages Sent: {messagesSent}
 # de {localNode} out 
+# Dolphin 🐬
+# Alien 👽
 
 import datetime
 import time
@@ -31,7 +33,7 @@ class SITREP:
         self.localNode = localNode
         self.shortName = shortName
         self.longName = longName
-        self.date = self.get_date_time_in_zulu()
+        self.date = self.get_date_time_in_zulu(datetime.datetime.now())
         self.messages_received = []
         # Dictionary to store the number of packets received for each packet type
         self.packets_received = {}
@@ -47,19 +49,21 @@ class SITREP:
         self.line5 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
-        self.nodes_of_interest = ["AYBO", "DP01"]
+        self.nodes_of_interest = ["👽", "DP01", ]
+        print("SITREP Object Created")
 
     def update_sitrep(self, interface):
+        now = datetime.datetime.now()
         self.lines = []
-        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.get_date_time_in_zulu()} SITREP is as follows:"
+        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.get_date_time_in_zulu(now)} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
-        self.line2 = "Line 2: Packets Received: " + str(self.count_packets_received())
+        self.line2 = "Line 2: Aircraft Tracks: " + str(self.packets_received["position_app_aircraft"])
         self.lines.append(self.line2)
-        self.line3 = "Line 3: Messages Sent: " + str(self.count_messages_sent())
+        self.line3 = "Line 3: Nodes of Interest: " + self.build_node_of_interest_report(3, interface)
         self.lines.append(self.line3)
-        self.line4 = "Line 4: Aircraft Tracks: " + str(self.packets_received["position_app_aircraft"])
+        self.line4 = "Line 4: Packets Received: " + str(self.count_packets_received())
         self.lines.append(self.line4)
         self.line5 = "Line 5: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line5)
@@ -71,13 +75,32 @@ class SITREP:
         # Report on the nodes of interest
         num_nodes = 0
         report_string = ""
+        # iterate through alphbet A-Z, AA-ZZ, AAA-ZZZ
+        line_letter = "A"
+
         for node_name in self.nodes_of_interest:
-            node = interface.getNode(node_name)
-            
-    def get_date_time_in_zulu(self):
+            node = self.lookup_node_by_short_name(interface, node_name)
+            report_string += "\n" + str(line_number) + "." + line_letter + ". "           
+            if node is not None:
+                num_nodes += 1
+                report_string += node_name + " - " + self.get_time_difference_string(node["lastHeard"])
+                # Check hops away
+                if "hopsAway" in node:
+                    report_string += " " + str(node["hopsAway"]) + " Hops."
+                elif "rxRssi" in node:
+                    print (node)
+                    report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
+                elif "snr" in node:
+                    report_string += " SNR: " + str(node["snr"]) + "dB."
+            else: 
+                report_string += node_name + " - Not Found"
+            line_letter = chr(ord(line_letter) + 1)
+        return report_string
+       
+    def get_date_time_in_zulu(self, date):
         # format time in 24 hour time and in Zulu time (0000Z 23 APR 2024)
-        now = datetime.datetime.now()
-        return now.strftime("%H%MZ %d %b %Y")
+        
+        return date.strftime("%H%MZ %d %b %Y")
     
     def get_messages_sent(self):
         return self.messages_sent
@@ -102,6 +125,7 @@ class SITREP:
         if from_node_short_name in self.nodes_of_interest:
             print(f"Packet received from node of interest: {from_node_short_name}")
             return True
+        return False
 
     def count_packets_received(self):
         total_packets = 0
@@ -142,7 +166,7 @@ class SITREP:
                 now = datetime.datetime.now()
                 time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
                 if time_difference_in_seconds < (time_threshold_minutes*60): 
-                    time_difference_hours = time_difference_in_seconds // 60 # // is integer division (no remainder) will give hours
+                    time_difference_hours = time_difference_in_seconds // 3600 # // is integer division (no remainder) will give hours
                     time_difference_minutes = time_difference_in_seconds % 60 # % is modulo division will give minutes
                     log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
 
@@ -157,23 +181,39 @@ class SITREP:
 
             else:
                 log_message += " - Node doesn't have lastHeard or hopsAway data"
-                
-
             print(log_message)
-            print(node)
         
         if self.nodes_connected <=20:
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
             response_string = str(self.nodes_connected)
-
         return response_string
     
+    def get_time_difference_string(self, last_heard): # HH:MM - Date Z last heard
+        now = datetime.datetime.now()
+        time_difference_in_seconds = now.timestamp() - last_heard # in seconds  
+        time_difference_hours = int(time_difference_in_seconds // 3600)
+        # Buffer hours to at least 2 digits
+        if time_difference_hours < 10:
+            time_difference_hours = "0" + str(time_difference_hours)
+        time_difference_minutes = int(time_difference_in_seconds % 60)
+        # Buffer minutes to 2 digits
+        if time_difference_minutes < 10:
+            time_difference_minutes = "0" + str(time_difference_minutes)
+        date_time = self.get_date_time_in_zulu(datetime.datetime.fromtimestamp(last_heard))
+        return f"{time_difference_hours}:{time_difference_minutes} - {date_time}"
+
     def lookup_short_name(self, interface, node_num):
         for node in interface.nodes.values():
             if node["num"] == node_num:
                 return node["user"]["shortName"]
         return "Unknown"
+    
+    def lookup_node_by_short_name(self, interface, short_name):
+        for node in interface.nodes.values():
+            if node["user"]["shortName"] == short_name:
+                return node
+        return None
     
     def send_report(self, interface, channelId, to_id):
         for line in self.lines:

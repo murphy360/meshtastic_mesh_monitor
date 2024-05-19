@@ -1,10 +1,10 @@
 FROM ubuntu:latest
 
 # Install dependencies
-RUN apt-get update && apt-get install -y python3 
+RUN apt update && apt install -y python3 
 
 # Install pip
-RUN python3 -m ensurepip --upgrade
+RUN apt install python3-pip
 
 # Install Meshtastic
 RUN pip3 install meshtastic
