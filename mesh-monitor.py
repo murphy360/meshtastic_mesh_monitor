@@ -64,45 +64,51 @@ def onReceive(packet, interface):
             return
 
         
-        if 'decoded' in packet and packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
-            print(f"Received Text Message Packet: {packet}")
-            message_bytes = packet['decoded']['payload']
+        if 'decoded' in packet:
+            node_of_interest = sitrep.is_packet_from_node_of_interest(interface, packet)
+            if node_of_interest:
+                node_short_name = lookup_short_name(packet['from'])
+                print(f"Packet received from node of interest: {node_short_name} {packet['decoded']['portnum']}")
+            else:
+                print(f"Packet received from node: {lookup_short_name(packet['from'])} {packet['decoded']['portnum']}")
+
+            if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
+                message_bytes = packet['decoded']['payload']
+                message_string = message_bytes.decode('utf-8')
+                
+                if 'toId' in packet:
+                    to_id = packet['to']
+                    # If the message is sent to local node, reply to the sender
+                    if to_id == localNode.nodeNum:
+                        print ("Message sent directly to local node")
+                        reply_to_message(message_string, 0, packet['from'])
+                        return   
+                    # If the message is sent to a channel, check if we should respond      
+                    elif 'channel' in packet:
+                        print (f"Message sent to channel {packet['channel']} from {packet['from']}")
+                        #converst string to integer
+                        channelId = int(packet['channel'])
+                        reply_to_message(message_string, channelId, "^all")
+                        return
+                    # If the message is broadcast to all nodes, check if we should respond  
+                    elif packet['toId'] == "^all":
+                        print ("Message broadcast to all nodes from {packet['from']}")
+                        reply_to_message(message_string, 0, "^all")
+                        return  
             
-            print(f"Message Bytes: {message_bytes}")
-            message_string = message_bytes.decode('utf-8')
-            
-            if 'toId' in packet:
-                to_id = packet['to']
-                # If the message is sent to local node, reply to the sender
-                if to_id == localNode.nodeNum:
-                    print ("Message sent directly to local node")
-                    reply_to_message(message_string, 0, packet['from'])
-                    return   
-                # If the message is sent to a channel, check if we should respond      
-                elif 'channel' in packet:
-                    print (f"Message sent to channel {packet['channel']} from {packet['from']}")
-                    #converst string to integer
-                    channelId = int(packet['channel'])
-                    reply_to_message(message_string, channelId, "^all")
-                    return
-                # If the message is broadcast to all nodes, check if we should respond  
-                elif packet['toId'] == "^all":
-                    print ("Message broadcast to all nodes from {packet['from']}")
-                    reply_to_message(message_string, 0, "^all")
-                    return  
-        if 'decoded' in packet and packet['decoded']['portnum'] == 'POSITION_APP':
-            print(f"Received Position Packet: {packet}")
-            # if altitude is present and high enough to be an aircraft, log it
-            # Also send a message to the channel 2 and the suspected aircraft
-            if 'altitude' in packet['decoded']['position']:
-                altitude = int(packet['decoded']['position']['altitude'])
-                if altitude > 1000:
-                    sitrep.log_packet_received("position_app_aircraft")
-                    # send message and report the node name, altitude, speed, heading and location
-                    node_short_name = lookup_short_name(packet['from'])
-                    message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
-                    send_message(message, 2, "^all")
-                    return
+            if packet['decoded']['portnum'] == 'POSITION_APP':
+                print(f"Received Position Packet: {packet}")
+                # if altitude is present and high enough to be an aircraft, log it
+                # Also send a message to the channel 2 and the suspected aircraft
+                if 'altitude' in packet['decoded']['position']:
+                    altitude = int(packet['decoded']['position']['altitude'])
+                    if altitude > 1000:
+                        sitrep.log_packet_received("position_app_aircraft")
+                        # send message and report the node name, altitude, speed, heading and location
+                        node_short_name = lookup_short_name(packet['from'])
+                        message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
+                        send_message(message, 2, "^all")
+                        return
         
             sitrep.log_packet_received("position_app")
             return

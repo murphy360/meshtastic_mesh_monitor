@@ -47,12 +47,13 @@ class SITREP:
         self.line5 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
+        self.nodes_of_interest = ["AYBO", "DP01"]
 
     def update_sitrep(self, interface):
         self.lines = []
         self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.get_date_time_in_zulu()} SITREP is as follows:"
         self.lines.append(self.reportHeader)
-        self.line1 = "Line 1: Nodes connected in the past 24 hours: " + str(self.count_nodes_connected(interface))
+        self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
         self.line2 = "Line 2: Packets Received: " + str(self.count_packets_received())
         self.lines.append(self.line2)
@@ -65,7 +66,14 @@ class SITREP:
         self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
         return
-
+    
+    def build_node_of_interest_report(self, line_number, interface):
+        # Report on the nodes of interest
+        num_nodes = 0
+        report_string = ""
+        for node_name in self.nodes_of_interest:
+            node = interface.getNode(node_name)
+            
     def get_date_time_in_zulu(self):
         # format time in 24 hour time and in Zulu time (0000Z 23 APR 2024)
         now = datetime.datetime.now()
@@ -88,6 +96,13 @@ class SITREP:
         print(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
         return
     
+    def is_packet_from_node_of_interest(self, interface, packet):
+        # check if from node is in list of nodes of interest (by short name)
+        from_node_short_name = self.lookup_short_name(interface, packet['from'])
+        if from_node_short_name in self.nodes_of_interest:
+            print(f"Packet received from node of interest: {from_node_short_name}")
+            return True
+
     def count_packets_received(self):
         total_packets = 0
         for packet_type in self.packets_received:
@@ -108,19 +123,57 @@ class SITREP:
             total_messages += self.messages_sent[message_type]
         return total_messages
     
-    def count_nodes_connected(self, interface):
+    def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         self.nodes_connected = 0
+        
+        response_string = ""
         for node in interface.nodes.values():
             log_message = f"Node ID: {node['user']['id']} Long Name: {node['user']['longName']} Short Name: {node['user']['shortName']}"
-            if "lastHeard" in node:
-                #print("Last Heard:", node["lastHeard"])
-                log_message += f" Last Heard: {node['lastHeard']}"
-                self.nodes_connected += 1
+            if self.localNode.nodeNum == node["num"]:
+                log_message += " - Local Node"
+                continue
+            
+            hops_away = 0
             if "hopsAway" in node:
-                log_message += f" Hops Away: {node['hopsAway']}"
-                print("Hops Away:", node["hopsAway"])
+                hops_away = node["hopsAway"]
+                log_message += f" Hops Away: {hops_away}"
+            
+            if "lastHeard" in node:
+                now = datetime.datetime.now()
+                time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
+                if time_difference_in_seconds < (time_threshold_minutes*60): 
+                    time_difference_hours = time_difference_in_seconds // 60 # // is integer division (no remainder) will give hours
+                    time_difference_minutes = time_difference_in_seconds % 60 # % is modulo division will give minutes
+                    log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
+
+                    if hops_away <= hop_threshold:
+                        log_message += f" Hops Away: {hops_away}"
+                        response_string += " " + node['user']['shortName']
+                        self.nodes_connected += 1
+                    else:
+                        log_message += f" - Node is more than {hop_threshold} hops away"
+                else:
+                    log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
+
+            else:
+                log_message += " - Node doesn't have lastHeard or hopsAway data"
+                
+
             print(log_message)
-        return self.nodes_connected
+            print(node)
+        
+        if self.nodes_connected <=20:
+            response_string = str(self.nodes_connected) + " (" + response_string + ")"
+        else:
+            response_string = str(self.nodes_connected)
+
+        return response_string
+    
+    def lookup_short_name(self, interface, node_num):
+        for node in interface.nodes.values():
+            if node["num"] == node_num:
+                return node["user"]["shortName"]
+        return "Unknown"
     
     def send_report(self, interface, channelId, to_id):
         for line in self.lines:
