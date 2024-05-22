@@ -42,7 +42,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     global sitrep
     sitrep = SITREP(localNode, short_name, long_name)
-    location = find_my_city(localNode)
+    location = find_my_city(localNode.nodeNum)
     send_message(f"Hello from {short_name} in {location}", 2, "^all")
     return
     
@@ -162,11 +162,20 @@ def lookup_long_name(node_num):
             return n["user"]["longName"]
     return "Unknown"
 
-def find_my_city(node):
-    nodeLat = node.position.latitude
-    nodeLon = node.position.longitude
+def find_my_city(node_num):
+    for node in interface.nodes.values():
+        if node["num"] == node_num:
+            nodeLat = node["position"]["latitude"]
+            nodeLon = node["position"]["longitude"]
+            break
     geolocator = geopy.Nominatim(user_agent="mesh-monitor")
-    location = geolocator.reverse((localNodeLat, localNodeLon))
+    location = geolocator.reverse((nodeLat, nodeLon))
+    if location:
+        return location.address
+    else:
+        return "Unknown"
+    
+    
     return location
     
 
