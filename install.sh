@@ -19,3 +19,4 @@ echo "Installing Meshtastic..."
 pip3 install --upgrade meshtastic
 
 echo "Installation complete!"
+deactivate # Deactivate virtual environment
