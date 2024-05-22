@@ -43,7 +43,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     global sitrep
     sitrep = SITREP(localNode, short_name, long_name)
     location = find_my_city(localNode.nodeNum)
-    send_message(f"Hello from {short_name} in {location}", 2, "^all")
+    send_message(f"CQ CQ CQ de {short_name} in {location}", 2, "^all")
     return
     
 
@@ -132,7 +132,11 @@ def onReceive(packet, interface):
 def reply_to_message(message, channel, to_id):
     message = message.lower()
     if message == "ping":
-        send_message("pong", channel, to_id)
+        city = find_my_city(localNode.nodeNum)
+        if city != "Unknown":
+            send_message(f"Pong from {city}", channel, to_id)
+        else:
+            send_message("Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
         return
     elif message == "sitrep":
@@ -171,7 +175,7 @@ def find_my_city(node_num):
     geolocator = geopy.Nominatim(user_agent="mesh-monitor")
     location = geolocator.reverse((nodeLat, nodeLon))
     if location:
-        return location.address
+        return location.raw['address']['city']
     else:
         return "Unknown"
     
