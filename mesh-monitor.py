@@ -1,8 +1,9 @@
+import datetime
 import meshtastic
 import meshtastic.tcp_interface
 from pubsub import pub
 # import sitrep
-from sitrep import SITREP   
+from sitrep import SITREP 
 
 reply_message = "Message Received"
 # global variable to store the local node
@@ -60,7 +61,8 @@ def onReceive(packet, interface):
     '''
     try:
         if localNode == "":
-            print("Local Node not set")
+            log_message += "Local Node not set"
+            print(log_message)
             return
 
         
@@ -97,21 +99,22 @@ def onReceive(packet, interface):
                         return  
             
             if packet['decoded']['portnum'] == 'POSITION_APP':
-                print(f"Received Position Packet: {packet}")
+                
+                node_short_name = lookup_short_name(packet['from'])
+                altitude = 0
+                print(f"Received Position Packet from {node_short_name}")
                 # if altitude is present and high enough to be an aircraft, log it
                 # Also send a message to the channel 2 and the suspected aircraft
                 if 'altitude' in packet['decoded']['position']:
                     altitude = int(packet['decoded']['position']['altitude'])
-                    if altitude > 1000:
+                    if altitude > 5000:
                         sitrep.log_packet_received("position_app_aircraft")
                         # send message and report the node name, altitude, speed, heading and location
-                        node_short_name = lookup_short_name(packet['from'])
                         message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
                         send_message(message, 2, "^all")
-                        return
-        
-            sitrep.log_packet_received("position_app")
-            return
+                else:
+                    sitrep.log_packet_received("position_app")
+                return                
 
         elif 'portnum' in packet['decoded']:
             packet_type = packet['decoded']['portnum']
