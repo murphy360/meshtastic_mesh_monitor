@@ -18,5 +18,9 @@ pip3 install --upgrade pytap2
 echo "Installing Meshtastic..."
 pip3 install --upgrade meshtastic
 
+# Install geopy
+echo "Installing geopy..."
+pip3 install --upgrade geopy
+
 echo "Installation complete!"
 deactivate # Deactivate virtual environment

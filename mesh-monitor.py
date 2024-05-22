@@ -1,4 +1,4 @@
-import datetime
+import geopy
 import meshtastic
 import meshtastic.tcp_interface
 from pubsub import pub
@@ -42,6 +42,8 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     global sitrep
     sitrep = SITREP(localNode, short_name, long_name)
+    location = find_my_city()
+    send_message(f"Hello from {short_name} in {location}", 2, "^all")
     return
     
 
@@ -159,6 +161,14 @@ def lookup_long_name(node_num):
         if n["num"] == node_num:
             return n["user"]["longName"]
     return "Unknown"
+
+def find_my_city():
+    localNodeLat = localNode["position"]["latitude"]
+    localNodeLon = localNode["position"]["longitude"]
+    geolocator = geopy.Nominatim(user_agent="mesh-monitor")
+    location = geolocator.reverse((localNodeLat, localNodeLon))
+    return location
+    
 
 def send_message (message, channel, to_id):
     interface.sendText(message, channelIndex=channel, destinationId=to_id)
