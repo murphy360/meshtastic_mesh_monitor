@@ -49,7 +49,7 @@ class SITREP:
         self.line5 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
-        self.nodes_of_interest = ["👽", "DP01", ]
+        self.nodes_of_interest = ["👽", "DP01", "DP04", "DP03"]
         print("SITREP Object Created")
 
     def update_sitrep(self, interface):
