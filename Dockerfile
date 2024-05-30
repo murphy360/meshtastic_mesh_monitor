@@ -1,13 +1,13 @@
-FROM ubuntu:latest
+# From ubuntu lts
+FROM ubuntu:20.04
 
 # Install dependencies
-RUN apt update && apt install -y python3 
+RUN apt-get update && apt-get install -y \
+python3 \
+python3-pip
 
-# Install pip
-RUN apt install python3-pip
-
-# Install Meshtastic
-RUN pip3 install meshtastic
+# Install Required Python Packages
+RUN pip3 install meshtastic geopy
 
 # Copy mesh-monitor.py to the container
 COPY mesh-monitor.py /app/mesh-monitor.py
