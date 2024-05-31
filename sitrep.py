@@ -26,6 +26,8 @@
 
 import datetime
 import time
+import logging
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
 class SITREP:
@@ -49,7 +51,7 @@ class SITREP:
         self.line5 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
-        self.nodes_of_interest = ["👽", "DP01", "DP04", "DP03"]
+        self.nodes_of_interest = ["👽", "DPSQ", "DP01", "AYBO"]
         print("SITREP Object Created")
 
     def update_sitrep(self, interface):
@@ -88,7 +90,6 @@ class SITREP:
                 if "hopsAway" in node:
                     report_string += " " + str(node["hopsAway"]) + " Hops."
                 elif "rxRssi" in node:
-                    print (node)
                     report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
                 elif "snr" in node:
                     report_string += " SNR: " + str(node["snr"]) + "dB."
@@ -181,7 +182,7 @@ class SITREP:
 
             else:
                 log_message += " - Node doesn't have lastHeard or hopsAway data"
-            print(log_message)
+
         
         if self.nodes_connected <=20:
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
@@ -217,7 +218,7 @@ class SITREP:
     
     def send_report(self, interface, channelId, to_id):
         for line in self.lines:
-            print(f"Sending line: {line}")
+            logging.info(f"Sending SITREP: {line}")
             interface.sendText(f"{line}", channelIndex=channelId, destinationId=to_id)
             # wait for x seconds before sending the next line
             time.sleep(2)
