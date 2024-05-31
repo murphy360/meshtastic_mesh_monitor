@@ -4,12 +4,13 @@ import meshtastic.tcp_interface
 from pubsub import pub
 # import sitrep
 from sitrep import SITREP 
-
-reply_message = "Message Received"
+import logging
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 # global variable to store the local node
 localNode = ""
 sitrep = ""
-print("Starting Mesh Monitor")
+reply_message = "Message Received"
+logging.info("Starting Mesh Monitor")
 host = '192.168.1.131' # TODO parameterize
 short_name = 'Monitor' # Overwritten in onConnection
 long_name = 'Mesh Monitor' # Overwritten in onConnection
@@ -17,7 +18,7 @@ interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
 
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
-    print("On Connection")
+    logging.info("Connection established")
     '''
     This function is called when the connection is established with the Meshtastic device.
     
@@ -29,16 +30,16 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     '''
     global localNode
     localNode = interface.getNode('^local')
-    print(localNode)
     global short_name
     short_name = lookup_short_name(localNode.nodeNum)
     global long_name
     long_name = lookup_long_name(localNode.nodeNum)
-    print ("**************************************************************")
-    print ("**************************************************************")
-    print (f"Mesh Monitor connected to {long_name} on {interface.hostname}")
-    print ("**************************************************************")
-    print ("**************************************************************")
+    logging.info(f"\n\n \
+                **************************************************************\n\n \
+                **************************************************************\n\n \
+                       Connected to {long_name} on {interface.hostname} \n\n \
+                **************************************************************\n\n \
+                **************************************************************\n\n ")
 
     global sitrep
     sitrep = SITREP(localNode, short_name, long_name)
@@ -48,7 +49,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     
 
 def onReceive(packet, interface):
-    print("On Receive")
+
     ''' 
     This function is called when a packet is received from the Meshtastic device.
     
@@ -63,20 +64,46 @@ def onReceive(packet, interface):
     '''
     try:
         if localNode == "":
-            log_message += "Local Node not set"
-            print(log_message)
+            logging.warning("Local node not set")
+            interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
             return
 
-        
+        node_short_name = lookup_short_name(packet['from'])
+        node_num = packet['from']
+
         if 'decoded' in packet:
             node_of_interest = sitrep.is_packet_from_node_of_interest(interface, packet)
-            if node_of_interest:
-                node_short_name = lookup_short_name(packet['from'])
-                print(f"Packet received from node of interest: {node_short_name} {packet['decoded']['portnum']}")
-            else:
-                print(f"Packet received from node: {lookup_short_name(packet['from'])} {packet['decoded']['portnum']}")
+            
+            portnum = packet['decoded']['portnum']
 
-            if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
+
+            
+            short_name_string_padded = node_short_name.ljust(4) # Pad the string to 4 characters
+            if len(node_short_name) == 1:
+                short_name_string_padded = node_short_name + "  "
+            log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum}"
+
+            if node_of_interest:
+                log_string += " - Node of interest detected!"  
+
+            logging.info(log_string)
+
+            ###### TEXT MESSAGE APP Message Format ######
+            '''
+            id: 164568121
+            rx_time: 1715476439
+            rx_snr: -12.75
+            hop_limit: 2
+            rx_rssi: -123
+            , 'fromId': '!29c1937f', 'toId': '^all'}
+            Received: {'from': 3662930676, 'to': 4294967295, 'decoded': {'portnum': 'TEXT_MESSAGE_APP', 'payload': b'Glad I can help AYBC I run that node', 'text': 'Glad I can help AYBC I run that node'}, 'id': 1633640990, 'rxTime': 1715476584, 'rxSnr': -7.5, 'rxRssi': -117, 'raw': from: 3662930676
+            to: 4294967295
+            decoded {
+            portnum: TEXT_MESSAGE_APP
+            payload: "Glad I can help AYBC I run that node"
+            }
+            '''
+            if portnum == 'TEXT_MESSAGE_APP':
                 message_bytes = packet['decoded']['payload']
                 message_string = message_bytes.decode('utf-8')
                 
@@ -84,13 +111,13 @@ def onReceive(packet, interface):
                     to_id = packet['to']
                     # If the message is sent to local node, reply to the sender
                     if to_id == localNode.nodeNum:
-                        print ("Message sent directly to local node")
+                        logging.info(f"Message sent to local node from {packet['from']}")
                         reply_to_message(message_string, 0, packet['from'])
                         return   
                     # If the message is sent to a channel, check if we should respond      
                     elif 'channel' in packet:
                         print (f"Message sent to channel {packet['channel']} from {packet['from']}")
-                        #converst string to integer
+                        #converts string to integer
                         channelId = int(packet['channel'])
                         reply_to_message(message_string, channelId, "^all")
                         return
@@ -100,37 +127,44 @@ def onReceive(packet, interface):
                         reply_to_message(message_string, 0, "^all")
                         return  
             
-            if packet['decoded']['portnum'] == 'POSITION_APP':
+            elif portnum == 'POSITION_APP':
                 
-                node_short_name = lookup_short_name(packet['from'])
                 altitude = 0
-                print(f"Received Position Packet from {node_short_name}")
                 # if altitude is present and high enough to be an aircraft, log it
                 # Also send a message to the channel 2 and the suspected aircraft
                 if 'altitude' in packet['decoded']['position']:
                     altitude = int(packet['decoded']['position']['altitude'])
                     if altitude > 5000:
+                        logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
                         sitrep.log_packet_received("position_app_aircraft")
                         # send message and report the node name, altitude, speed, heading and location
                         message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
                         send_message(message, 2, "^all")
                 else:
                     sitrep.log_packet_received("position_app")
-                return                
+                return    
 
-        elif 'portnum' in packet['decoded']:
-            packet_type = packet['decoded']['portnum']
-            from_name = lookup_short_name(packet['from'])
-            print(f"Received Packet: {packet_type} from {from_name}")
-            sitrep.log_packet_received(packet_type)
+            elif portnum == 'NEIGHBORINFO_APP':
+                sitrep.log_packet_received("neighborinfo_app")
+                logging.info(f"\n\n {packet} \n\n")
+                return            
+
+            elif 'portnum' in packet['decoded']:
+                packet_type = packet['decoded']['portnum']
+                sitrep.log_packet_received(packet_type)
+                return
+        else:
+            logging.info(f"Packet received from {node_short_name} - Encrypted")
+            sitrep.log_packet_received("Encrypted")
             return
-
                
     except KeyError as e:
-        print(f"Error processing packet: {e}")
+        logging.error(f"Error processing packet: {e}")
+
 
 def reply_to_message(message, channel, to_id):
     message = message.lower()
+    # Check if the message is a command
     if message == "ping":
         city = find_my_city(localNode.nodeNum)
         if city != "Unknown":
@@ -140,8 +174,6 @@ def reply_to_message(message, channel, to_id):
         sitrep.log_message_sent("ping-pong")
         return
     elif message == "sitrep":
-        # instantiate a new sitrep object
-        
         sitrep.update_sitrep(interface)
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
@@ -174,24 +206,23 @@ def find_my_city(node_num):
             break
     geolocator = geopy.Nominatim(user_agent="mesh-monitor")
     location = geolocator.reverse((nodeLat, nodeLon))
+    
     if location:
         return location.raw['address']['city']
     else:
         return "Unknown"
     
-    
-    return location
-    
-
 def send_message (message, channel, to_id):
     interface.sendText(message, channelIndex=channel, destinationId=to_id)
     node_name = to_id
     if to_id != "^all":
         node_name = lookup_short_name(to_id)
-    print (f"Sent: {message} to channel {channel} and node {node_name}")
+    logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 
 while True:
+    
+
     pass
