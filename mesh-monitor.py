@@ -1,3 +1,5 @@
+from asyncio import sleep
+import time
 import geopy
 import meshtastic
 import meshtastic.tcp_interface
@@ -11,7 +13,7 @@ localNode = ""
 sitrep = ""
 reply_message = "Message Received"
 logging.info("Starting Mesh Monitor")
-host = '192.168.1.131' # TODO parameterize
+host = '192.168.1.31' # TODO parameterize
 short_name = 'Monitor' # Overwritten in onConnection
 long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
@@ -204,9 +206,13 @@ def find_my_city(node_num):
             nodeLat = node["position"]["latitude"]
             nodeLon = node["position"]["longitude"]
             break
-    geolocator = geopy.Nominatim(user_agent="mesh-monitor")
-    location = geolocator.reverse((nodeLat, nodeLon))
-    
+    try:
+        geolocator = geopy.Nominatim(user_agent="mesh-monitor")
+        location = geolocator.reverse((nodeLat, nodeLon))
+    except Exception as e:
+        logging.error(f"Error with geolookup: {e}")
+        return "Unknown"
+
     if location:
         return location.raw['address']['city']
     else:
@@ -222,7 +228,35 @@ def send_message (message, channel, to_id):
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 
+def is_interface_alive(interface):
+    logging.info("Checking Interface")
+    try:
+        # Try to send a dummy message to the interface
+        ourNode = interface.getNode('^local')
+
+        lora_config = ourNode.localConfig.lora
+
+        # Get the enum value of modem_preset
+        modem_preset_enum = lora_config.modem_preset
+
+        logging.info(f"Modem preset: {modem_preset_enum}")
+        return True
+
+    except Exception as e:
+        logging.error(f"Error checking interface: {e}")
+    
+    return False
+    
 while True:
     
 
-    pass
+    # stop 10 seconds without blocking the publisher
+    logging.info("Sleeping...")
+    time.sleep(10)
+    logging.info("Waking up...")
+    is_interface_alive(interface)
+    
+        
+
+    
+    
