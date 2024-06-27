@@ -168,6 +168,7 @@ def reply_to_message(message, channel, to_id):
     message = message.lower()
     # Check if the message is a command
     if message == "ping":
+        city = "Unknown"
         city = find_my_city(localNode.nodeNum)
         if city != "Unknown":
             send_message(f"Pong from {city}", channel, to_id)
@@ -206,17 +207,25 @@ def find_my_city(node_num):
             nodeLat = node["position"]["latitude"]
             nodeLon = node["position"]["longitude"]
             break
+
     try:
-        geolocator = geopy.Nominatim(user_agent="mesh-monitor")
+        geolocator = geopy.Nominatim(user_agent="mesh-monitor", timeout=10)
         location = geolocator.reverse((nodeLat, nodeLon))
+        if location:
+            logging.info(f"Location: {location.raw}")
+            if 'address' in location.raw:
+                logging.info("Received address in Location")
+                if 'city' in location.raw['address']:
+                    logging.info("City in Address")
+                    return location.raw['address']['city']
+                elif 'town' in location.raw['address']:
+                    logging.info("Town in Address")
+                    return location.raw['address']['town']
     except Exception as e:
         logging.error(f"Error with geolookup: {e}")
         return "Unknown"
-
-    if location:
-        return location.raw['address']['city']
-    else:
-        return "Unknown"
+    
+    return "Unknown"
     
 def send_message (message, channel, to_id):
     interface.sendText(message, channelIndex=channel, destinationId=to_id)
