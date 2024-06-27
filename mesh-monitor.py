@@ -117,19 +117,19 @@ def onReceive(packet, interface):
                     # If the message is sent to local node, reply to the sender
                     if to_id == localNode.nodeNum:
                         logging.info(f"Message sent to local node from {packet['from']}")
-                        reply_to_message(message_string, 0, packet['from'])
+                        send_message("Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
                         return   
                     # If the message is sent to a channel, check if we should respond      
                     elif 'channel' in packet:
                         print (f"Message sent to channel {packet['channel']} from {packet['from']}")
                         #converts string to integer
                         channelId = int(packet['channel'])
-                        reply_to_message(message_string, channelId, "^all")
+                        reply_to_message(message_string, channelId, "^all", node_num)
                         return
                     # If the message is broadcast to all nodes, check if we should respond  
                     elif packet['toId'] == "^all":
                         print ("Message broadcast to all nodes from {packet['from']}")
-                        reply_to_message(message_string, 0, "^all")
+                        reply_to_message(message_string, 0, "^all", node_num)
                         return  
             
             elif portnum == 'POSITION_APP':
@@ -167,14 +167,16 @@ def onReceive(packet, interface):
         logging.error(f"Error processing packet: {e}")
 
 
-def reply_to_message(message, channel, to_id):
+def reply_to_message(message, channel, to_id, from_id):
     message = message.lower()
     # Check if the message is a command
     if message == "ping":
+        node_short_name = lookup_short_name(from_id)
+        local_node_short_name = lookup_short_name(localNode.nodeNum)
         city = "Unknown"
         city = find_my_city(localNode.nodeNum)
         if city != "Unknown":
-            send_message(f"Pong from {city}", channel, to_id)
+            send_message(f"{node_short_name} de {local_node_short_name}, Pong from {city}", channel, to_id)
         else:
             send_message("Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
@@ -184,10 +186,6 @@ def reply_to_message(message, channel, to_id):
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
         return 
-    elif to_id == localNode.nodeNum:
-        send_message(reply_message, channel, to_id)
-        sitrep.log_message_sent("reply-direct")
-        return
     else:
         print(f"Message not recognized: {message}. Not replying.")
         return 
