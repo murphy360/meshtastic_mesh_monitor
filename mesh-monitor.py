@@ -69,17 +69,16 @@ def onReceive(packet, interface):
             logging.warning("Local node not set")
             interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
             return
-
-        node_short_name = lookup_short_name(packet['from'])
+        
         node_num = packet['from']
+        node_short_name = lookup_short_name(node_num)
+        
 
         if 'decoded' in packet:
             node_of_interest = sitrep.is_packet_from_node_of_interest(interface, packet)
+            new_node = sitrep.is_packet_from_new_node(interface, packet)
             
             portnum = packet['decoded']['portnum']
-
-
-            
             short_name_string_padded = node_short_name.ljust(4) # Pad the string to 4 characters
             if len(node_short_name) == 1:
                 short_name_string_padded = node_short_name + "  "
@@ -87,6 +86,10 @@ def onReceive(packet, interface):
 
             if node_of_interest:
                 log_string += " - Node of interest detected!"  
+
+            if new_node:
+                log_string += " - New node detected!"
+                send_message(f"Welcome to the Mesh {node_short_name}! I'll respond to Ping and any Direct Messages!", 0, node_num)
 
             logging.info(log_string)
 

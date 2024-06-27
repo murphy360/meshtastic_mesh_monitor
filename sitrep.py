@@ -51,7 +51,8 @@ class SITREP:
         self.line5 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
-        self.nodes_of_interest = ["👽", "DPSQ", "DP01", "AYBO"]
+        self.nodes_of_interest = ["DPSQ", "DP00"]
+        self.known_nodes = []
         print("SITREP Object Created")
 
     def update_sitrep(self, interface):
@@ -122,9 +123,21 @@ class SITREP:
     
     def is_packet_from_node_of_interest(self, interface, packet):
         # check if from node is in list of nodes of interest (by short name)
+        logging.info("is_packet_from_node_of_interest")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name in self.nodes_of_interest:
             print(f"Packet received from node of interest: {from_node_short_name}")
+            return True
+        return False
+
+    def is_packet_from_new_node(self, interface, packet):
+        # check if from node is in list of known nodes
+        logging.info("is_packet_from_new_node")
+        logging.info(f"Checking if packet is from a new node")
+        from_node_short_name = self.lookup_short_name(interface, packet['from'])
+        if from_node_short_name not in self.known_nodes:
+            logging.info(f"New Node Detected: {from_node_short_name}")
+            self.known_nodes.append(from_node_short_name)
             return True
         return False
 
@@ -205,12 +218,16 @@ class SITREP:
         return f"{time_difference_hours}:{time_difference_minutes} - {date_time}"
 
     def lookup_short_name(self, interface, node_num):
+        logging.info(f"Sitrep: Looking up short name for node: {node_num}")
         for node in interface.nodes.values():
             if node["num"] == node_num:
-                return node["user"]["shortName"]
+                node_short_name = node["user"]["shortName"]
+                logging.info(f"Node found: {node_short_name}")
+                return node_short_name
         return "Unknown"
     
     def lookup_node_by_short_name(self, interface, short_name):
+        logging.info(f"Sitrep: Looking up node by short name: {short_name}")
         for node in interface.nodes.values():
             if node["user"]["shortName"] == short_name:
                 return node
