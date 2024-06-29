@@ -45,7 +45,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     global sitrep
     sitrep = SITREP(localNode, short_name, long_name)
-    location = find_my_city(localNode.nodeNum)
+    location = find_my_location(localNode.nodeNum)
     send_message(f"CQ CQ CQ de {short_name} in {location}", 2, "^all")
     return
     
@@ -173,10 +173,10 @@ def reply_to_message(message, channel, to_id, from_id):
     if message == "ping":
         node_short_name = lookup_short_name(from_id)
         local_node_short_name = lookup_short_name(localNode.nodeNum)
-        city = "Unknown"
-        city = find_my_city(localNode.nodeNum)
-        if city != "Unknown":
-            send_message(f"{node_short_name} de {local_node_short_name}, Pong from {city}", channel, to_id)
+        location = "Unknown"
+        location = find_my_location(localNode.nodeNum)
+        if location != "Unknown":
+            send_message(f"{node_short_name} de {local_node_short_name}, Pong from {location}", channel, to_id)
         else:
             send_message("Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
@@ -202,7 +202,7 @@ def lookup_long_name(node_num):
             return n["user"]["longName"]
     return "Unknown"
 
-def find_my_city(node_num):
+def find_my_location(node_num):
     for node in interface.nodes.values():
         if node["num"] == node_num:
             nodeLat = node["position"]["latitude"]
