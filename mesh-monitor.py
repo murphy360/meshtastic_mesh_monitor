@@ -222,6 +222,12 @@ def find_my_city(node_num):
                 elif 'town' in location.raw['address']:
                     logging.info("Town in Address")
                     return location.raw['address']['town']
+                elif 'municipality' in location.raw['address']:
+                    logging.info("Municipality in Address")
+                    return location.raw['address']['municipality']
+                elif 'county' in location.raw['address']:
+                    logging.info("County in Address")
+                    return location.raw['address']['county']
     except Exception as e:
         logging.error(f"Error with geolookup: {e}")
         return "Unknown"
