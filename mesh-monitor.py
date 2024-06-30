@@ -11,13 +11,13 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 # global variable to store the local node
 localNode = ""
 sitrep = ""
+connected = False
 reply_message = "Message Received"
 logging.info("Starting Mesh Monitor")
 host = '192.168.1.31' # TODO parameterize
 short_name = 'Monitor' # Overwritten in onConnection
 long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
-
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info("Connection established")
@@ -30,11 +30,11 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     :param interface: The interface object that is connected to the Meshtastic device.
     :param topic: The topic of the connection.
     '''
-    global localNode
+    global localNode, connected, short_name, long_name, sitrep
     localNode = interface.getNode('^local')
-    global short_name
+    connected = True
     short_name = lookup_short_name(localNode.nodeNum)
-    global long_name
+
     long_name = lookup_long_name(localNode.nodeNum)
     logging.info(f"\n\n \
                 **************************************************************\n\n \
@@ -43,12 +43,19 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
                 **************************************************************\n\n \
                 **************************************************************\n\n ")
 
-    global sitrep
+
     sitrep = SITREP(localNode, short_name, long_name)
     location = find_my_location(localNode.nodeNum)
     send_message(f"CQ CQ CQ de {short_name} in {location}", 2, "^all")
     return
-    
+
+def on_lost_meshtastic_connection(interface):
+    logging.info("Disconnected")
+    global connected
+    connected = False
+    time.sleep(10)
+    interface.close()
+    interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
 
 def onReceive(packet, interface):
 
@@ -205,8 +212,14 @@ def lookup_long_name(node_num):
 def find_my_location(node_num):
     for node in interface.nodes.values():
         if node["num"] == node_num:
-            nodeLat = node["position"]["latitude"]
-            nodeLon = node["position"]["longitude"]
+            print(f"Node: {node}")
+            if 'position' in node:
+                print(f"Position: {node['position']}")
+                if 'latitude' in node['position'] and 'longitude' in node['position']:
+                    nodeLat = node["position"]["latitude"]
+                    nodeLon = node["position"]["longitude"]
+                else:
+                    return "Unknown"
             break
 
     try:
@@ -243,19 +256,15 @@ def send_message (message, channel, to_id):
 
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
+  # Subscribe to lost connection event
+pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
+
 
 def is_interface_alive(interface):
     logging.info("Checking Interface")
     try:
         # Try to send a dummy message to the interface
-        ourNode = interface.getNode('^local')
-
-        lora_config = ourNode.localConfig.lora
-
-        # Get the enum value of modem_preset
-        modem_preset_enum = lora_config.modem_preset
-
-        logging.info(f"Modem preset: {modem_preset_enum}")
+        
         return True
 
     except Exception as e:
@@ -264,15 +273,18 @@ def is_interface_alive(interface):
     return False
     
 while True:
+    if not connected:
+        logging.info("Not connected, trying to connect")
+        try:
+            interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
+        except Exception as e:
+            logging.error(f"Error connecting to interface: {e}")
+            continue
+    else:
+        logging.info("Connected to Radio")
     
 
     # stop 10 seconds without blocking the publisher
     logging.info("Sleeping...")
     time.sleep(10)
     logging.info("Waking up...")
-    is_interface_alive(interface)
-    
-        
-
-    
-    
