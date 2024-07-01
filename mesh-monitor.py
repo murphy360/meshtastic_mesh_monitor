@@ -20,6 +20,7 @@ short_name = 'Monitor' # Overwritten in onConnection
 long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = None
 sitrep = SITREP(localNode, short_name, long_name)
+initial_connect = True
 
 def connect_to_radio(host):
     '''
@@ -48,26 +49,31 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         None
     """
     logging.info("Connection established")
-    global localNode, connected, short_name, long_name, sitrep
+    global localNode, connected, short_name, long_name, sitrep, initial_connect
     localNode = interface.getNode('^local')
     connected = True
     short_name = lookup_short_name(interface, localNode.nodeNum)
 
     long_name = lookup_long_name(interface, localNode.nodeNum)
     logging.info(f"\n\n \
-                **************************************************************\n\n \
+                **************************************************************\n \
                 **************************************************************\n\n \
                        Connected to {long_name} on {interface.hostname} \n\n \
-                **************************************************************\n\n \
+                **************************************************************\n \
                 **************************************************************\n\n ")
 
 
     sitrep.set_local_node(localNode)
     sitrep.set_short_name(short_name)
     sitrep.set_long_name(long_name)
+    sitrep.log_connect()
+    
 
-    location = find_my_location(interface, localNode.nodeNum)
-    send_message(interface, f"CQ CQ CQ de {short_name} in {location}", 2, "^all")
+    # Send initial message to all nodes only on initial connect (not on reconnect)
+    if initial_connect:
+        initial_connect = False
+        location = find_my_location(interface, localNode.nodeNum)
+        send_message(interface, f"CQ CQ CQ de {short_name} in {location}", 2, "^all")
     return
 
 def on_lost_meshtastic_connection(interface):
@@ -306,7 +312,10 @@ while True:
     else:
         connect_timeout = 30
         localNode = interface.getNode('^local')
-        
-        logging.info("Connected to Radio, Sleeping...")
+
+        # Get radio uptime
+        my_node_num = interface.myInfo.my_node_num
+        pos = interface.nodesByNum[my_node_num]["position"]
+        logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
     time.sleep(connect_timeout)
