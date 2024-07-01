@@ -50,11 +50,13 @@ class SITREP:
         self.line2 = "" # Messages Received
         self.line3 = "" # Messages Sent
         self.line4 = "" # Aircraft Tracks
-        self.line5 = "" # Intentions
+        self.line5 = "" # Connection Events
+        self.line6 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
         self.nodes_of_interest = ["DPSQ", "DP00"]
         self.known_nodes = []
+        self.num_connections = 0
         print("SITREP Object Created")
 
     def update_sitrep(self, interface):
@@ -70,8 +72,10 @@ class SITREP:
         self.lines.append(self.line3)
         self.line4 = "Line 4: Packets Received: " + str(self.count_packets_received())
         self.lines.append(self.line4)
-        self.line5 = "Line 5: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
+        self.line5 = "Line 5: Number of Connection Events: " + str(self.num_connections)
         self.lines.append(self.line5)
+        self.line6 = "Line 6: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
+        self.lines.append(self.line6)
         self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
         return
@@ -239,6 +243,10 @@ class SITREP:
         else:
             response_string = str(self.nodes_connected)
         return response_string
+    
+    def log_connect(self):
+        self.num_connections += 1
+        return
     
     def get_time_difference_string(self, last_heard): # HH:MM - Date Z last heard
         now = datetime.datetime.now()
