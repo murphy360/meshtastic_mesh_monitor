@@ -27,7 +27,7 @@
 import datetime
 import time
 import logging
-from influxdb import InfluxDBClient
+#from influxdb import InfluxDBClient
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
