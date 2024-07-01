@@ -21,17 +21,33 @@ long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = None
 sitrep = SITREP(localNode, short_name, long_name)
 
-def onConnection(interface, topic=pub.AUTO_TOPIC):
-    logging.info("Connection established")
+def connect_to_radio(host):
     '''
-    This function is called when the connection is established with the Meshtastic device.
-    
-    It sets the localNode variable to the interface object that is connected to the Meshtastic device.
-    It also prints basic information about the node and the connection.
+    This function connects to the Meshtastic device using the TCPInterface.
 
-    :param interface: The interface object that is connected to the Meshtastic device.
-    :param topic: The topic of the connection.
+    :param host: The IP address or hostname of the Meshtastic device.
+    :return: The interface object that is connected to the Meshtastic device.
     '''
+    interface = None
+    try:
+        interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
+    except Exception as e:
+        logging.error(f"Error connecting to interface: {e}")
+    
+    return interface
+
+def onConnection(interface, topic=pub.AUTO_TOPIC):
+    """
+    Callback function that is called when a connection is established.
+
+    Args:
+        interface: The interface object representing the connection.
+        topic: The topic of the connection (default: pub.AUTO_TOPIC).
+
+    Returns:
+        None
+    """
+    logging.info("Connection established")
     global localNode, connected, short_name, long_name, sitrep
     localNode = interface.getNode('^local')
     connected = True
@@ -91,7 +107,7 @@ def onReceive(packet, interface):
 
         # Filter outgoing packets
         if packet['from'] == localNode.nodeNum:
-            logging.info(f"Packet received from {node_short_name} - Outgoing packet")
+            logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
             return
         
 
@@ -188,37 +204,7 @@ def onReceive(packet, interface):
     except KeyError as e:
         logging.error(f"Error processing packet: {e}")
 
-def connect_to_radio(host):
-    interface = None
-    try:
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
-    except Exception as e:
-        logging.error(f"Error connecting to interface: {e}")
-    
-    return interface
 
-def reply_to_message(interface, message, channel, to_id, from_id):
-    message = message.lower()
-    # Check if the message is a command
-    if message == "ping":
-        node_short_name = lookup_short_name(interface, from_id)
-        local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
-        location = "Unknown"
-        location = find_my_location(interface, localNode.nodeNum)
-        if location != "Unknown":
-            send_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}", channel, to_id)
-        else:
-            send_message(interface, "Pong", channel, to_id)
-        sitrep.log_message_sent("ping-pong")
-        return
-    elif message == "sitrep":
-        sitrep.update_sitrep(interface)
-        sitrep.send_report(interface, channel, to_id)
-        sitrep.log_message_sent("sitrep-requested")
-        return 
-    else:
-        print(f"Message not recognized: {message}. Not replying.")
-        return 
 
 def lookup_short_name(interface, node_num):
     for n in interface.nodes.values():
@@ -267,7 +253,30 @@ def find_my_location(interface, node_num):
         return "Unknown"
     
     return "Unknown"
-    
+
+def reply_to_message(interface, message, channel, to_id, from_id):
+    message = message.lower()
+    # Check if the message is a command
+    if message == "ping":
+        node_short_name = lookup_short_name(interface, from_id)
+        local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
+        location = "Unknown"
+        location = find_my_location(interface, localNode.nodeNum)
+        if location != "Unknown":
+            send_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}", channel, to_id)
+        else:
+            send_message(interface, "Pong", channel, to_id)
+        sitrep.log_message_sent("ping-pong")
+        return
+    elif message == "sitrep":
+        sitrep.update_sitrep(interface)
+        sitrep.send_report(interface, channel, to_id)
+        sitrep.log_message_sent("sitrep-requested")
+        return 
+    else:
+        print(f"Message not recognized: {message}. Not replying.")
+        return  
+       
 def send_message (interface, message, channel, to_id):
     interface.sendText(message, channelIndex=channel, destinationId=to_id)
     node_name = to_id
@@ -295,7 +304,9 @@ while True:
             logging.error(f"Error connecting to interface: {e}")
             continue
     else:
-        connect_timeout = 10
+        connect_timeout = 30
+        localNode = interface.getNode('^local')
+        
         logging.info("Connected to Radio, Sleeping...")
     
     time.sleep(connect_timeout)
