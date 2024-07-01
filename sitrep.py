@@ -27,6 +27,8 @@
 import datetime
 import time
 import logging
+from influxdb import InfluxDBClient
+
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
@@ -98,7 +100,19 @@ class SITREP:
                 report_string += node_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
         return report_string
-       
+    
+    def set_local_node(self, localNode):
+        self.localNode = localNode
+        return
+
+    def set_short_name(self, shortName):
+        self.shortName = shortName
+        return
+
+    def set_long_name(self, longName):
+        self.longName = longName
+        return
+     
     def get_date_time_in_zulu(self, date):
         # format time in 24 hour time and in Zulu time (0000Z 23 APR 2024)
         
@@ -113,12 +127,35 @@ class SITREP:
     def get_channels_monitored(self):
         return self.channels_monitored
     
+    def save_packet_to_db(self, packet):
+
+        # Save packet to InfluxDB
+        packet_info = {
+            "measurement": "packets",
+            "tags": {
+                "packet_id": packet['id'],
+                "packet_from_id": packet['fromId'],
+                "packet_to_id": packet['toId'],
+                "packet_portnum": packet['decoded']['portnum'],
+                "packet_payload": packet['decoded']['payload']
+            },
+            "time": packet['rxTime'],
+            "fields": {
+                "packet_rx_snr": packet['rxSnr'],
+                "packet_hop_limit": packet['hopLimit'],
+                "packet_rx_rssi": packet['rxRssi']
+            }
+        }
+        #self.influxdb_client.write_points([packet_info])
+        return
+    
     def log_packet_received(self, packet_type):
         if packet_type in self.packets_received:
             self.packets_received[packet_type] += 1
         else:
             self.packets_received[packet_type] = 1
         print(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
+        
         return
     
     def is_packet_from_node_of_interest(self, interface, packet):
