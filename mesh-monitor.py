@@ -3,6 +3,7 @@ import time
 import geopy
 import meshtastic
 import meshtastic.tcp_interface
+from sqlitehelper import SQLiteHelper
 from pubsub import pub
 # import sitrep
 from sitrep import SITREP 
@@ -21,6 +22,12 @@ long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = None
 sitrep = SITREP(localNode, short_name, long_name)
 initial_connect = True
+db_helper = SQLiteHelper("mesh_monitor.db") # instantiate the SQLiteHelper class
+db_helper.connect() # connect to the SQLite database
+
+db_helper.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
+
+
 
 def connect_to_radio(host):
     '''
@@ -118,9 +125,12 @@ def onReceive(packet, interface):
         
 
         if 'decoded' in packet:
+            
+            node = interface.nodesByNum[node_num]
+            new_node = db_helper.add_or_update_node(node)
             node_of_interest = sitrep.is_packet_from_node_of_interest(interface, packet)
-            new_node = sitrep.is_packet_from_new_node(interface, packet)
-            #sitrep.save_packet_to_db(packet)
+            db_helper.set_node_of_interest(node, node_of_interest)
+            node_of_interest = db_helper.is_node_of_interest(node)
 
             portnum = packet['decoded']['portnum']
             short_name_string_padded = node_short_name.ljust(4) # Pad the string to 4 characters
@@ -132,7 +142,12 @@ def onReceive(packet, interface):
                 log_string += " - Node of interest detected!"  
 
             if new_node:
+                
+    
+
                 log_string += " - New node detected!"
+                
+
                 send_message(interface, f"Welcome to the Mesh {node_short_name}! I'll respond to Ping and any Direct Messages!", 0, node_num)
 
             logging.info(log_string)
@@ -189,6 +204,11 @@ def onReceive(packet, interface):
                         # send message and report the node name, altitude, speed, heading and location
                         message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
                         send_message(message, 2, "^all")
+                        # send message to the suspected aircraft
+                        message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
+                        send_message(message, 2, node_num)
+                        # Add the aircraft to nodes of interest
+                        sitrep.add_node_of_interest(node_short_name)
                 else:
                     sitrep.log_packet_received("position_app")
                 return    

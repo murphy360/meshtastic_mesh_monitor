@@ -27,6 +27,8 @@
 import datetime
 import time
 import logging
+import json
+
 #from influxdb import InfluxDBClient
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -47,9 +49,9 @@ class SITREP:
         self.nodes_connected = 0
         self.reportHeader = ""
         self.line1 = "" # Local Nodes
-        self.line2 = "" # Messages Received
-        self.line3 = "" # Messages Sent
-        self.line4 = "" # Aircraft Tracks
+        self.line2 = "" # Aircraft Tracks
+        self.line3 = "" # Nodes of Interest
+        self.line4 = "" # Packets Received
         self.line5 = "" # Connection Events
         self.line6 = "" # Intentions
         self.reportFooter = ""
@@ -78,6 +80,14 @@ class SITREP:
         self.lines.append(self.line6)
         self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
+        return
+    
+    def add_node_of_interest(self, node_short_name):
+        self.nodes_of_interest.append(node_short_name)
+        return
+    
+    def remove_node_of_interest(self, node_short_name):
+        self.nodes_of_interest.remove(node_short_name)
         return
     
     def build_node_of_interest_report(self, line_number, interface):
@@ -177,8 +187,10 @@ class SITREP:
         logging.info(f"Checking if packet is from a new node")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name not in self.known_nodes:
-            logging.info(f"New Node Detected: {from_node_short_name}")
+            logging.info(f"New Node Detected Sitrep: {from_node_short_name}")
             self.known_nodes.append(from_node_short_name)
+            
+        
             return True
         return False
 
@@ -284,3 +296,12 @@ class SITREP:
             interface.sendText(f"{line}", channelIndex=channelId, destinationId=to_id)
             # wait for x seconds before sending the next line
             time.sleep(2)
+    
+    def write_node_info_to_file(node_info, file_path):
+        with open(file_path, 'w') as file:
+            json.dump(node_info, file)
+
+    def read_node_info_from_file(file_path):
+        with open(file_path, 'r') as file:
+            node_info = json.load(file)
+            return node_info
