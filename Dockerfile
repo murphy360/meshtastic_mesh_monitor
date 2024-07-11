@@ -17,6 +17,9 @@ COPY mesh-monitor.py /app/mesh-monitor.py
 # Copy sitrep.py to the container
 COPY sitrep.py /app/sitrep.py
 
+# Copy sqlitehelper.py to the container
+COPY sqlitehelper.py /app/sqlitehelper.py
+
 # Set the working directory
 WORKDIR /app
 
