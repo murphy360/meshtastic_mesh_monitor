@@ -22,7 +22,7 @@ long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = None
 sitrep = SITREP(localNode, short_name, long_name)
 initial_connect = True
-db_helper = SQLiteHelper("mesh_monitor.db") # instantiate the SQLiteHelper class
+db_helper = SQLiteHelper("data/mesh_monitor.db") # instantiate the SQLiteHelper class
 db_helper.connect() # connect to the SQLite database
 
 db_helper.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
