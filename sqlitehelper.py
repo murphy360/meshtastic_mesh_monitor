@@ -75,13 +75,13 @@ class SQLiteHelper:
         if result:
             # Update the existing node
             new = False
-            logging.info(f"Updating node {node_id}")
+            logging.info(f"Updating node {node_id} {shortname} {longname} {macaddr} {hwModel} {lastHeard} {battery} {voltage} {channelUtilization} {airUtilTx} {uptimeSeconds} {updated_at}")
             query = "UPDATE node_database SET shortname = ?, longname = ?, macaddr = ?, hwModel = ?, lastHeard = ?, batteryLevel = ?, voltage = ?, channelUtilization = ?, airUtilTx = ?, uptimeSeconds = ?, updated_at = ? WHERE id = ?"
             self.conn.execute(query, (shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, updated_at, node_id))
         else:
             # Insert a new node
             new = True
-            logging.info(f"Adding new node {node_id}")
+            logging.info(f"Adding new node {node_id} {shortname} {longname} {macaddr} {hwModel} {lastHeard} {battery} {voltage} {channelUtilization} {airUtilTx} {uptimeSeconds} {created_at}")
             query = "INSERT INTO node_database (num, id, shortname, longname, macaddr, hwModel, lastHeard, batteryLevel, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             self.conn.execute(query, (num, node_id, shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at))
         self.conn.commit()
