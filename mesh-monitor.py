@@ -16,16 +16,15 @@ connected = False
 connect_timeout = 10
 reply_message = "Message Received"
 logging.info("Starting Mesh Monitor")
-host = '192.168.1.31' # TODO parameterize
+host = '192.168.254.142' # TODO parameterize
 short_name = 'Monitor' # Overwritten in onConnection
 long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = None
-sitrep = SITREP(localNode, short_name, long_name)
-initial_connect = True
 db_helper = SQLiteHelper("data/mesh_monitor.db") # instantiate the SQLiteHelper class
-db_helper.connect() # connect to the SQLite database
+sitrep = SITREP(localNode, short_name, long_name, db_helper)
+initial_connect = True
 
-db_helper.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
+#db_helper.connect() # connect to the SQLite database
 
 
 
@@ -128,11 +127,9 @@ def onReceive(packet, interface):
             
             node = interface.nodesByNum[node_num]
             new_node = db_helper.add_or_update_node(node)
-            node_of_interest = sitrep.is_packet_from_node_of_interest(interface, packet)
-            db_helper.set_node_of_interest(node, node_of_interest)
             node_of_interest = db_helper.is_node_of_interest(node)
-
             portnum = packet['decoded']['portnum']
+            sitrep.log_packet_received(portnum)
             short_name_string_padded = node_short_name.ljust(4) # Pad the string to 4 characters
             if len(node_short_name) == 1:
                 short_name_string_padded = node_short_name + "  "
@@ -140,15 +137,9 @@ def onReceive(packet, interface):
 
             if node_of_interest:
                 log_string += " - Node of interest detected!"  
-
             if new_node:
-                
-    
-
                 log_string += " - New node detected!"
-                
-
-                send_message(interface, f"Welcome to the Mesh {node_short_name}! I'll respond to Ping and any Direct Messages!", 0, node_num)
+                send_message(interface, f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!", 0, node_num)
 
             logging.info(log_string)
 
@@ -197,30 +188,31 @@ def onReceive(packet, interface):
                 # if altitude is present and high enough to be an aircraft, log it
                 # Also send a message to the channel 2 and the suspected aircraft
                 if 'altitude' in packet['decoded']['position']:
+                    logging.info(f"Position packet received from {node_short_name} - Altitude: {packet['decoded']['position']['altitude']}")
                     altitude = int(packet['decoded']['position']['altitude'])
                     if altitude > 5000:
                         logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
-                        sitrep.log_packet_received("position_app_aircraft")
+                        
                         # send message and report the node name, altitude, speed, heading and location
                         message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
                         send_message(message, 2, "^all")
+                        
                         # send message to the suspected aircraft
                         message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
                         send_message(message, 2, node_num)
-                        # Add the aircraft to nodes of interest
-                        sitrep.add_node_of_interest(node_short_name)
+                        
+                        # Start tracking node as an aircraft.  Can be removed by the user by remove aircraft command
+                        db_helper.set_aircraft(node, True)
                 else:
-                    sitrep.log_packet_received("position_app")
+                    logging.info(f"Position packet received from {node_short_name} - No altitude data")
                 return    
 
             elif portnum == 'NEIGHBORINFO_APP':
-                sitrep.log_packet_received("neighborinfo_app")
-                logging.info(f"\n\n {packet} \n\n")
+                logging.info(f"Neighbor Info Packet Received from {node_short_name}")
                 return            
 
             elif 'portnum' in packet['decoded']:
                 packet_type = packet['decoded']['portnum']
-                sitrep.log_packet_received(packet_type)
                 return
         else:
             logging.info(f"Packet received from {node_short_name} - Encrypted")
@@ -230,7 +222,15 @@ def onReceive(packet, interface):
     except KeyError as e:
         logging.error(f"Error processing packet: {e}")
 
-
+def lookup_node(interface, node_generic_identifier):
+    node_generic_identifier = node_generic_identifier.lower()
+    for n in interface.nodes.values():
+        node_short_name = n["user"]["shortName"].lower()
+        node_long_name = n["user"]["longName"].lower()
+        if node_generic_identifier in [node_short_name, node_long_name]:
+            return n
+        
+    return None
 
 def lookup_short_name(interface, node_num):
     for n in interface.nodes.values():
@@ -281,7 +281,11 @@ def find_my_location(interface, node_num):
     return "Unknown"
 
 def reply_to_message(interface, message, channel, to_id, from_id):
+    
     message = message.lower()
+    logging.info(f"Replying to message: {message}")
+    print("removeaircraft" in message)
+    print("setnoi" in message)
     # Check if the message is a command
     if message == "ping":
         node_short_name = lookup_short_name(interface, from_id)
@@ -299,6 +303,57 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
         return 
+    # check if message contains set or unset node of interest
+    
+    elif "set node of interest" in message or "setnoi" in message:
+        logging.info("Setting node of interest")
+        node_short_name = message.split(" ")[-1] # get the last word in the message
+        node_short_name = node_short_name.lower()
+        print (f"Node short name: {node_short_name}")
+        send_message(interface, f"Setting {node_short_name} as a node of interest", channel, to_id)
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_node_of_interest(node, True)
+            sitrep.add_node_of_interest(node_short_name) #TODO Remove
+            send_message(interface, f"{node_short_name} is now a node of interest", channel, to_id)
+            sitrep.log_message_sent("node-of-interest-set")
+        else:
+            send_message(interface, f"Node {node_short_name} not found. Please use the short name", channel, to_id)
+        return
+    elif "remove node of interest" in message or "removenoi" in message:
+        logging.info("Removing node of interest")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_node_of_interest(node, False)
+            sitrep.remove_node_of_interest(node_short_name)
+            send_message(interface, f"{node_short_name} is no longer a node of interest", channel, to_id)
+            sitrep.log_message_sent("node-of-interest-unset")
+        else:
+            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+        return
+    elif "set aircraft" in message or "setaircraft" in message:
+        logging.info("Setting aircraft")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_aircraft(node, True)
+            send_message(interface, f"{node_short_name} is now an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-set")
+        else:
+            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+        return
+    elif "remove aircraft" in message or "removeaircraft" in message:
+        logging.info("Removing aircraft")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_aircraft(node, False)
+            send_message(interface, f"{node_short_name} is no longer tracked as an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-unset")
+        else:
+            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+        return
     else:
         print(f"Message not recognized: {message}. Not replying.")
         return  

@@ -35,10 +35,11 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
 class SITREP:
-    def __init__(self, localNode, shortName, longName):
+    def __init__(self, localNode, shortName, longName, dbHelper):
         self.localNode = localNode
         self.shortName = shortName
         self.longName = longName
+        self.dbHelper = dbHelper
         self.date = self.get_date_time_in_zulu(datetime.datetime.now())
         self.messages_received = []
         # Dictionary to store the number of packets received for each packet type
@@ -52,7 +53,7 @@ class SITREP:
         self.line2 = "" # Aircraft Tracks
         self.line3 = "" # Nodes of Interest
         self.line4 = "" # Packets Received
-        self.line5 = "" # Connection Events
+        self.line5 = "" # Uptime
         self.line6 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
@@ -63,18 +64,21 @@ class SITREP:
 
     def update_sitrep(self, interface):
         now = datetime.datetime.now()
+        self.update_nodes_of_interest_from_db()
+        self.update_aircraft_tracks_from_db()
+        node = self.lookup_node_by_short_name(interface, self.shortName)
         self.lines = []
         self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.get_date_time_in_zulu(now)} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
-        self.line2 = "Line 2: Aircraft Tracks: " + str(self.packets_received["position_app_aircraft"])
+        self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2, interface)
         self.lines.append(self.line2)
         self.line3 = "Line 3: Nodes of Interest: " + self.build_node_of_interest_report(3, interface)
         self.lines.append(self.line3)
         self.line4 = "Line 4: Packets Received: " + str(self.count_packets_received())
         self.lines.append(self.line4)
-        self.line5 = "Line 5: Number of Connection Events: " + str(self.num_connections)
+        self.line5 = "Line 5: Uptime: " + self.get_node_uptime(node) + ". Reconnections: " + str(self.num_connections)
         self.lines.append(self.line5)
         self.line6 = "Line 6: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line6)
@@ -90,19 +94,28 @@ class SITREP:
         self.nodes_of_interest.remove(node_short_name)
         return
     
-    def build_node_of_interest_report(self, line_number, interface):
+    def update_nodes_of_interest_from_db(self):
+        self.nodes_of_interest = self.dbHelper.get_nodes_of_interest()
+        logging.info(f"Nodes of Interest: {self.nodes_of_interest}")
+        return
+    
+    def update_aircraft_tracks_from_db(self):
+        self.aircraft_tracks = self.dbHelper.get_aircraft_nodes()
+        return
+    
+    def build_aircraft_tracks_report(self, line_number, interface):
         # Report on the nodes of interest
         num_nodes = 0
         report_string = ""
         # iterate through alphbet A-Z, AA-ZZ, AAA-ZZZ
         line_letter = "A"
 
-        for node_name in self.nodes_of_interest:
-            node = self.lookup_node_by_short_name(interface, node_name)
+        for node_short_name in self.aircraft_tracks:
+            node = self.lookup_node_by_short_name(interface, node_short_name)
             report_string += "\n" + str(line_number) + "." + line_letter + ". "           
             if node is not None:
                 num_nodes += 1
-                report_string += node_name + " - " + self.get_time_difference_string(node["lastHeard"])
+                report_string += node_short_name + " - " + self.get_time_difference_string(node["lastHeard"])
                 # Check hops away
                 if "hopsAway" in node:
                     report_string += " " + str(node["hopsAway"]) + " Hops."
@@ -111,7 +124,33 @@ class SITREP:
                 elif "snr" in node:
                     report_string += " SNR: " + str(node["snr"]) + "dB."
             else: 
-                report_string += node_name + " - Not Found"
+                report_string += node_short_name + " - Not Found"
+            line_letter = chr(ord(line_letter) + 1)
+        return report_string
+
+    
+    def build_node_of_interest_report(self, line_number, interface):
+        # Report on the nodes of interest
+        num_nodes = 0
+        report_string = ""
+        # iterate through alphbet A-Z, AA-ZZ, AAA-ZZZ
+        line_letter = "A"
+
+        for node_short_name in self.nodes_of_interest:
+            node = self.lookup_node_by_short_name(interface, node_short_name)
+            report_string += "\n" + str(line_number) + "." + line_letter + ". "           
+            if node is not None:
+                num_nodes += 1
+                report_string += node_short_name + " - " + self.get_time_difference_string(node["lastHeard"])
+                # Check hops away
+                if "hopsAway" in node:
+                    report_string += " " + str(node["hopsAway"]) + " Hops."
+                elif "rxRssi" in node:
+                    report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
+                elif "snr" in node:
+                    report_string += " SNR: " + str(node["snr"]) + "dB."
+            else: 
+                report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
         return report_string
     
@@ -140,6 +179,18 @@ class SITREP:
     
     def get_channels_monitored(self):
         return self.channels_monitored
+    
+    def get_node_uptime(self, node):
+        # Get the uptime of a node in Days, Hours, Minutes, Seconds
+        return_string = ""
+        uptime_seconds_total = node["deviceMetrics"]["uptimeSeconds"]
+        uptime_seconds_total = int(uptime_seconds_total)
+        uptime_days = uptime_seconds_total // 86400
+        uptime_hours = (uptime_seconds_total % 86400) // 3600
+        uptime_minutes = (uptime_seconds_total % 3600) // 60
+        uptime_seconds = uptime_seconds_total % 60
+        return_string = f"{uptime_days} Days, {uptime_hours} Hours, {uptime_minutes} Minutes, {uptime_seconds} Seconds"
+        return return_string
     
     def save_packet_to_db(self, packet):
 
@@ -231,6 +282,7 @@ class SITREP:
             
             if "lastHeard" in node:
                 now = datetime.datetime.now()
+                print(f"Last Heard: {node['lastHeard']}")
                 time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
                 if time_difference_in_seconds < (time_threshold_minutes*60): 
                     time_difference_hours = time_difference_in_seconds // 3600 # // is integer division (no remainder) will give hours
@@ -294,8 +346,7 @@ class SITREP:
         for line in self.lines:
             logging.info(f"Sending SITREP: {line}")
             interface.sendText(f"{line}", channelIndex=channelId, destinationId=to_id)
-            # wait for x seconds before sending the next line
-            time.sleep(2)
+            time.sleep(5) # sleep for 5 seconds between each line
     
     def write_node_info_to_file(node_info, file_path):
         with open(file_path, 'w') as file:

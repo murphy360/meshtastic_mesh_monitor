@@ -6,8 +6,10 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 class SQLiteHelper:
     def __init__(self, db_name):
         self.db_name = db_name
-        self.conn = self.connect()
-
+        self.connect()
+        self.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
+        # create a table that tracks packets received and sent
+        self.create_table("packet_database", "key INTEGER PRIMARY KEY, packet_type TEXT, created_at TEXT, updated_at TEXT, from_node TEXT, to_node TEXT, decoded TEXT, channel TEXT")
 
     def connect(self):
         """Connect to the SQLite database"""
@@ -102,6 +104,24 @@ class SQLiteHelper:
         self.conn.commit()
         logging.info(f"Node {node['user']['id']} is set as node of interest: {node_of_interest}")
 
+    def is_aircraft(self, node):
+        """Check if a node is an aircraft"""
+        query = "SELECT aircraft FROM node_database WHERE id = ?"
+        cursor = self.conn.execute(query, (node["user"]["id"],))
+        result = cursor.fetchone()
+        
+        if result:
+            return result[0]
+        return False
+    
+    def set_aircraft(self, node, aircraft):
+        """Set a node as an aircraft"""
+        query = "UPDATE node_database SET aircraft = ? WHERE id = ?"
+        self.conn.execute(query, (aircraft, node["user"]["id"]))
+        self.conn.commit()
+        logging.info(f"Node {node['user']['id']} is set as aircraft: {aircraft}")
+
+
     def create_table(self, table_name, columns):
         """Create a new table in the database"""
         query = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns})"
@@ -137,6 +157,26 @@ class SQLiteHelper:
         """Close the database connection"""
         self.conn.close()
 
+    def get_nodes_of_interest(self):
+        """Get all nodes of interest from the node database and return them as a list of shortname"""
+        nodes_of_interest = []
+        query = "SELECT shortname FROM node_database WHERE nodeOfInterest = 1"
+        cursor = self.conn.execute(query)
+        results = cursor.fetchall()
+        for result in results:
+            nodes_of_interest.append(result[0])
+        return nodes_of_interest
+
+    def get_aircraft_nodes(self):
+        """Get all aircraft from the node database and return them as a list of shortname"""
+        aircraft = []
+        query = "SELECT shortname FROM node_database WHERE aircraft = 1"
+        cursor = self.conn.execute(query)
+        results = cursor.fetchall()
+        for result in results:
+            aircraft.append(result[0])
+        return aircraft
+    
 # Example usage
 if __name__ == "__main__":
     # Create an instance of SQLiteHelper
