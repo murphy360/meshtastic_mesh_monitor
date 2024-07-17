@@ -167,7 +167,7 @@ def onReceive(packet, interface):
                     # If the message is sent to local node, reply to the sender
                     if to_id == localNode.nodeNum:
                         logging.info(f"Message sent to local node from {packet['from']}")
-                        send_message("Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
+                        send_message(interface, "Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
                         return   
                     # If the message is sent to a channel, check if we should respond      
                     elif 'channel' in packet:
@@ -195,11 +195,11 @@ def onReceive(packet, interface):
                         
                         # send message and report the node name, altitude, speed, heading and location
                         message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
-                        send_message(message, 2, "^all")
+                        send_message(interface, message, 2, "^all")
                         
                         # send message to the suspected aircraft
                         message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
-                        send_message(message, 2, node_num)
+                        send_message(interface, message, 2, node_num)
                         
                         # Start tracking node as an aircraft.  Can be removed by the user by remove aircraft command
                         db_helper.set_aircraft(node, True)
