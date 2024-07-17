@@ -1,4 +1,5 @@
 from asyncio import sleep
+import socket
 import time
 import geopy
 import meshtastic
@@ -16,7 +17,7 @@ connected = False
 connect_timeout = 10
 reply_message = "Message Received"
 logging.info("Starting Mesh Monitor")
-host = '192.168.254.142' # TODO parameterize
+host = 'meshtastic.local'
 short_name = 'Monitor' # Overwritten in onConnection
 long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = None
@@ -24,9 +25,24 @@ db_helper = SQLiteHelper("data/mesh_monitor.db") # instantiate the SQLiteHelper 
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 
+
+
 #db_helper.connect() # connect to the SQLite database
 
+def resolve_hostname(hostname):
+    '''
+    This function resolves the hostname to an IP address.
 
+    :param hostname: The hostname to resolve.
+    :return: The IP address of the hostname.
+    '''
+    try:
+        ip = socket.gethostbyname(hostname)
+    except Exception as e:
+        logging.error(f"Error resolving hostname: {e}")
+        ip = None
+
+    return ip
 
 def connect_to_radio(host):
     '''
@@ -371,12 +387,17 @@ pub.subscribe(onConnection, "meshtastic.connection.established")
   # Subscribe to lost connection event
 pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 
+
+
 # Main loop
 while True:
     if not connected:
         logging.info("Not connected to Radio, trying to connect")
         try:
-            interface = connect_to_radio(host)
+            print ("resolved hostname")
+            ip = resolve_hostname(host)
+            print (f"Resolved IP: {ip}")
+            interface = connect_to_radio(ip)
             if interface:
                 logging.info("Connection to Radio Established.")
             else:
