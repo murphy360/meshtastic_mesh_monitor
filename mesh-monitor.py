@@ -359,6 +359,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         return  
        
 def send_message (interface, message, channel, to_id):
+    logging.info(f"Sending message: {message} to channel {channel} and node {to_id}")
     interface.sendText(message, channelIndex=channel, destinationId=to_id)
     node_name = to_id
     if to_id != "^all":
