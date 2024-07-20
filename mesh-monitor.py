@@ -40,7 +40,7 @@ def resolve_hostname(hostname):
         ip = socket.gethostbyname(hostname)
     except Exception as e:
         logging.error(f"Error resolving hostname: {e}")
-        ip = None
+        ip = "192.168.254.81"
 
     return ip
 
