@@ -153,6 +153,7 @@ def onReceive(packet, interface):
 
             if node_of_interest:
                 log_string += " - Node of interest detected!"  
+                check_node_health(interface, node)
             if new_node:
                 log_string += " - New node detected!"
                 send_message(interface, f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!", 0, node_num)
@@ -237,6 +238,23 @@ def onReceive(packet, interface):
                
     except KeyError as e:
         logging.error(f"Error processing packet: {e}")
+
+def check_node_health(interface, node):
+    if "deviceMetrics" not in node:
+        return
+    
+    # check if battery level is low
+    if node["deviceMetrics"]["batteryLevel"] < 20:
+        send_message(interface, f"Warning: {node['user']['shortName']} has low battery", 2, "^all")
+    # check if node has been heard from in the last 24 hours
+    if node["lastHeard"] < time.time() - 86400:
+        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 24 hours", 2, "^all")
+    # check if node has been heard from in the last 48 hours
+    if node["lastHeard"] < time.time() - 172800:
+        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 48 hours", 2, "^all")
+    # check if node has been heard from in the last 72 hours
+    if node["lastHeard"] < time.time() - 259200:
+        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 72 hours", 2, "^all")
 
 def lookup_node(interface, node_generic_identifier):
     node_generic_identifier = node_generic_identifier.lower()
