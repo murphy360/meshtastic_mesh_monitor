@@ -41,6 +41,8 @@ def resolve_hostname(hostname):
     except Exception as e:
         logging.error(f"Error resolving hostname: {e}")
         ip = "192.168.254.81"
+        logging.info(f"Using default IP address {ip}")
+        
 
     return ip
 
@@ -412,7 +414,7 @@ while True:
     if not connected:
         logging.info("Not connected to Radio, trying to connect")
         try:
-            print ("resolved hostname")
+            print (f"Trying to resolve hostname: {host}")
             ip = resolve_hostname(host)
             print (f"Resolved IP: {ip}")
             interface = connect_to_radio(ip)
