@@ -17,6 +17,7 @@ printf "\n\n\n***************************************************\n"
 printf "Changing directory to ~/docker...\n"
 printf "***************************************************\n\n\n"
 cd ~/docker
+ls -la
 
 # Run Docker Compose in detached mode
 printf "\n\n\n***************************************************\n"
