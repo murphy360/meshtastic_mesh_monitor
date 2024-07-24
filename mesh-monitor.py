@@ -383,7 +383,6 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.set_node_of_interest(node, True)
-            sitrep.add_node_of_interest(node_short_name) #TODO Remove
             send_message(interface, f"{node_short_name} is now a node of interest", channel, to_id)
             sitrep.log_message_sent("node-of-interest-set")
         else:
@@ -395,7 +394,6 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.set_node_of_interest(node, False)
-            sitrep.remove_node_of_interest(node_short_name)
             send_message(interface, f"{node_short_name} is no longer a node of interest", channel, to_id)
             sitrep.log_message_sent("node-of-interest-unset")
         else:
