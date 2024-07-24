@@ -29,4 +29,4 @@ docker compose up -d
 printf "\n\n\n***************************************************\n"
 printf "Running docker logs -f...\n"
 printf "***************************************************\n\n\n"
-docker logs -f meshtastic_mesh_monitor
+docker logs -f meshtastic-mesh-monitor
