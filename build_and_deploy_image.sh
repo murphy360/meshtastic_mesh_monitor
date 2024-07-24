@@ -1,20 +1,20 @@
 #!/bin/bash
 
 # git pull
-printf "Pulling the latest changes from the repository...\n"
+print "Pulling the latest changes from the repository...\n"
 git pull
 
 # Build the Docker image
-printf "Building the Docker image...\n"
+print "Building the Docker image...\n"
 docker build -t meshtastic_mesh_monitor .
 
 # Change directory to ~/docker
-printf "Changing directory to ~/docker...\n"
+print "Changing directory to ~/docker...\n"
 cd ~/docker
 
 # Run Docker Compose in detached mode
-printf "***************************************************"
-printf "Running Docker Compose in detached mode...\n"
-printf "***************************************************"
+print "***************************************************"
+print "Running Docker Compose in detached mode...\n"
+print "***************************************************"
 
 docker compose up -d
