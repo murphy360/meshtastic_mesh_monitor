@@ -7,7 +7,7 @@ printf "***************************************************\n\n\n"
 git pull
 
 # Build the Docker image
-print "***************************************************\n"
+printf "***************************************************\n"
 printf "Building the Docker image...\n"
 printf "***************************************************\n\n\n"
 docker build -t meshtastic_mesh_monitor .
