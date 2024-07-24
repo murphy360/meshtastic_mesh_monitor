@@ -24,3 +24,9 @@ printf "\n\n\n***************************************************\n"
 printf "Running Docker Compose in detached mode...\n"
 printf "***************************************************\n\n\n"
 docker compose up -d
+
+# run docker logs -f
+printf "\n\n\n***************************************************\n"
+printf "Running docker logs -f...\n"
+printf "***************************************************\n\n\n"
+docker logs -f meshtastic_mesh_monitor
