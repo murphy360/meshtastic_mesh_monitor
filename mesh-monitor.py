@@ -304,6 +304,9 @@ def find_my_location(interface, node_num):
                 elif 'town' in location.raw['address']:
                     logging.info("Town in Address")
                     return location.raw['address']['town']
+                elif 'township' in location.raw['address']:
+                    logging.info("Township in Address")
+                    return location.raw['address']['township']
                 elif 'municipality' in location.raw['address']:
                     logging.info("Municipality in Address")
                     return location.raw['address']['municipality']
