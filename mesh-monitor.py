@@ -2,6 +2,7 @@ from asyncio import sleep
 import socket
 import time
 import geopy
+from geopy import distance
 import meshtastic
 import meshtastic.tcp_interface
 from sqlitehelper import SQLiteHelper
@@ -280,6 +281,21 @@ def lookup_long_name(interface, node_num):
             return n["user"]["longName"]
     return "Unknown"
 
+def find_distance_between_nodes(interface, node1, node2):
+    logging.info(f"Finding distance between {node1} and {node2}")
+    return_string = "Unknown"
+    for n in interface.nodes.values():
+        if n["num"] == node1:
+            node1Lat = n["position"]["latitude"]
+            node1Lon = n["position"]["longitude"]
+        if n["num"] == node2:
+            node2Lat = n["position"]["latitude"]
+            node2Lon = n["position"]["longitude"]
+    if node1Lat and node1Lon and node2Lat and node2Lon:
+        return_string = geopy.distance.distance((node1Lat, node1Lon), (node2Lat, node2Lon)).miles
+    
+    return return_string
+
 def find_my_location(interface, node_num):
     for node in interface.nodes.values():
         if node["num"] == node_num:
@@ -323,18 +339,32 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     
     message = message.lower()
     logging.info(f"Replying to message: {message}")
-    print("removeaircraft" in message)
-    print("setnoi" in message)
+    from_node = interface.nodesByNum[from_id]
+    logging.info(f"From Node: {from_node}")
+
     # Check if the message is a command
     if message == "ping":
         node_short_name = lookup_short_name(interface, from_id)
         local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
+
         location = "Unknown"
         location = find_my_location(interface, localNode.nodeNum)
-        if location != "Unknown":
+
+
+        distance = "Unknown"
+        distance = find_distance_between_nodes(interface, from_node['num'], localNode.nodeNum)
+        
+
+
+        if distance != "Unknown":
+            # Round the distance to 2 decimal places
+            distance = round(distance, 2)
+            send_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+        elif location != "Unknown":
             send_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}", channel, to_id)
         else:
             send_message(interface, "Pong", channel, to_id)
+
         sitrep.log_message_sent("ping-pong")
         return
     elif message == "sitrep":
