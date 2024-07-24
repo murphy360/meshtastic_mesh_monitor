@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# git pull
+git pull
+
 # Build the Docker image
 docker build -t meshtastic_mesh_monitor .
 
