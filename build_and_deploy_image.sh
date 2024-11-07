@@ -12,11 +12,7 @@ printf "Building the Docker image...\n"
 printf "***************************************************\n\n\n"
 docker build -t meshtastic_mesh_monitor .
 
-# Change directory to ~/docker
-printf "\n\n\n***************************************************\n"
-printf "Changing directory to ~/docker...\n"
-printf "***************************************************\n\n\n"
-cd ~/docker
+docker image ls | grep mesh
 ls -la
 
 # Run Docker Compose in detached mode
@@ -29,4 +25,4 @@ docker compose up -d
 printf "\n\n\n***************************************************\n"
 printf "Running docker logs -f...\n"
 printf "***************************************************\n\n\n"
-docker logs -f meshtastic-mesh-monitor
+docker logs -f meshtastic_mesh_monitor

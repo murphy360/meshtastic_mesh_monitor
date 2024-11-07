@@ -14,12 +14,17 @@ class SQLiteHelper:
         self.create_table("position_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node_id TEXT, latitudeI TEXT, longitudeI TEXT, altitude TEXT, time TEXT, latitude TEXT, longitude TEXT")
 
     def connect(self):
-        """Write a test.txt file to the /data directory add a date time stamp"""
-        with open("/data/test.txt", "w") as f:
-            f.write(f"{datetime.datetime.now()}\n")
+        """Check if the SQLite database exists and connect to it"""
+        try:
+            logging.info(f"Connecting to {self.db_name}")
+            self.conn = sqlite3.connect(self.db_name, check_same_thread=False)
+            logging.info(f"Connected to SQLite database: {self.db_name}")
+        except sqlite3.Error as e:
+            logging.error(f"Error connecting to SQLite database: {e}")
+            """Write a test.txt file to the /data directory add a date time stamp"""
+            with open("/data/test.txt", "w") as f:
+                f.write(f"{datetime.datetime.now()}\n")
         
-        """Connect to the SQLite database"""
-        self.conn = sqlite3.connect(self.db_name, check_same_thread=False)
 
     def add_or_update_node(self, node):
         new = False

@@ -22,7 +22,7 @@ host = 'meshtastic.local'
 short_name = 'Monitor' # Overwritten in onConnection
 long_name = 'Mesh Monitor' # Overwritten in onConnection
 interface = None
-db_helper = SQLiteHelper("data/mesh_monitor.db") # instantiate the SQLiteHelper class
+db_helper = SQLiteHelper("/data/mesh_monitor.db") # instantiate the SQLiteHelper class
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 

@@ -1,6 +1,7 @@
 services:
   mesh-monitor:
-    image: meshtastic-mesh-monitor
+    image: meshtastic_mesh_monitor
+    container_name: meshtastic_mesh_monitor
     ports:
       - 8080:8080
     volumes:
