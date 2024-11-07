@@ -47,7 +47,7 @@ def resolve_hostname(hostname):
 
     return ip
 
-def connect_to_radio(host):
+def connect_to_radio():
     '''
     This function connects to the Meshtastic device using the TCPInterface.
 
@@ -55,8 +55,17 @@ def connect_to_radio(host):
     :return: The interface object that is connected to the Meshtastic device.
     '''
     interface = None
+    if RADIO_IP == "":
+
+        try: 
+            RADIO_IP = resolve_hostname(host)
+            logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
+        except Exception as e:
+            
+            logging.error(f"Error resolving hostname: {e}")
+        
     try:
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
+        interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
     
@@ -108,7 +117,7 @@ def on_lost_meshtastic_connection(interface):
     logging.info("Closing Old Interface...")
     interface.close()
     logging.info("Reconnecting...")
-    interface = connect_to_radio(host)
+    interface = connect_to_radio()
     return
 
 def onReceive(packet, interface):
@@ -441,14 +450,12 @@ pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 
 
 # Main loop
+logging.info("Starting Main Loop")
 while True:
     if not connected:
         logging.info("Not connected to Radio, trying to connect")
         try:
-            print (f"Trying to resolve hostname: {host}")
-            ip = resolve_hostname(host)
-            print (f"Resolved IP: {ip}")
-            interface = connect_to_radio(ip)
+            interface = connect_to_radio()
             if interface:
                 logging.info("Connection to Radio Established.")
             else:

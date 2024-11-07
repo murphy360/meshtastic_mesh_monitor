@@ -10,6 +10,8 @@ class SQLiteHelper:
         self.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
         # create a table that tracks packets received and sent
         self.create_table("packet_database", "key INTEGER PRIMARY KEY, packet_type TEXT, created_at TEXT, updated_at TEXT, from_node TEXT, to_node TEXT, decoded TEXT, channel TEXT")
+        # create a table that tracks position updates
+        self.create_table("position_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node_id TEXT, latitudeI TEXT, longitudeI TEXT, altitude TEXT, time TEXT, latitude TEXT, longitude TEXT")
 
     def connect(self):
         """Connect to the SQLite database"""
@@ -159,11 +161,13 @@ class SQLiteHelper:
 
     def get_nodes_of_interest(self):
         """Get all nodes of interest from the node database and return them as a list of shortname"""
+        logging.info("Getting nodes of interest")
         nodes_of_interest = []
         query = "SELECT shortname FROM node_database WHERE nodeOfInterest = 1"
         cursor = self.conn.execute(query)
         results = cursor.fetchall()
         for result in results:
+            logging.info(f"Node of interest: {result[0]}")
             nodes_of_interest.append(result[0])
         return nodes_of_interest
 

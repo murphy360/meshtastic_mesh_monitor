@@ -57,7 +57,7 @@ class SITREP:
         self.line6 = "" # Intentions
         self.reportFooter = ""
         self.lines = []
-        self.nodes_of_interest = ["DPSQ", "DP00"]
+        self.nodes_of_interest = []
         self.known_nodes = []
         self.num_connections = 0
         print("SITREP Object Created")

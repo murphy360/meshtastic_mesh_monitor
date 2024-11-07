@@ -1,0 +1,7 @@
+services:
+  mesh-monitor:
+    image: meshtastic-mesh-monitor
+    ports:
+      - 8080:8080
+    volumes:
+      - ~/mesh-monitor/data:/data
