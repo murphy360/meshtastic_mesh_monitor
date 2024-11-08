@@ -44,8 +44,13 @@ def resolve_hostname(hostname):
         ip = "192.168.254.81"
         logging.info(f"Using default IP address {ip}")
         
-
-    return ip
+    # Read in the RADIO_IP from the environment variables
+    if 'RADIO_IP' in globals():
+        logging.info(f"RADIO_IP: {RADIO_IP}")
+    else:
+        logging.info("RADIO_IP not set")
+        
+        return ip
 
 def connect_to_radio():
     '''

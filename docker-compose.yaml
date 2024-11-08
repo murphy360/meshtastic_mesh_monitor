@@ -2,6 +2,8 @@ services:
   mesh-monitor:
     image: meshtastic_mesh_monitor
     container_name: meshtastic_mesh_monitor
+    environment:
+      - RADIO_IP=192.168.68.83
     ports:
       - 8080:8080
     volumes:
