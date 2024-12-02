@@ -6,6 +6,15 @@ printf "Pulling the latest changes from the repository...\n"
 printf "***************************************************\n\n\n"
 git pull
 
+# Stop and remove the Docker container
+printf "\n\n\n***************************************************\n"
+printf "Stopping and removing the Docker container...\n"
+printf "***************************************************\n\n\n"
+docker compose down
+docker container ls -a | grep mesh
+docker container ls -a | grep mesh | awk '{print $1}' | xargs docker container rm
+
+
 # Build the Docker image
 printf "\n\n\n***************************************************\n"
 printf "Building the Docker image...\n"
