@@ -38,10 +38,11 @@ def resolve_hostname(hostname):
     :return: The IP address of the hostname.
     '''
     try:
+   
         ip = socket.gethostbyname(hostname)
     except Exception as e:
         logging.error(f"Error resolving hostname: {e}")
-        ip = "192.168.254.81"
+        ip = "192.168.68.57"
         logging.info(f"Using default IP address {ip}")
         
     # Read in the RADIO_IP from the environment variables
