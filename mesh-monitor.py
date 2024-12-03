@@ -259,6 +259,7 @@ def onReceive(packet, interface):
                
     except KeyError as e:
         logging.error(f"Error processing packet: {e}")
+        logging.error(f"Packet: {packet}")
 
 def check_node_health(interface, node):
     if "deviceMetrics" not in node:
