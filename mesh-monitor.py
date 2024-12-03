@@ -159,7 +159,6 @@ def onReceive(packet, interface):
             logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
             return
         
-
         if 'decoded' in packet:
             
             node = interface.nodesByNum[node_num]
@@ -304,12 +303,20 @@ def find_distance_between_nodes(interface, node1, node2):
     logging.info(f"Finding distance between {node1} and {node2}")
     return_string = "Unknown"
     for n in interface.nodes.values():
-        if n["num"] == node1:
-            node1Lat = n["position"]["latitude"]
-            node1Lon = n["position"]["longitude"]
-        if n["num"] == node2:
-            node2Lat = n["position"]["latitude"]
-            node2Lon = n["position"]["longitude"]
+        try:
+            if n["num"] == node1:
+                if 'position' not in n:
+                    return return_string
+                node1Lat = n["position"]["latitude"]
+                node1Lon = n["position"]["longitude"]
+            if n["num"] == node2:
+                if 'position' not in n:
+                    return return_string
+                node2Lat = n["position"]["latitude"]
+                node2Lon = n["position"]["longitude"]
+        except Exception as e:
+            logging.error(f"Error finding distance between nodes: {e}")
+            return return_string
     if node1Lat and node1Lon and node2Lat and node2Lon:
         return_string = geopy.distance.distance((node1Lat, node1Lon), (node2Lat, node2Lon)).miles
     
