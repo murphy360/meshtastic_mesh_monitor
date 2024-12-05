@@ -25,6 +25,7 @@ interface = None
 db_helper = SQLiteHelper("/data/mesh_monitor.db") # instantiate the SQLiteHelper class
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
+private_channel_number = 1
 
 
 
@@ -116,7 +117,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     if initial_connect:
         initial_connect = False
         location = find_my_location(interface, localNode.nodeNum)
-        send_message(interface, f"CQ CQ CQ de {short_name} in {location}", 2, "^all")
+        send_message(interface, f"CQ CQ CQ de {short_name} in {location}", private_channel_number, "^all")
     return
 
 def on_lost_meshtastic_connection(interface):
@@ -232,11 +233,11 @@ def onReceive(packet, interface):
                         
                         # send message and report the node name, altitude, speed, heading and location
                         message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
-                        send_message(interface, message, 2, "^all")
+                        send_message(interface, message, private_channel_number, "^all")
                         
                         # send message to the suspected aircraft
                         message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
-                        send_message(interface, message, 2, node_num)
+                        send_message(interface, message, private_channel_number, node_num)
                         
                         # Start tracking node as an aircraft.  Can be removed by the user by remove aircraft command
                         db_helper.set_aircraft(node, True)
@@ -266,16 +267,16 @@ def check_node_health(interface, node):
     
     # check if battery level is low
     if node["deviceMetrics"]["batteryLevel"] < 20:
-        send_message(interface, f"Warning: {node['user']['shortName']} has low battery", 2, "^all")
+        send_message(interface, f"Warning: {node['user']['shortName']} has low battery", private_channel_number, "^all")
     # check if node has been heard from in the last 24 hours
     if node["lastHeard"] < time.time() - 86400:
-        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 24 hours", 2, "^all")
+        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 24 hours", private_channel_number, "^all")
     # check if node has been heard from in the last 48 hours
     if node["lastHeard"] < time.time() - 172800:
-        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 48 hours", 2, "^all")
+        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 48 hours", private_channel_number, "^all")
     # check if node has been heard from in the last 72 hours
     if node["lastHeard"] < time.time() - 259200:
-        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 72 hours", 2, "^all")
+        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 72 hours", private_channel_number, "^all")
 
 def lookup_node(interface, node_generic_identifier):
     node_generic_identifier = node_generic_identifier.lower()
