@@ -1,4 +1,5 @@
 from asyncio import sleep
+import os
 import socket
 import time
 import geopy
@@ -40,18 +41,17 @@ def resolve_hostname(hostname):
     '''
     try:
    
-        ip = socket.gethostbyname(hostname)
+        ip = socket.getaddrinfo(hostname, None)[0][4][0] # Resolve the hostname to an IP address
     except Exception as e:
         logging.error(f"Error resolving hostname: {e}")
-        ip = "192.168.68.57"
-        logging.info(f"Using default IP address {ip}")
         
     # Read in the RADIO_IP from the environment variables
-    if 'RADIO_IP' in globals():
-        logging.info(f"RADIO_IP: {RADIO_IP}")
-    else:
-        logging.info("RADIO_IP not set")
-        
+    
+    try:
+        ip = os.environ['RADIO_IP']
+    except KeyError as e:
+        logging.error(f"Error reading RADIO_IP from environment variables: {e}")
+        ip = "192.168.68.72"
         return ip
 
 def connect_to_radio():
@@ -454,7 +454,11 @@ def reply_to_message(interface, message, channel, to_id, from_id):
        
 def send_message (interface, message, channel, to_id):
     logging.info(f"Sending message: {message} to channel {channel} and node {to_id}")
-    interface.sendText(message, channelIndex=channel, destinationId=to_id)
+    try:
+        interface.sendText(message, channelIndex=channel, destinationId=to_id)
+    except Exception as e:
+        logging.error(f"Error sending message: {e}")
+        return
     node_name = to_id
     if to_id != "^all":
         node_name = lookup_short_name(interface, to_id)
