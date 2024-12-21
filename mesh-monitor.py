@@ -52,7 +52,8 @@ def resolve_hostname(hostname):
     except KeyError as e:
         logging.error(f"Error reading RADIO_IP from environment variables: {e}")
         ip = "192.168.68.72"
-        return ip
+    
+    return ip
 
 def connect_to_radio():
     '''
