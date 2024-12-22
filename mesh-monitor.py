@@ -342,6 +342,10 @@ def find_distance_between_nodes(interface, node1, node2):
 def should_send_sitrep_after_midnight():
     global last_routine_sitrep_date
     today = datetime.date.today()
+    # Check if the last routine sitrep variable is not set
+    if not last_routine_sitrep_date:
+        last_routine_sitrep_date = today
+        return True
     if last_routine_sitrep_date != today:
         last_routine_sitrep_date = today
         return True
