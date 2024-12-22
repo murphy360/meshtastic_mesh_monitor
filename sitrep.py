@@ -62,8 +62,11 @@ class SITREP:
         self.num_connections = 0
         print("SITREP Object Created")
 
-    def update_sitrep(self, interface):
+    def update_sitrep(self, interface, is_routine_sitrep=False):
         now = datetime.datetime.now()
+        if is_routine_sitrep == True:
+            # Now = 0000Z
+            now = now.replace(hour=0, minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
         node = self.lookup_node_by_short_name(interface, self.shortName)
@@ -107,7 +110,7 @@ class SITREP:
         # Report on the nodes of interest
         num_nodes = 0
         report_string = ""
-        # iterate through alphbet A-Z, AA-ZZ, AAA-ZZZ
+        # iterate through alphabet A-Z, AA-ZZ, AAA-ZZZ
         line_letter = "A"
 
         for node_short_name in self.aircraft_tracks:

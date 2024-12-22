@@ -1,4 +1,5 @@
 from asyncio import sleep
+import datetime
 import os
 import socket
 import time
@@ -27,6 +28,7 @@ db_helper = SQLiteHelper("/data/mesh_monitor.db") # instantiate the SQLiteHelper
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 private_channel_number = 1
+
 
 
 
@@ -98,7 +100,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     localNode = interface.getNode('^local')
     connected = True
     short_name = lookup_short_name(interface, localNode.nodeNum)
-
     long_name = lookup_long_name(interface, localNode.nodeNum)
     logging.info(f"\n\n \
                 **************************************************************\n \
@@ -113,12 +114,14 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     sitrep.set_long_name(long_name)
     sitrep.log_connect()
     
-
     # Send initial message to all nodes only on initial connect (not on reconnect)
     if initial_connect:
         initial_connect = False
         location = find_my_location(interface, localNode.nodeNum)
         send_message(interface, f"CQ CQ CQ de {short_name} in {location}", private_channel_number, "^all")
+    else:
+        send_message(interface, f"Reconnected to the Mesh", private_channel_number, "^all")
+
     return
 
 def on_lost_meshtastic_connection(interface):
@@ -335,6 +338,14 @@ def find_distance_between_nodes(interface, node1, node2):
     
     return return_string
 
+# Check if this is the first message after midnight
+def should_send_sitrep_after_midnight():
+    global last_routine_sitrep_date
+    today = datetime.date.today()
+    if last_routine_sitrep_date != today:
+        last_routine_sitrep_date = today
+        return True
+
 def find_my_location(interface, node_num):
     for node in interface.nodes.values():
         if node["num"] == node_num:
@@ -510,6 +521,12 @@ while True:
         # Get radio uptime
         my_node_num = interface.myInfo.my_node_num
         pos = interface.nodesByNum[my_node_num]["position"]
+        
+        # Check if we should send a sitrep
+        if should_send_sitrep_after_midnight():
+            sitrep.update_sitrep(interface, True)
+            sitrep.send_report(interface, private_channel_number, "^all")
+
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
     time.sleep(connect_timeout)
