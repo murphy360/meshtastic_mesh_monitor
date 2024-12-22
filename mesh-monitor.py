@@ -28,7 +28,7 @@ db_helper = SQLiteHelper("/data/mesh_monitor.db") # instantiate the SQLiteHelper
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 private_channel_number = 1
-
+last_routine_sitrep_date = None
 
 
 
