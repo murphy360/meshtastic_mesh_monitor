@@ -255,7 +255,9 @@ def onReceive(packet, interface):
                 # If the packet is to this node, reply to the sender that you see them
                 if packet['to'] == localNode.nodeNum:
                     logging.info(f"Traceroute packet received from {node_short_name} - Replying")
-                    send_message(interface, f"Hello {node_short_name}, I see you!", 0, node_num)
+                    send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
+                    # Make node of interest
+                    db_helper.set_node_of_interest(node, True)
                 return          
 
             elif 'portnum' in packet['decoded']:
