@@ -248,7 +248,15 @@ def onReceive(packet, interface):
 
             elif portnum == 'NEIGHBORINFO_APP':
                 logging.info(f"Neighbor Info Packet Received from {node_short_name}")
-                return            
+                return  
+
+            elif portnum == 'TRACEROUTE_APP':
+                logging.info(f"Traceroute Packet Received from {node_short_name}")
+                # If the packet is to this node, reply to the sender that you see them
+                if packet['to'] == localNode.nodeNum:
+                    logging.info(f"Traceroute packet received from {node_short_name} - Replying")
+                    send_message(interface, f"Hello {node_short_name}, I see you!", 0, node_num)
+                return          
 
             elif 'portnum' in packet['decoded']:
                 packet_type = packet['decoded']['portnum']
