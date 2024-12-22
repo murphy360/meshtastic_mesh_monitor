@@ -500,7 +500,12 @@ while True:
             continue
     else:
         connect_timeout = 30
-        localNode = interface.getNode('^local')
+        try:
+            localNode = interface.getNode('^local')
+        except Exception as e:
+            logging.error(f"Error getting local node: {e}")
+            connected = False
+            continue
 
         # Get radio uptime
         my_node_num = interface.myInfo.my_node_num
