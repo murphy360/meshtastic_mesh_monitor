@@ -252,6 +252,7 @@ def onReceive(packet, interface):
 
             elif 'portnum' in packet['decoded']:
                 packet_type = packet['decoded']['portnum']
+                logging.info(f"Packet received from {node_short_name} - {packet_type}")
                 return
         else:
             logging.info(f"Packet received from {node_short_name} - Encrypted")
