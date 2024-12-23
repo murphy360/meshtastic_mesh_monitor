@@ -11,11 +11,8 @@ vim
 # Install Required Python Packages
 RUN pip3 install meshtastic geopy folium flask
 
-# Copy mesh-monitor.py to the container
-COPY mesh-monitor.py /app/mesh-monitor.py
-
-# Copy files in src to the container
-COPY src/*.py /app/
+# Copy only files in src directory to /app do not copy the src directory itself
+COPY src/ /app
 
 # Set the working directory
 WORKDIR /app
