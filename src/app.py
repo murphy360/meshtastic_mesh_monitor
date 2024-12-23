@@ -13,31 +13,8 @@ mesh_data = [
 
 @app.route('/')
 def index():
-    # Create a map centered around the first node
-    main_node = mesh_data[0]
-    m = folium.Map(location=[main_node['lat'], main_node['lon']], zoom_start=12)
-
-    # Add nodes to the map
-    for node in mesh_data:
-        folium.Marker(
-            location=[node['lat'], node['lon']],
-            popup=f"Node ID: {node['id']}<br>Altitude: {node['alt']}m",
-            icon=folium.Icon(color='blue')
-        ).add_to(m)
-
-    # Draw lines between direct connections
-    for node in mesh_data:
-        for connection in node['connections']:
-            connected_node = next((n for n in mesh_data if n['id'] == connection), None)
-            if connected_node:
-                folium.PolyLine(
-                    locations=[[node['lat'], node['lon']], [connected_node['lat'], connected_node['lon']]],
-                    color='green'
-                ).add_to(m)
-
-    # Save the map to an HTML file
-    m.save('templates/map.html')
-    return render_template('map.html')
+   #Hello World
+    return 'Hello, World!'
 
 if __name__ == '__main__':
     app.run(debug=True)
