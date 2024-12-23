@@ -7,7 +7,7 @@ import geopy
 from geopy import distance
 import meshtastic
 import meshtastic.tcp_interface
-from sqlitehelper import SQLiteHelper
+from src.sqlitehelper import SQLiteHelper
 from pubsub import pub
 # import sitrep
 from sitrep import SITREP 

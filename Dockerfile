@@ -14,11 +14,8 @@ RUN pip3 install meshtastic geopy folium flask
 # Copy mesh-monitor.py to the container
 COPY mesh-monitor.py /app/mesh-monitor.py
 
-# Copy sitrep.py to the container
-COPY sitrep.py /app/sitrep.py
-
-# Copy sqlitehelper.py to the container
-COPY sqlitehelper.py /app/sqlitehelper.py
+# Copy files in src to the container
+COPY src/ /app/
 
 # Set the working directory
 WORKDIR /app
