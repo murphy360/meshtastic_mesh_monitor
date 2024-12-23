@@ -18,4 +18,4 @@ COPY src/ /app
 WORKDIR /app
 
 # Run mesh-monitor.py on startup
-CMD ["python3", "mesh-visualizer.py"]
+CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0"]
