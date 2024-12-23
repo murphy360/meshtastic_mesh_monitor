@@ -15,7 +15,7 @@ RUN pip3 install meshtastic geopy folium flask
 COPY mesh-monitor.py /app/mesh-monitor.py
 
 # Copy files in src to the container
-COPY src/ /app/
+COPY src/* /app/
 
 # Set the working directory
 WORKDIR /app
