@@ -24,4 +24,4 @@ COPY sqlitehelper.py /app/sqlitehelper.py
 WORKDIR /app
 
 # Run mesh-monitor.py on startup
-CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0"]
+CMD ["python3", "mesh-visualizer.py"]
