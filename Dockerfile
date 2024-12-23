@@ -9,7 +9,7 @@ sqlite3 \
 vim
 
 # Install Required Python Packages
-RUN pip3 install meshtastic geopy
+RUN pip3 install meshtastic geopy folium flask
 
 # Copy mesh-monitor.py to the container
 COPY mesh-monitor.py /app/mesh-monitor.py
@@ -24,4 +24,4 @@ COPY sqlitehelper.py /app/sqlitehelper.py
 WORKDIR /app
 
 # Run mesh-monitor.py on startup
-CMD ["python3", "mesh-monitor.py"]
+CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0"]
