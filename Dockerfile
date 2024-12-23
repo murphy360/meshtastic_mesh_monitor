@@ -9,7 +9,7 @@ sqlite3 \
 vim
 
 # Install Required Python Packages
-RUN pip3 install meshtastic geopy folium flask
+RUN pip3 install meshtastic geopy folium Flask
 
 # Copy only files in src directory to /app do not copy the src directory itself
 COPY src/ /app
