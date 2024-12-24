@@ -1,8 +1,7 @@
 import json
 import logging
 import folium
-# import local mesh-monitor.py file
-import mesh-monitor
+
 
 from flask import Flask, render_template
 
@@ -45,13 +44,11 @@ def index():
     m.save('templates/map.html')
     return render_template('map.html')
 
+logging.info("Starting mesh monitor.")
+exec(open("mesh-monitor.py").read())
+
 if __name__ == '__main__':
     app.run(debug=True)
-
-    # Run mesh monitoring app
-    logging.info("Starting mesh monitoring app.")
-    # run main function from mesh-monitor.py
-    mesh-monitor.main()
 
     # Read mesh data from a JSON file
     try:
