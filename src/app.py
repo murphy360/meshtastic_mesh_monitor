@@ -19,6 +19,20 @@ mesh_data = [
 
 @app.route('/')
 def index():
+
+    # Read mesh data from a JSON file
+    try:
+        logging.info("Reading mesh data from file.")
+        with open('/data/mesh_data.json', 'r') as f:
+            mesh_data = json.load(f)
+    except FileNotFoundError:
+        print("File not found. Using sample data.")
+        mesh_data = [
+            {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
+            {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
+            {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
+        ]
+        
     # Create a map centered around the first node
     main_node = mesh_data[0]
     m = folium.Map(location=[main_node['lat'], main_node['lon']], zoom_start=12)
@@ -56,17 +70,6 @@ if __name__ == '__main__':
     logging.info("Starting Flask app.")
     app.run(debug=True)
 
-    # Read mesh data from a JSON file
-    try:
-        logging.info("Reading mesh data from file.")
-        with open('/data/mesh_data.json', 'r') as f:
-            mesh_data = json.load(f)
-    except FileNotFoundError:
-        print("File not found. Using sample data.")
-        mesh_data = [
-            {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
-            {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
-            {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
-        ]
+    
     
     
