@@ -281,6 +281,9 @@ class SITREP:
             
         mesh_data = []
         self_data = {}
+        for item in self.localNode.__dict__:
+            logging.info(f"Local Node: {item} - {self.localNode.__dict__[item]}")
+            
         self_data["id"] = self.shortName
         self_data["lat"] = self.localNode.position.latitudeI
         self_data["lon"] = self.localNode.position.longitudeI
