@@ -53,6 +53,7 @@ logging.info(os.listdir())
 #exec(open("./mesh-monitor.py").read())
 
 if __name__ == '__main__':
+    logging.info("Starting Flask app.")
     app.run(debug=True)
 
     # Read mesh data from a JSON file
