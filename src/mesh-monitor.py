@@ -288,14 +288,18 @@ def write_mesh_data_to_file():
     '''
     mesh_data = []
     for node in interface.nodes.values():
-        node_id = node["num"]
-        lat = node["position"]["latitude"]
-        lon = node["position"]["longitude"]
-        alt = node["position"]["altitude"]
-        connections = []
-        for neighbor in node["neighbors"]:
-            connections.append(neighbor["num"])
-        mesh_data.append({"id": node_id, "lat": lat, "lon": lon, "alt": alt, "connections": connections})
+        try:
+            node_id = node["num"]
+            lat = node["position"]["latitude"]
+            lon = node["position"]["longitude"]
+            alt = node["position"]["altitude"]
+            connections = []
+            for neighbor in node["neighbors"]:
+                connections.append(neighbor["num"])
+            mesh_data.append({"id": node_id, "lat": lat, "lon": lon, "alt": alt, "connections": connections})
+        except Exception as e:
+            logging.error(f"Error writing mesh data to file: {e}")
+            continue
     
     with open('mesh_data.json', 'w') as f:
         json.dump(mesh_data, f)
