@@ -277,23 +277,19 @@ class SITREP:
         {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
         ]
         '''
-        if self.localNode is None:
-            logging.error("Local Node is None")
-            return
-        else:
-            logging.info(f"Local Node: {self.localNode}")
-            logging.info(f"Local Node Position: {self.localNode.nodeNum}")
+        
+            
         mesh_data = []
         self_data = {}
         self_data["id"] = self.shortName
-        logging.info(f"Self Node: {self.localNode}")
-        self_data["lat"] = self.localNode["position"]["latitudeI"]
-        self_data["lon"] = self.localNode["position"]["longitudeI"]
-        self_data["alt"] = self.localNode["position"]["altitude"]
+        self_data["lat"] = self.localNode.position.latitudeI
+        self_data["lon"] = self.localNode.position.longitudeI
+        self_data["alt"] = self.localNode.position.altitude
         self_data["connections"] = []
         mesh_data.append(self_data)
         for node in interface.nodes.values():
             try:
+                logging.info(f"Node: {node}")
                 if self.localNode.nodeNum == node["num"]:
                     log_message += " - Local Node"
                     continue

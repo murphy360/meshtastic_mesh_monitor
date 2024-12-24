@@ -532,7 +532,7 @@ while True:
         # Check if we should send a sitrep
         if should_send_sitrep_after_midnight():
             sitrep.update_sitrep(interface, True)
-            sitrep.send_report(interface, private_channel_number, "^all")
+            #sitrep.send_report(interface, private_channel_number, "^all")
 
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
@@ -540,5 +540,5 @@ while True:
         sitrep.write_mesh_data_to_file(interface, "mesh_data.json")
     except Exception as e:
         logging.error(f"Error writing mesh data to file: {e}")
-        
+
     time.sleep(connect_timeout)
