@@ -37,7 +37,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 class SITREP:
     def __init__(self, localNode, shortName, longName, dbHelper):
         self.localNode = localNode
-        logging.info(f"Local Node: {localNode}")
+        logging.info(f"Local Node init: {localNode}")
         self.shortName = shortName
         self.longName = longName
         self.dbHelper = dbHelper
@@ -270,6 +270,7 @@ class SITREP:
         return total_messages
     
     def write_mesh_data_to_file(self, interface, file_path):
+        logging.info(f"Writing SITREP to file: {file_path}")
         '''
         mesh_data = [
         {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
