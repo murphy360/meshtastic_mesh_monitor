@@ -314,7 +314,7 @@ class SITREP:
                 else:
                     node_data["alt"] = 0
                 node_data["connections"] = []
-                if "hopsAway" in node and node["hopsAway"] <= 1:
+                if "hopsAway" not in node:
                     node_data["connections"].append(self.shortName)
                     mesh_data[0]["connections"].append(node["user"]["shortName"])
                 mesh_data.append(node_data)
