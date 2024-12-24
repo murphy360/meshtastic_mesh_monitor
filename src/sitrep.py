@@ -37,6 +37,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 class SITREP:
     def __init__(self, localNode, shortName, longName, dbHelper):
         self.localNode = localNode
+        logging.info(f"Local Node: {localNode}")
         self.shortName = shortName
         self.longName = longName
         self.dbHelper = dbHelper
