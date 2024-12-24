@@ -291,7 +291,7 @@ class SITREP:
         self_data["alt"] = localNode["position"]["altitude"]
         self_data["connections"] = []
         mesh_data.append(self_data)
-        
+
         for node in interface.nodes.values():
             try:
                 logging.info(f"Node: {node}")
@@ -310,7 +310,7 @@ class SITREP:
                 mesh_data.append(node_data)
             except Exception as e:
                 print(f"Error: {e}")
-
+        logging.info(f"Mesh Data: {mesh_data}")
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
         # log the file path
