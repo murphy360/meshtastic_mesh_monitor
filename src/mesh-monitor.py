@@ -536,6 +536,9 @@ while True:
 
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
-    sitrep.write_mesh_data_to_file(interface, "mesh_data.json")
-
+    try:
+        sitrep.write_mesh_data_to_file(interface, "mesh_data.json")
+    except Exception as e:
+        logging.error(f"Error writing mesh data to file: {e}")
+        
     time.sleep(connect_timeout)
