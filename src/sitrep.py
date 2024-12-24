@@ -291,8 +291,8 @@ class SITREP:
             logging.info(f"Local Node not found in interface.nodes")
             return
         self_data["id"] = self.shortName
-        self_data["lat"] = localNode["position"]["latitudeI"]
-        self_data["lon"] = localNode["position"]["longitudeI"]
+        self_data["lat"] = localNode["position"]["latitude"]
+        self_data["lon"] = localNode["position"]["longitude"]
         if "altitude" in localNode["position"]:
             self_data["alt"] = localNode["position"]["altitude"]
         else:
