@@ -290,7 +290,6 @@ class SITREP:
         if localNode is None:
             logging.info(f"Local Node not found in interface.nodes")
             return
-        logging.info(f"Local Node: {localNode}")
         self_data["id"] = self.shortName
         self_data["lat"] = localNode["position"]["latitudeI"]
         self_data["lon"] = localNode["position"]["longitudeI"]
@@ -299,9 +298,7 @@ class SITREP:
         else:
             self_data["alt"] = 0
         self_data["connections"] = []
-        logging.info(f"Self Data: {self_data}")
         mesh_data.append(self_data)
-        logging.info(f"Mesh Data: {mesh_data}")
         for node in interface.nodes.values():
             try:
                 logging.info(f"Node: {node}")
@@ -312,7 +309,10 @@ class SITREP:
                 node_data["id"] = node["user"]["shortName"]
                 node_data["lat"] = node["position"]["latitudeI"]
                 node_data["lon"] = node["position"]["longitudeI"]
-                node_data["alt"] = node["position"]["altitude"]
+                if "altitude" in node["position"]:
+                    node_data["alt"] = node["position"]["altitude"]
+                else:
+                    node_data["alt"] = 0
                 node_data["connections"] = []
                 if "hopsAway" in node and node["hopsAway"] <= 1:
                     node_data["connections"].append(self.shortName)

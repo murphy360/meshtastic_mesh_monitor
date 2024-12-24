@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # Read mesh data from a JSON file
     try:
         logging.info("Reading mesh data from file.")
-        with open('mesh_data.json', 'r') as f:
+        with open('/data/mesh_data.json', 'r') as f:
             mesh_data = json.load(f)
     except FileNotFoundError:
         print("File not found. Using sample data.")

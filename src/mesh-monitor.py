@@ -537,7 +537,7 @@ while True:
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
 
-    sitrep.write_mesh_data_to_file(interface, "mesh_data.json")
+    sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
     
 
     time.sleep(connect_timeout)
