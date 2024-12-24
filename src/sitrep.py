@@ -286,6 +286,10 @@ class SITREP:
             #logging.info(f"Local Node: {item} - {self.localNode.__dict__[item]}")
         # get the local node data from interface.nodes
         localNode = self.lookup_node_by_short_name(interface, self.shortName)
+        
+        if localNode is None:
+            logging.info(f"Local Node not found in interface.nodes")
+            return
         logging.info(f"Local Node: {localNode}")
         self_data["id"] = self.shortName
         self_data["lat"] = localNode["position"]["latitudeI"]
