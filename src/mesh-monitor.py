@@ -536,8 +536,7 @@ while True:
 
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
-
+    # Used by meshtastic_mesh_visualizer to display nodes on a map
     sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
     
-
     time.sleep(connect_timeout)

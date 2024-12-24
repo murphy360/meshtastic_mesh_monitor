@@ -6,6 +6,5 @@ services:
       - RADIO_IP=192.168.68.74
     ports:
       - 8080:8080
-      - 5000:5000
     volumes:
       - ~/mesh-monitor/data:/data

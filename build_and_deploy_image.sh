@@ -7,6 +7,8 @@ else
     branch=$1
 fi
 
+image_name="meshtastic_mesh_monitor"
+
 # git pull
 printf "\n\n\n***************************************************\n"
 printf "Pulling the latest changes from the repository...\n"
@@ -24,17 +26,15 @@ printf "\n\n\n***************************************************\n"
 printf "Stopping and removing the Docker container...\n"
 printf "***************************************************\n\n\n"
 docker compose down
-docker container ls -a | grep mesh
-docker container ls -a | grep mesh | awk '{print $1}' | xargs docker container rm
-
+docker container ls -a | grep $image_name | awk '{print $1}' | xargs docker container rm
 
 # Build the Docker image
 printf "\n\n\n***************************************************\n"
 printf "Building the Docker image...\n"
 printf "***************************************************\n\n\n"
-docker build -t meshtastic_mesh_monitor .
+docker build -t $image_name .
 
-docker image ls | grep mesh
+docker image ls | grep $image_name
 ls -la
 
 # Run Docker Compose in detached mode
@@ -47,4 +47,4 @@ docker compose up -d
 printf "\n\n\n***************************************************\n"
 printf "Running docker logs -f...\n"
 printf "***************************************************\n\n\n"
-docker logs -f meshtastic_mesh_monitor
+docker logs -f $image_name
