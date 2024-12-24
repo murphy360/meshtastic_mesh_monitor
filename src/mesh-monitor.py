@@ -303,6 +303,10 @@ def write_mesh_data_to_file():
     
     with open('mesh_data.json', 'w') as f:
         json.dump(mesh_data, f)
+    # print (mesh_data)
+    with open('mesh_data.json', 'r') as f:
+        mesh_data = json.load(f)
+        logging.info(f"Mesh Data: {mesh_data}")
 
 def check_node_health(interface, node):
     if "deviceMetrics" not in node:
