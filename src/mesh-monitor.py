@@ -1,5 +1,6 @@
 from asyncio import sleep
 import datetime
+import json
 import os
 import socket
 import time
@@ -276,6 +277,29 @@ def onReceive(packet, interface):
         logging.error(f"Error processing packet: {e}")
         logging.error(f"Packet: {packet}")
 
+def write_mesh_data_to_file():
+    logging.info("Writing mesh data to file")
+    '''
+    mesh_data = [
+    {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
+    {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
+    {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
+    ]
+    '''
+    mesh_data = []
+    for node in interface.nodes.values():
+        node_id = node["num"]
+        lat = node["position"]["latitude"]
+        lon = node["position"]["longitude"]
+        alt = node["position"]["altitude"]
+        connections = []
+        for neighbor in node["neighbors"]:
+            connections.append(neighbor["num"])
+        mesh_data.append({"id": node_id, "lat": lat, "lon": lon, "alt": alt, "connections": connections})
+    
+    with open('mesh_data.json', 'w') as f:
+        json.dump(mesh_data, f)
+
 def check_node_health(interface, node):
     if "deviceMetrics" not in node:
         return
@@ -534,4 +558,6 @@ while True:
 
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
+    write_mesh_data_to_file()
+
     time.sleep(connect_timeout)
