@@ -294,7 +294,10 @@ class SITREP:
         self_data["id"] = self.shortName
         self_data["lat"] = localNode["position"]["latitudeI"]
         self_data["lon"] = localNode["position"]["longitudeI"]
-        self_data["alt"] = localNode["position"]["altitude"]
+        if "altitude" in localNode["position"]:
+            self_data["alt"] = localNode["position"]["altitude"]
+        else:
+            self_data["alt"] = 0
         self_data["connections"] = []
         logging.info(f"Self Data: {self_data}")
         mesh_data.append(self_data)
