@@ -281,13 +281,16 @@ class SITREP:
         self_data = {}
         self_data["id"] = self.shortName
         logging.info(f"Self Node: {self.localNode}")
-        self_data["lat"] = self.localNode.position.latitudeI
-        self_data["lon"] = self.localNode.position.longitudeI
-        self_data["alt"] = self.localNode.position.altitude
+        self_data["lat"] = self.localNode["position"]["latitudeI"]
+        self_data["lon"] = self.localNode["position"]["longitudeI"]
+        self_data["alt"] = self.localNode["position"]["altitude"]
         self_data["connections"] = []
         mesh_data.append(self_data)
         for node in interface.nodes.values():
             try:
+                if self.localNode.nodeNum == node["num"]:
+                    log_message += " - Local Node"
+                    continue
                 node_data = {}
                 node_data["id"] = node["user"]["shortName"]
                 node_data["lat"] = node["position"]["latitudeI"]
