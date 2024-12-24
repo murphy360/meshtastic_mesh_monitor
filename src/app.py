@@ -32,9 +32,10 @@ def index():
             {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
             {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
         ]
-        
+
     # Create a map centered around the first node
     main_node = mesh_data[0]
+    logging.info(f"Creating map centered around {main_node['id']} at {main_node['lat']}, {main_node['lon']}.")
     m = folium.Map(location=[main_node['lat'], main_node['lon']], zoom_start=12)
 
     # Add nodes to the map
