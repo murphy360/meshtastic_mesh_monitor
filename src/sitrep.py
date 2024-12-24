@@ -280,6 +280,9 @@ class SITREP:
         if self.localNode is None:
             logging.error("Local Node is None")
             return
+        else:
+            logging.info(f"Local Node: {self.localNode}")
+            logging.info(f"Local Node Position: {self.localNode.nodeNum}")
         mesh_data = []
         self_data = {}
         self_data["id"] = self.shortName
