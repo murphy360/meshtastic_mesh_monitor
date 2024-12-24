@@ -321,10 +321,11 @@ class SITREP:
                 if "lastHeard" in node:
                     now = datetime.datetime.now()
                     time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
-                    if time_difference_in_seconds < 3600: # 1 hour
+                    if time_difference_in_seconds < 3600: # 1 hour add to connections
                         node_data["connections"].append(self.shortName)
                         mesh_data[0]["connections"].append(node["user"]["shortName"])
-                        mesh_data.append(node_data)
+                    
+                mesh_data.append(node_data)
             except Exception as e:
                 print(f"Error: {e}")
 
