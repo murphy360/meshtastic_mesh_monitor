@@ -281,8 +281,8 @@ class SITREP:
             
         mesh_data = []
         self_data = {}
-        for item in self.localNode.__dict__:
-            logging.info(f"Local Node: {item} - {self.localNode.__dict__[item]}")
+        #for item in self.localNode.__dict__:
+            #logging.info(f"Local Node: {item} - {self.localNode.__dict__[item]}")
         # get the local node data from interface.nodes
         localNode = self.lookup_node_by_short_name(interface, self.shortName)
         logging.info(f"Local Node: {localNode}")
@@ -291,6 +291,7 @@ class SITREP:
         self_data["lon"] = localNode["position"]["longitudeI"]
         self_data["alt"] = localNode["position"]["altitude"]
         self_data["connections"] = []
+        logging.info(f"Self Data: {self_data}")
         mesh_data.append(self_data)
         logging.info(f"Mesh Data: {mesh_data}")
         for node in interface.nodes.values():
