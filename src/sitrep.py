@@ -279,6 +279,7 @@ class SITREP:
         mesh_data = []
         self_data = {}
         self_data["id"] = self.shortName
+        logging.info(f"Self Node: {self.localNode}")
         self_data["lat"] = self.localNode.position.latitudeI
         self_data["lon"] = self.localNode.position.longitudeI
         self_data["alt"] = self.localNode.position.altitude
