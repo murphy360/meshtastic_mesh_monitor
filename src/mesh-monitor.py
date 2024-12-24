@@ -252,6 +252,7 @@ def onReceive(packet, interface):
 
             elif portnum == 'NEIGHBORINFO_APP':
                 logging.info(f"Neighbor Info Packet Received from {node_short_name}")
+                logging.info(f"Neighbors: {packet['decoded']['neighbors']}")
                 return  
 
             elif portnum == 'TRACEROUTE_APP':
@@ -276,39 +277,6 @@ def onReceive(packet, interface):
     except KeyError as e:
         logging.error(f"Error processing packet: {e}")
         logging.error(f"Packet: {packet}")
-
-def write_mesh_data_to_file():
-    logging.info("Writing mesh data to file")
-    '''
-    mesh_data = [
-    {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
-    {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
-    {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
-    ]
-    '''
-    mesh_data = []
-    logging.info(f"Nodes: {interface.nodes}")
-    for node in interface.nodes.values():
-        try:
-            #logging.info(f"Node: {node}")
-            node_id = node["num"]
-            lat = node["position"]["latitude"]
-            lon = node["position"]["longitude"]
-            alt = node["position"]["altitude"]
-            connections = []
-            for neighbor in node["neighbors"]:
-                connections.append(neighbor["num"])
-            mesh_data.append({"id": node_id, "lat": lat, "lon": lon, "alt": alt, "connections": connections})
-        except Exception as e:
-            logging.error(f"Error writing mesh data to file: {e}")
-            continue
-    
-    with open('mesh_data.json', 'w') as f:
-        json.dump(mesh_data, f)
-    # print (mesh_data)
-    with open('mesh_data.json', 'r') as f:
-        mesh_data = json.load(f)
-        logging.info(f"Mesh Data: {mesh_data}")
 
 def check_node_health(interface, node):
     if "deviceMetrics" not in node:
@@ -568,6 +536,6 @@ while True:
 
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
     
-    write_mesh_data_to_file()
+    sitrep.write_node_info_to_file(interface, "mesh_data.json")
 
     time.sleep(connect_timeout)

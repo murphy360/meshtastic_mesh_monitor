@@ -268,6 +268,44 @@ class SITREP:
             total_messages += self.messages_sent[message_type]
         return total_messages
     
+    def write_sitrep_to_file(self, interface, file_path):
+        '''
+        mesh_data = [
+        {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
+        {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
+        {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
+        ]
+        '''
+        mesh_data = []
+        self_data = {}
+        self_data["id"] = self.shortName
+        self_data["lat"] = self.localNode.position.latitudeI
+        self_data["lon"] = self.localNode.position.longitudeI
+        self_data["alt"] = self.localNode.position.altitude
+        self_data["connections"] = []
+        mesh_data.append(self_data)
+        for node in interface.nodes.values():
+            try:
+                node_data = {}
+                node_data["id"] = node["user"]["shortName"]
+                node_data["lat"] = node["position"]["latitudeI"]
+                node_data["lon"] = node["position"]["longitudeI"]
+                node_data["alt"] = node["position"]["altitude"]
+                node_data["connections"] = []
+                if "hopsAway" in node and node["hopsAway"] <= 1:
+                    node_data["connections"].append(self.shortName)
+                    mesh_data[0]["connections"].append(node["user"]["shortName"])
+                mesh_data.append(node_data)
+            except Exception as e:
+                print(f"Error: {e}")
+
+        with open(file_path, 'w') as file:
+            json.dump(mesh_data, file)
+        # log the file path
+        logging.info(f"SITREP written to file: {file_path}")
+        logging.info(f"File Contents: {mesh_data}")
+    
+    
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         self.nodes_connected = 0
         
