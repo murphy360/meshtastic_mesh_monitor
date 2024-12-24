@@ -285,13 +285,14 @@ class SITREP:
             logging.info(f"Local Node: {item} - {self.localNode.__dict__[item]}")
         # get the local node data from interface.nodes
         localNode = self.lookup_node_by_short_name(interface, self.shortName)
+        logging.info(f"Local Node: {localNode}")
         self_data["id"] = self.shortName
         self_data["lat"] = localNode["position"]["latitudeI"]
         self_data["lon"] = localNode["position"]["longitudeI"]
         self_data["alt"] = localNode["position"]["altitude"]
         self_data["connections"] = []
         mesh_data.append(self_data)
-
+        logging.info(f"Mesh Data: {mesh_data}")
         for node in interface.nodes.values():
             try:
                 logging.info(f"Node: {node}")
@@ -308,8 +309,10 @@ class SITREP:
                     node_data["connections"].append(self.shortName)
                     mesh_data[0]["connections"].append(node["user"]["shortName"])
                 mesh_data.append(node_data)
+                logging.info(f"Mesh Data: {mesh_data}")
             except Exception as e:
                 print(f"Error: {e}")
+
         logging.info(f"Mesh Data: {mesh_data}")
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
