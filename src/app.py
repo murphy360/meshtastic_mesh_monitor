@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import folium
 
 
@@ -43,6 +44,10 @@ def index():
     # Save the map to an HTML file
     m.save('templates/map.html')
     return render_template('map.html')
+
+# List directory contents
+logging.info("Listing directory contents.")
+logging.info(os.listdir())
 
 logging.info("Starting mesh monitor.")
 exec(open("mesh-monitor.py").read())
