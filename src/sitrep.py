@@ -268,7 +268,7 @@ class SITREP:
             total_messages += self.messages_sent[message_type]
         return total_messages
     
-    def write_sitrep_to_file(self, interface, file_path):
+    def write_mesh_data_to_file(self, interface, file_path):
         '''
         mesh_data = [
         {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
