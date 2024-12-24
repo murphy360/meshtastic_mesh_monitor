@@ -284,6 +284,7 @@ def check_node_health(interface, node):
     
     # check if battery level is low
     if node["deviceMetrics"]["batteryLevel"] < 20:
+        logging.info(f"Warning: {node['user']['shortName']} has low battery. Battery Level: {node['deviceMetrics']['batteryLevel']}")
         send_message(interface, f"Warning: {node['user']['shortName']} has low battery", private_channel_number, "^all")
     # check if node has been heard from in the last 24 hours
     if node["lastHeard"] < time.time() - 86400:
