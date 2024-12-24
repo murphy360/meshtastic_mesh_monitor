@@ -304,6 +304,10 @@ class SITREP:
                 logging.info(f"Node: {node}")
                 if self.localNode.nodeNum == node["num"]:
                     log_message += " - Local Node"
+                    # update position data for local node
+                    mesh_data[0]["lat"] = node["position"]["latitude"]
+                    mesh_data[0]["lon"] = node["position"]["longitude"]
+                    mesh_data[0]["alt"] = node["position"]["altitude"]
                     continue
                 node_data = {}
                 node_data["id"] = node["user"]["shortName"]
