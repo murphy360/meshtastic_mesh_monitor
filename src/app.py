@@ -1,6 +1,12 @@
 import json
+import logging
 import folium
+# import local mesh-monitor.py file
+import mesh-monitor
+
 from flask import Flask, render_template
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 app = Flask(__name__)
 
@@ -41,8 +47,15 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+    # Run mesh monitoring app
+    logging.info("Starting mesh monitoring app.")
+    # run main function from mesh-monitor.py
+    mesh-monitor.main()
+
     # Read mesh data from a JSON file
     try:
+        logging.info("Reading mesh data from file.")
         with open('mesh_data.json', 'r') as f:
             mesh_data = json.load(f)
     except FileNotFoundError:
