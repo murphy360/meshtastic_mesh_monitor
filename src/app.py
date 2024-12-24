@@ -50,7 +50,7 @@ logging.info("Listing directory contents.")
 logging.info(os.listdir())
 
 logging.info("Starting mesh monitor.")
-exec(open("mesh-monitor.py").read())
+exec(open("./mesh-monitor.py").read())
 
 if __name__ == '__main__':
     app.run(debug=True)
