@@ -289,6 +289,7 @@ def write_mesh_data_to_file():
     mesh_data = []
     for node in interface.nodes.values():
         try:
+            logging.info(f"Node: {node}")
             node_id = node["num"]
             lat = node["position"]["latitude"]
             lon = node["position"]["longitude"]
