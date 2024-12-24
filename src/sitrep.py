@@ -307,8 +307,8 @@ class SITREP:
                     continue
                 node_data = {}
                 node_data["id"] = node["user"]["shortName"]
-                node_data["lat"] = node["position"]["latitudeI"]
-                node_data["lon"] = node["position"]["longitudeI"]
+                node_data["lat"] = node["position"]["latitude"]
+                node_data["lon"] = node["position"]["longitude"]
                 if "altitude" in node["position"]:
                     node_data["alt"] = node["position"]["altitude"]
                 else:
