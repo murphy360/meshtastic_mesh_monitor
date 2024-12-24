@@ -277,6 +277,9 @@ class SITREP:
         {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
         ]
         '''
+        if self.localNode is None:
+            logging.error("Local Node is None")
+            return
         mesh_data = []
         self_data = {}
         self_data["id"] = self.shortName
