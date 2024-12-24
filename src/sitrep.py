@@ -317,10 +317,14 @@ class SITREP:
                 else:
                     node_data["alt"] = 0
                 node_data["connections"] = []
-                if "hopsAway" not in node:
-                    node_data["connections"].append(self.shortName)
-                    mesh_data[0]["connections"].append(node["user"]["shortName"])
-                mesh_data.append(node_data)
+                # If lastHeard is within the last hour add to connections
+                if "lastHeard" in node:
+                    now = datetime.datetime.now()
+                    time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
+                    if time_difference_in_seconds < 3600: # 1 hour
+                        node_data["connections"].append(self.shortName)
+                        mesh_data[0]["connections"].append(node["user"]["shortName"])
+                        mesh_data.append(node_data)
             except Exception as e:
                 print(f"Error: {e}")
 
