@@ -3,48 +3,38 @@
 image_name="meshtastic_mesh_monitor"
 
 # Argument check (Accepts branch name as an argument, defaults to main)
-if [ -z "$1" ]; then
-    branch="main"
-else
-    branch=$1
-fi
+branch=${1:-main}
+
+function print_section() {
+    printf "\n\n\n***************************************************\n"
+    printf "$1\n"
+    printf "***************************************************\n\n\n"
+}
 
 # Checkout to the specified branch
-printf "\n\n\n***************************************************\n"
-printf "Checking out to the specified branch...\n"
-printf "***************************************************\n\n\n"
+print_section "Checking out to the specified branch..."
 git fetch
 git checkout $branch
 
 # git pull
-printf "\n\n\n***************************************************\n"
-printf "Pulling the latest changes from the repository...\n"
-printf "***************************************************\n\n\n"
+print_section "Pulling the latest changes from the repository..."
 git pull
 
 # Stop and remove the Docker container
-printf "\n\n\n***************************************************\n"
-printf "Stopping and removing the Docker container...\n"
-printf "***************************************************\n\n\n"
+print_section "Stopping and removing the Docker container..."
 docker compose down
 docker container ls -a | grep $image_name | awk '{print $1}' | xargs docker container rm
 
 # Build the Docker image
-printf "\n\n\n***************************************************\n"
-printf "Building the Docker image...\n"
-printf "***************************************************\n\n\n"
+print_section "Building the Docker image..."
 docker build -t $image_name .
 
 docker image ls | grep $image_name
 
 # Run Docker Compose in detached mode
-printf "\n\n\n***************************************************\n"
-printf "Running Docker Compose in detached mode...\n"
-printf "***************************************************\n\n\n"
+print_section "Running Docker Compose in detached mode..."
 docker compose up -d
 
 # run docker logs -f
-printf "\n\n\n***************************************************\n"
-printf "Running docker logs -f...\n"
-printf "***************************************************\n\n\n"
+print_section "Running docker logs -f..."
 docker logs -f $image_name
