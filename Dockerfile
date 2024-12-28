@@ -9,16 +9,10 @@ sqlite3 \
 vim
 
 # Install Required Python Packages
-RUN pip3 install meshtastic geopy
+RUN pip3 install meshtastic geopy folium Flask
 
-# Copy mesh-monitor.py to the container
-COPY mesh-monitor.py /app/mesh-monitor.py
-
-# Copy sitrep.py to the container
-COPY sitrep.py /app/sitrep.py
-
-# Copy sqlitehelper.py to the container
-COPY sqlitehelper.py /app/sqlitehelper.py
+# Copy only files in src directory to /app do not copy the src directory itself
+COPY src/ /app
 
 # Set the working directory
 WORKDIR /app

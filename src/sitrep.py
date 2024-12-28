@@ -37,6 +37,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 class SITREP:
     def __init__(self, localNode, shortName, longName, dbHelper):
         self.localNode = localNode
+        logging.info(f"Local Node init: {localNode}")
         self.shortName = shortName
         self.longName = longName
         self.dbHelper = dbHelper
@@ -267,6 +268,77 @@ class SITREP:
         for message_type in self.messages_sent:
             total_messages += self.messages_sent[message_type]
         return total_messages
+    
+    def write_mesh_data_to_file(self, interface, file_path):
+        logging.info(f"Writing SITREP to file: {file_path}")
+        '''
+        mesh_data = {
+        "last_update": "2024-04-23T00:00:00Z",
+        "nodes": [
+            {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
+            {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
+            {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
+        ]
+        }
+        '''       
+            
+        mesh_data = {
+            "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
+            "nodes": []
+        }
+        self_data = {}
+
+        # get the local node data from interface.nodes
+        localNode = self.lookup_node_by_short_name(interface, self.shortName)
+        
+        if localNode is None:
+            logging.info(f"Local Node not found in interface.nodes")
+            return
+        self_data["id"] = self.shortName
+        self_data["lat"] = localNode["position"]["latitude"]
+        self_data["lon"] = localNode["position"]["longitude"]
+        if "altitude" in localNode["position"]:
+            self_data["alt"] = localNode["position"]["altitude"]
+        else:
+            self_data["alt"] = 0
+        self_data["connections"] = []
+        mesh_data["nodes"].append(self_data)
+        for node in interface.nodes.values():
+            try:
+                if self.localNode.nodeNum == node["num"]:
+                    logging.info(f"Updating Local Node: {node}")
+                    # update position data for local node
+                    mesh_data["nodes"][0]["lat"] = node["position"]["latitude"]
+                    mesh_data["nodes"][0]["lon"] = node["position"]["longitude"]
+                    mesh_data["nodes"][0]["alt"] = node["position"]["altitude"]
+                    continue
+                node_data = {}
+                node_data["id"] = node["user"]["shortName"]
+                node_data["lat"] = node["position"]["latitude"]
+                node_data["lon"] = node["position"]["longitude"]
+                if "altitude" in node["position"]:
+                    node_data["alt"] = node["position"]["altitude"]
+                else:
+                    node_data["alt"] = 0
+                node_data["connections"] = []
+                # If lastHeard is within the last hour add to connections
+                if "lastHeard" in node:
+                    now = datetime.datetime.now()
+                    time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
+                    if time_difference_in_seconds < 3600: # 1 hour add to connections
+                        node_data["connections"].append(self.shortName)
+                        mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])
+                    
+                mesh_data["nodes"].append(node_data)
+            except Exception as e:
+                print(f"Error: {e}")
+
+        with open(file_path, 'w') as file:
+            json.dump(mesh_data, file)
+        # log the file path
+        logging.info(f"SITREP written to file: {file_path}")
+        logging.info(f"File Contents: {mesh_data}")
+    
     
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         self.nodes_connected = 0

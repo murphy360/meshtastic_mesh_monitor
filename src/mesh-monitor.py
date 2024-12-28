@@ -1,5 +1,6 @@
 from asyncio import sleep
 import datetime
+import json
 import os
 import socket
 import time
@@ -251,6 +252,7 @@ def onReceive(packet, interface):
 
             elif portnum == 'NEIGHBORINFO_APP':
                 logging.info(f"Neighbor Info Packet Received from {node_short_name}")
+                logging.info(f"Neighbors: {packet['decoded']['neighbors']}")
                 return  
 
             elif portnum == 'TRACEROUTE_APP':
@@ -282,6 +284,7 @@ def check_node_health(interface, node):
     
     # check if battery level is low
     if node["deviceMetrics"]["batteryLevel"] < 20:
+        logging.info(f"Warning: {node['user']['shortName']} has low battery. Battery Level: {node['deviceMetrics']['batteryLevel']}")
         send_message(interface, f"Warning: {node['user']['shortName']} has low battery", private_channel_number, "^all")
     # check if node has been heard from in the last 24 hours
     if node["lastHeard"] < time.time() - 86400:
@@ -530,8 +533,11 @@ while True:
         # Check if we should send a sitrep
         if should_send_sitrep_after_midnight():
             sitrep.update_sitrep(interface, True)
-            sitrep.send_report(interface, private_channel_number, "^all")
+            #sitrep.send_report(interface, private_channel_number, "^all")
 
         logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
+    
+        # Used by meshtastic_mesh_visualizer to display nodes on a map
+        sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
     
     time.sleep(connect_timeout)
