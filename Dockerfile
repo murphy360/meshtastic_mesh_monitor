@@ -7,9 +7,6 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     vim
 
-# apt-get upgrade
-RUN apt-get upgrade -y
-
 # Copy requirements.txt before installing Python packages
 COPY requirements.txt /app/requirements.txt
 
