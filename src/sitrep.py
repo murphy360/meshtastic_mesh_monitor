@@ -1,38 +1,10 @@
-### Create a class that will be used to generate a Daily situation report (SITREP).
-# The class will have the following attributes:
-
-# Date: The date of the report.
-# Weather: The weather conditions.
-# Local Nodes: The local nodes that are connected to the Meshtastic device.
-# Messages: The number of messages received.
-# Channels: The channels that are available.
-# Messages Sent: The number of messages sent by the local node.
-
-# The class will also have the following methods:
-
-# get_report: A method that generates the SITREP report.
-# send_report: A method that sends the SITREP report to the mesh.
-# The SITREP report will be generated in the following format:
-
-# CQ CQ CQ de {localNode}.  My {time} {date} SITREP is as follows:
-# Line 1: Weather: {weather}
-# Line 2: Local Nodes: {localNodes}
-# Line 3: Messages Received: {messages}
-# Line 4: Channels: {channels}
-# Line 5: Messages Sent: {messagesSent}
-# de {localNode} out 
-# Dolphin 🐬
-# Alien 👽
-
 import datetime
 import time
 import logging
 import json
 
-#from influxdb import InfluxDBClient
-
+# Configure logging
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
-
 
 class SITREP:
     def __init__(self, localNode, shortName, longName, dbHelper):
@@ -43,19 +15,17 @@ class SITREP:
         self.dbHelper = dbHelper
         self.date = self.get_date_time_in_zulu(datetime.datetime.now())
         self.messages_received = []
-        # Dictionary to store the number of packets received for each packet type
-        self.packets_received = {}
-        self.packets_received["position_app_aircraft"] = 0
+        self.packets_received = {"position_app_aircraft": 0}
         self.aircraft_tracks = {}
         self.messages_sent = {}
         self.nodes_connected = 0
         self.reportHeader = ""
-        self.line1 = "" # Local Nodes
-        self.line2 = "" # Aircraft Tracks
-        self.line3 = "" # Nodes of Interest
-        self.line4 = "" # Packets Received
-        self.line5 = "" # Uptime
-        self.line6 = "" # Intentions
+        self.line1 = ""  # Local Nodes
+        self.line2 = ""  # Aircraft Tracks
+        self.line3 = ""  # Nodes of Interest
+        self.line4 = ""  # Packets Received
+        self.line5 = ""  # Uptime
+        self.line6 = ""  # Intentions
         self.reportFooter = ""
         self.lines = []
         self.nodes_of_interest = []
@@ -64,9 +34,15 @@ class SITREP:
         print("SITREP Object Created")
 
     def update_sitrep(self, interface, is_routine_sitrep=False):
+        """
+        Update the SITREP report with the latest data.
+        
+        Args:
+            interface: The interface to interact with the mesh network.
+            is_routine_sitrep (bool): Flag to indicate if this is a routine SITREP.
+        """
         now = datetime.datetime.now()
-        if is_routine_sitrep == True:
-            # Now = 0000Z
+        if is_routine_sitrep:
             now = now.replace(hour=0, minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
@@ -89,75 +65,88 @@ class SITREP:
         self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
         return
-    
+
     def add_node_of_interest(self, node_short_name):
         self.nodes_of_interest.append(node_short_name)
         return
-    
+
     def remove_node_of_interest(self, node_short_name):
         self.nodes_of_interest.remove(node_short_name)
         return
-    
+
     def update_nodes_of_interest_from_db(self):
         self.nodes_of_interest = self.dbHelper.get_nodes_of_interest()
         logging.info(f"Nodes of Interest: {self.nodes_of_interest}")
         return
-    
+
     def update_aircraft_tracks_from_db(self):
         self.aircraft_tracks = self.dbHelper.get_aircraft_nodes()
         return
-    
+
     def build_aircraft_tracks_report(self, line_number, interface):
-        # Report on the nodes of interest
+        """
+        Build the aircraft tracks report.
+        
+        Args:
+            line_number (int): The line number for the report.
+            interface: The interface to interact with the mesh network.
+        
+        Returns:
+            str: The aircraft tracks report.
+        """
         num_nodes = 0
         report_string = ""
-        # iterate through alphabet A-Z, AA-ZZ, AAA-ZZZ
         line_letter = "A"
 
         for node_short_name in self.aircraft_tracks:
             node = self.lookup_node_by_short_name(interface, node_short_name)
-            report_string += "\n" + str(line_number) + "." + line_letter + ". "           
+            report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
                 report_string += node_short_name + " - " + self.get_time_difference_string(node["lastHeard"])
-                # Check hops away
                 if "hopsAway" in node:
                     report_string += " " + str(node["hopsAway"]) + " Hops."
                 elif "rxRssi" in node:
                     report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
                 elif "snr" in node:
                     report_string += " SNR: " + str(node["snr"]) + "dB."
-            else: 
+            else:
                 report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
         return report_string
 
-    
     def build_node_of_interest_report(self, line_number, interface):
-        # Report on the nodes of interest
+        """
+        Build the nodes of interest report.
+        
+        Args:
+            line_number (int): The line number for the report.
+            interface: The interface to interact with the mesh network.
+        
+        Returns:
+            str: The nodes of interest report.
+        """
         num_nodes = 0
         report_string = ""
-        # iterate through alphbet A-Z, AA-ZZ, AAA-ZZZ
         line_letter = "A"
 
         for node_short_name in self.nodes_of_interest:
             node = self.lookup_node_by_short_name(interface, node_short_name)
-            report_string += "\n" + str(line_number) + "." + line_letter + ". "           
+            report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
                 report_string += node_short_name + " - " + self.get_time_difference_string(node["lastHeard"])
-                # Check hops away
                 if "hopsAway" in node:
                     report_string += " " + str(node["hopsAway"]) + " Hops."
                 elif "rxRssi" in node:
                     report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
                 elif "snr" in node:
                     report_string += " SNR: " + str(node["snr"]) + "dB."
-            else: 
+            else:
                 report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
         return report_string
-    
+
     def set_local_node(self, localNode):
         self.localNode = localNode
         return
@@ -169,36 +158,52 @@ class SITREP:
     def set_long_name(self, longName):
         self.longName = longName
         return
-     
+
     def get_date_time_in_zulu(self, date):
-        # format time in 24 hour time and in Zulu time (0000Z 23 APR 2024)
+        """
+        Format the date and time in Zulu time (0000Z 23 APR 2024).
         
+        Args:
+            date (datetime): The date to format.
+        
+        Returns:
+            str: The formatted date and time.
+        """
         return date.strftime("%H%MZ %d %b %Y")
-    
+
     def get_messages_sent(self):
         return self.messages_sent
-    
+
     def get_messages_received(self):
         return self.messages_received
-    
+
     def get_channels_monitored(self):
         return self.channels_monitored
-    
+
     def get_node_uptime(self, node):
-        # Get the uptime of a node in Days, Hours, Minutes, Seconds
-        return_string = ""
-        uptime_seconds_total = node["deviceMetrics"]["uptimeSeconds"]
-        uptime_seconds_total = int(uptime_seconds_total)
+        """
+        Get the uptime of a node in Days, Hours, Minutes, Seconds.
+        
+        Args:
+            node (dict): The node data.
+        
+        Returns:
+            str: The formatted uptime string.
+        """
+        uptime_seconds_total = int(node["deviceMetrics"]["uptimeSeconds"])
         uptime_days = uptime_seconds_total // 86400
         uptime_hours = (uptime_seconds_total % 86400) // 3600
         uptime_minutes = (uptime_seconds_total % 3600) // 60
         uptime_seconds = uptime_seconds_total % 60
-        return_string = f"{uptime_days} Days, {uptime_hours} Hours, {uptime_minutes} Minutes, {uptime_seconds} Seconds"
-        return return_string
-    
-    def save_packet_to_db(self, packet):
+        return f"{uptime_days} Days, {uptime_hours} Hours, {uptime_minutes} Minutes, {uptime_seconds} Seconds"
 
-        # Save packet to InfluxDB
+    def save_packet_to_db(self, packet):
+        """
+        Save packet to the database.
+        
+        Args:
+            packet (dict): The packet data.
+        """
         packet_info = {
             "measurement": "packets",
             "tags": {
@@ -215,20 +220,34 @@ class SITREP:
                 "packet_rx_rssi": packet['rxRssi']
             }
         }
-        #self.influxdb_client.write_points([packet_info])
+        # self.influxdb_client.write_points([packet_info])
         return
-    
+
     def log_packet_received(self, packet_type):
+        """
+        Log the received packet.
+        
+        Args:
+            packet_type (str): The type of the packet.
+        """
         if packet_type in self.packets_received:
             self.packets_received[packet_type] += 1
         else:
             self.packets_received[packet_type] = 1
         print(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
-        
         return
-    
+
     def is_packet_from_node_of_interest(self, interface, packet):
-        # check if from node is in list of nodes of interest (by short name)
+        """
+        Check if the packet is from a node of interest.
+        
+        Args:
+            interface: The interface to interact with the mesh network.
+            packet (dict): The packet data.
+        
+        Returns:
+            bool: True if the packet is from a node of interest, False otherwise.
+        """
         logging.info("is_packet_from_node_of_interest")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name in self.nodes_of_interest:
@@ -237,131 +256,143 @@ class SITREP:
         return False
 
     def is_packet_from_new_node(self, interface, packet):
-        # check if from node is in list of known nodes
+        """
+        Check if the packet is from a new node.
+        
+        Args:
+            interface: The interface to interact with the mesh network.
+            packet (dict): The packet data.
+        
+        Returns:
+            bool: True if the packet is from a new node, False otherwise.
+        """
         logging.info("is_packet_from_new_node")
         logging.info(f"Checking if packet is from a new node")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name not in self.known_nodes:
             logging.info(f"New Node Detected Sitrep: {from_node_short_name}")
             self.known_nodes.append(from_node_short_name)
-            
-        
             return True
         return False
 
     def count_packets_received(self):
-        total_packets = 0
-        for packet_type in self.packets_received:
-            total_packets += self.packets_received[packet_type]
+        """
+        Count the total number of packets received.
+        
+        Returns:
+            int: The total number of packets received.
+        """
+        total_packets = sum(self.packets_received.values())
         print("Total Packets Received:", total_packets)
         return total_packets
-    
+
     def log_message_sent(self, message_type):
+        """
+        Log the sent message.
+        
+        Args:
+            message_type (str): The type of the message.
+        """
         if message_type in self.messages_sent:
             self.messages_sent[message_type] += 1
         else:
             self.messages_sent[message_type] = 1
         return
-    
+
     def count_messages_sent(self):
-        total_messages = 0
-        for message_type in self.messages_sent:
-            total_messages += self.messages_sent[message_type]
-        return total_messages
-    
+        """
+        Count the total number of messages sent.
+        
+        Returns:
+            int: The total number of messages sent.
+        """
+        return sum(self.messages_sent.values())
+
     def write_mesh_data_to_file(self, interface, file_path):
+        """
+        Write the mesh data to a file.
+        
+        Args:
+            interface: The interface to interact with the mesh network.
+            file_path (str): The path to the file.
+        """
         logging.info(f"Writing SITREP to file: {file_path}")
-        '''
-        mesh_data = {
-        "last_update": "2024-04-23T00:00:00Z",
-        "nodes": [
-            {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
-            {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
-            {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
-        ]
-        }
-        '''       
-            
         mesh_data = {
             "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
             "nodes": []
         }
         self_data = {}
 
-        # get the local node data from interface.nodes
         localNode = self.lookup_node_by_short_name(interface, self.shortName)
-        
         if localNode is None:
             logging.info(f"Local Node not found in interface.nodes")
             return
         self_data["id"] = self.shortName
         self_data["lat"] = localNode["position"]["latitude"]
         self_data["lon"] = localNode["position"]["longitude"]
-        if "altitude" in localNode["position"]:
-            self_data["alt"] = localNode["position"]["altitude"]
-        else:
-            self_data["alt"] = 0
+        self_data["alt"] = localNode["position"].get("altitude", 0)
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
+
         for node in interface.nodes.values():
             try:
                 if self.localNode.nodeNum == node["num"]:
                     logging.info(f"Updating Local Node: {node}")
-                    # update position data for local node
                     mesh_data["nodes"][0]["lat"] = node["position"]["latitude"]
                     mesh_data["nodes"][0]["lon"] = node["position"]["longitude"]
                     mesh_data["nodes"][0]["alt"] = node["position"]["altitude"]
                     continue
-                node_data = {}
-                node_data["id"] = node["user"]["shortName"]
-                node_data["lat"] = node["position"]["latitude"]
-                node_data["lon"] = node["position"]["longitude"]
-                if "altitude" in node["position"]:
-                    node_data["alt"] = node["position"]["altitude"]
-                else:
-                    node_data["alt"] = 0
-                node_data["connections"] = []
-                # If lastHeard is within the last hour add to connections
+                node_data = {
+                    "id": node["user"]["shortName"],
+                    "lat": node["position"]["latitude"],
+                    "lon": node["position"]["longitude"],
+                    "alt": node["position"].get("altitude", 0),
+                    "connections": []
+                }
                 if "lastHeard" in node:
                     now = datetime.datetime.now()
-                    time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
-                    if time_difference_in_seconds < 3600: # 1 hour add to connections
+                    time_difference_in_seconds = now.timestamp() - node["lastHeard"]
+                    if time_difference_in_seconds < 3600:
                         node_data["connections"].append(self.shortName)
                         mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])
-                    
                 mesh_data["nodes"].append(node_data)
             except Exception as e:
                 print(f"Error: {e}")
 
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
-        # log the file path
         logging.info(f"SITREP written to file: {file_path}")
         logging.info(f"File Contents: {mesh_data}")
-    
-    
+
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
-        self.nodes_connected = 0
+        """
+        Count the number of nodes connected within a time threshold and hop threshold.
         
+        Args:
+            interface: The interface to interact with the mesh network.
+            time_threshold_minutes (int): The time threshold in minutes.
+            hop_threshold (int): The hop threshold.
+        
+        Returns:
+            str: The number of nodes connected.
+        """
+        self.nodes_connected = 0
         response_string = ""
         for node in interface.nodes.values():
             log_message = f"Node ID: {node['user']['id']} Long Name: {node['user']['longName']} Short Name: {node['user']['shortName']}"
             if self.localNode.nodeNum == node["num"]:
                 log_message += " - Local Node"
                 continue
-            
-            hops_away = 0
-            if "hopsAway" in node:
-                hops_away = node["hopsAway"]
-                log_message += f" Hops Away: {hops_away}"
-            
+
+            hops_away = node.get("hopsAway", 0)
+            log_message += f" Hops Away: {hops_away}"
+
             if "lastHeard" in node:
                 now = datetime.datetime.now()
-                print(f"Last Heard: {node['lastHeard']}")
-                time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
-                if time_difference_in_seconds < (time_threshold_minutes*60): 
-                    time_difference_hours = time_difference_in_seconds // 3600 # // is integer division (no remainder) will give hours
-                    time_difference_minutes = time_difference_in_seconds % 60 # % is modulo division will give minutes
+                time_difference_in_seconds = now.timestamp() - node["lastHeard"]
+                if time_difference_in_seconds < (time_threshold_minutes * 60):
+                    time_difference_hours = time_difference_in_seconds // 3600
+                    time_difference_minutes = time_difference_in_seconds % 60
                     log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
 
                     if hops_away <= hop_threshold:
@@ -372,36 +403,51 @@ class SITREP:
                         log_message += f" - Node is more than {hop_threshold} hops away"
                 else:
                     log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
-
             else:
                 log_message += " - Node doesn't have lastHeard or hopsAway data"
 
-        
-        if self.nodes_connected <=20:
+        if self.nodes_connected <= 20:
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
             response_string = str(self.nodes_connected)
         return response_string
-    
+
     def log_connect(self):
         self.num_connections += 1
         return
-    
-    def get_time_difference_string(self, last_heard): # HH:MM - Date Z last heard
+
+    def get_time_difference_string(self, last_heard):
+        """
+        Get the time difference string from the last heard time.
+        
+        Args:
+            last_heard (float): The last heard timestamp.
+        
+        Returns:
+            str: The formatted time difference string.
+        """
         now = datetime.datetime.now()
-        time_difference_in_seconds = now.timestamp() - last_heard # in seconds  
+        time_difference_in_seconds = now.timestamp() - last_heard
         time_difference_hours = int(time_difference_in_seconds // 3600)
-        # Buffer hours to at least 2 digits
         if time_difference_hours < 10:
             time_difference_hours = "0" + str(time_difference_hours)
         time_difference_minutes = int(time_difference_in_seconds % 60)
-        # Buffer minutes to 2 digits
         if time_difference_minutes < 10:
             time_difference_minutes = "0" + str(time_difference_minutes)
         date_time = self.get_date_time_in_zulu(datetime.datetime.fromtimestamp(last_heard))
         return f"{time_difference_hours}:{time_difference_minutes} - {date_time}"
 
     def lookup_short_name(self, interface, node_num):
+        """
+        Lookup the short name of a node by its number.
+        
+        Args:
+            interface: The interface to interact with the mesh network.
+            node_num (int): The node number.
+        
+        Returns:
+            str: The short name of the node.
+        """
         logging.info(f"Sitrep: Looking up short name for node: {node_num}")
         for node in interface.nodes.values():
             if node["num"] == node_num:
@@ -409,14 +455,24 @@ class SITREP:
                 logging.info(f"Node found: {node_short_name}")
                 return node_short_name
         return "Unknown"
-    
+
     def lookup_node_by_short_name(self, interface, short_name):
+        """
+        Lookup a node by its short name.
+        
+        Args:
+            interface: The interface to interact with the mesh network.
+            short_name (str): The short name of the node.
+        
+        Returns:
+            dict: The node data if found, None otherwise.
+        """
         logging.info(f"Sitrep: Looking up node by short name: {short_name}")
         for node in interface.nodes.values():
             if node["user"]["shortName"] == short_name:
                 return node
         return None
-    
+
     def send_report(self, interface, channelId, to_id):
         for line in self.lines:
             logging.info(f"Sending SITREP: {line}")
