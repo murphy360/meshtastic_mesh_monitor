@@ -1,13 +1,13 @@
 #!/bin/bash
 
+image_name="meshtastic_mesh_monitor"
+
 # Argument check (Accepts branch name as an argument, defaults to main)
 if [ -z "$1" ]; then
     branch="main"
 else
     branch=$1
 fi
-
-image_name="meshtastic_mesh_monitor"
 
 # Checkout to the specified branch
 printf "\n\n\n***************************************************\n"
@@ -21,6 +21,12 @@ printf "\n\n\n***************************************************\n"
 printf "Pulling the latest changes from the repository...\n"
 printf "***************************************************\n\n\n"
 git pull
+
+# Checkout to the specified branch
+printf "\n\n\n***************************************************\n"
+printf "Checking out to the specified branch...\n"
+printf "***************************************************\n\n\n"
+git checkout $branch
 
 # Stop and remove the Docker container
 printf "\n\n\n***************************************************\n"
