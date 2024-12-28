@@ -272,14 +272,14 @@ class SITREP:
     def write_mesh_data_to_file(self, interface, file_path):
         logging.info(f"Writing SITREP to file: {file_path}")
         '''
-        mesh_data = [
-        last_update: "2024-04-23T00:00:00Z",
-        nodes: [
+        mesh_data = {
+        "last_update": "2024-04-23T00:00:00Z",
+        "nodes": [
             {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
             {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
             {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
         ]
-        ]
+        }
         '''       
             
         mesh_data = {
