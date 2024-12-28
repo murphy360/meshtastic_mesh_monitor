@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Install dependencies and required Python packages
 RUN apt-get update && apt-get install -y \
