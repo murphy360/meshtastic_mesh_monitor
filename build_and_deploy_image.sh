@@ -13,6 +13,7 @@ image_name="meshtastic_mesh_monitor"
 printf "\n\n\n***************************************************\n"
 printf "Checking out to the specified branch...\n"
 printf "***************************************************\n\n\n"
+git fetch
 git checkout $branch
 
 # git pull
