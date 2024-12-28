@@ -273,17 +273,21 @@ class SITREP:
         logging.info(f"Writing SITREP to file: {file_path}")
         '''
         mesh_data = [
-        {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
-        {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
-        {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
+        last_update: "2024-04-23T00:00:00Z",
+        nodes: [
+            {"id": "node1", "lat": 37.7749, "lon": -122.4194, "alt": 10, "connections": ["node2", "node3"]},
+            {"id": "node2", "lat": 37.8044, "lon": -122.2711, "alt": 20, "connections": ["node1"]},
+            {"id": "node3", "lat": 37.6879, "lon": -122.4702, "alt": 15, "connections": ["node1"]}
         ]
-        '''
-        
+        ]
+        '''       
             
-        mesh_data = []
+        mesh_data = {
+            "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
+            "nodes": []
+        }
         self_data = {}
-        #for item in self.localNode.__dict__:
-            #logging.info(f"Local Node: {item} - {self.localNode.__dict__[item]}")
+
         # get the local node data from interface.nodes
         localNode = self.lookup_node_by_short_name(interface, self.shortName)
         
@@ -298,15 +302,15 @@ class SITREP:
         else:
             self_data["alt"] = 0
         self_data["connections"] = []
-        mesh_data.append(self_data)
+        mesh_data["nodes"].append(self_data)
         for node in interface.nodes.values():
             try:
                 if self.localNode.nodeNum == node["num"]:
                     logging.info(f"Updating Local Node: {node}")
                     # update position data for local node
-                    mesh_data[0]["lat"] = node["position"]["latitude"]
-                    mesh_data[0]["lon"] = node["position"]["longitude"]
-                    mesh_data[0]["alt"] = node["position"]["altitude"]
+                    mesh_data["nodes"][0]["lat"] = node["position"]["latitude"]
+                    mesh_data["nodes"][0]["lon"] = node["position"]["longitude"]
+                    mesh_data["nodes"][0]["alt"] = node["position"]["altitude"]
                     continue
                 node_data = {}
                 node_data["id"] = node["user"]["shortName"]
@@ -323,9 +327,9 @@ class SITREP:
                     time_difference_in_seconds = now.timestamp() - node["lastHeard"] # in seconds
                     if time_difference_in_seconds < 3600: # 1 hour add to connections
                         node_data["connections"].append(self.shortName)
-                        mesh_data[0]["connections"].append(node["user"]["shortName"])
+                        mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])
                     
-                mesh_data.append(node_data)
+                mesh_data["nodes"].append(node_data)
             except Exception as e:
                 print(f"Error: {e}")
 
