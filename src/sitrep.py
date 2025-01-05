@@ -103,7 +103,9 @@ class SITREP:
             report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
-                report_string += node_short_name + " - " + self.get_time_difference_string(node["lastHeard"])
+                report_string += node_short_name
+                if "lastHeard" in node:
+                    report_string += " - " + self.get_time_difference_string(node["lastHeard"])
                 if "hopsAway" in node:
                     report_string += " " + str(node["hopsAway"]) + " Hops."
                 elif "rxRssi" in node:
@@ -135,7 +137,9 @@ class SITREP:
             report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
-                report_string += node_short_name + " - " + self.get_time_difference_string(node["lastHeard"])
+                report_string += node_short_name
+                if "lastHeard" in node:
+                    report_string += " - " + self.get_time_difference_string(node["lastHeard"])
                 if "hopsAway" in node:
                     report_string += " " + str(node["hopsAway"]) + " Hops."
                 elif "rxRssi" in node:
