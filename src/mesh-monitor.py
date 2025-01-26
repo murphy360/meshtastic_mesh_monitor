@@ -12,6 +12,7 @@ from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
 import logging
+from node_manager import NodeManager
 from node import Node
 
 # Configure logging
@@ -33,6 +34,7 @@ sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 private_channel_number = 1
 last_routine_sitrep_date = None
+node_manager = NodeManager()
 
 logging.info("Starting Mesh Monitor")
 
@@ -151,7 +153,7 @@ def onReceive(packet, interface):
 
         if 'decoded' in packet:
             node = interface.nodesByNum[node_num]
-            node_object = Node(node['user']['id'], node['num'], node['user']['longName'], node['user']['shortName'])
+            NodeManager.add_or_update_node(node)
             is_new_node = db_helper.add_or_update_node(node)
             node_of_interest = db_helper.is_node_of_interest(node)
             portnum = packet['decoded']['portnum']
@@ -494,6 +496,17 @@ def send_message(interface, message, channel, to_id):
     if to_id != "^all":
         node_name = lookup_short_name(interface, to_id)
     logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
+
+def add_or_update_node_object(node):
+    """
+    Add or update a node object in the database.
+
+    Args:
+        node (dict): The node data.
+    """
+    node_object = Node(node['user']['id'], node['num'], node['user']['longName'], node['user']['shortName'])
+    
+    db_helper.add_or_update_node(node_object)
 
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
