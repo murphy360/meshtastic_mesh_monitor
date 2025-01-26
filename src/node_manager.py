@@ -3,7 +3,8 @@ from node import Node
 import logging
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - mesh-manager - %(message)s ', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
+
 
 class NodeManager:
     def __init__(self):
