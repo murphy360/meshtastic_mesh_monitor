@@ -3,7 +3,7 @@ import sqlite3
 import logging
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(message)s - sqlitehelper', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - sqlitehelper - %(message)s', level=logging.INFO)
 
 class SQLiteHelper:
     def __init__(self, db_name):
