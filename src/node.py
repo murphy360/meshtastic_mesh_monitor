@@ -1,3 +1,8 @@
+import logging
+
+# Configure logging
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+
 class Node:
     def __init__(self, nodeId, nodeNum, longName, shortName):
         self.nodeId = nodeId
@@ -11,6 +16,7 @@ class Node:
         self.sentPackets = []
         self.receivedPackets = []
         self.historical_positions = []
+        logging.info(f"Node {self.shortName} created")
 
     def __str__(self):
         return f"Node: {self.shortName}"

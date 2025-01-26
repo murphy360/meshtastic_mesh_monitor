@@ -12,6 +12,7 @@ from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
 import logging
+from node import Node
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -48,7 +49,7 @@ def resolve_hostname(hostname):
         ip = socket.getaddrinfo(hostname, None)[0][4][0]
     except Exception as e:
         logging.error(f"Error resolving hostname: {e}")
-        ip = os.environ.get('RADIO_IP', "192.168.68.72")
+        ip = os.environ.get('RADIO_IP', "192.168.68.78")
     return ip
 
 def connect_to_radio():
@@ -149,7 +150,8 @@ def onReceive(packet, interface):
 
         if 'decoded' in packet:
             node = interface.nodesByNum[node_num]
-            new_node = db_helper.add_or_update_node(node)
+            
+            is_new_node = db_helper.add_or_update_node(node)
             node_of_interest = db_helper.is_node_of_interest(node)
             portnum = packet['decoded']['portnum']
             sitrep.log_packet_received(portnum)
@@ -161,7 +163,7 @@ def onReceive(packet, interface):
             if node_of_interest:
                 log_string += " - Node of interest detected!"
                 check_node_health(interface, node)
-            if new_node:
+            if is_new_node:
                 log_string += " - New node detected!"
                 send_message(interface, f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!", 0, node_num)
 
@@ -206,6 +208,7 @@ def onReceive(packet, interface):
 
             elif portnum == 'TRACEROUTE_APP':
                 logging.info(f"Traceroute Packet Received from {node_short_name}")
+                logging.info(f"Traceroute: {packet['decoded']}")
                 if packet['to'] == localNode.nodeNum:
                     logging.info(f"Traceroute packet received from {node_short_name} - Replying")
                     send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
