@@ -17,6 +17,7 @@ from node import Node
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
+
 # Global variables
 localNode = ""
 sitrep = ""
