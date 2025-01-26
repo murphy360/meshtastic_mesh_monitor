@@ -1,5 +1,9 @@
 # ...existing code...
 from node import Node
+import logging
+
+# Configure logging
+logging.basicConfig(format='%(asctime)s - %(message)s - mesh-manager', level=logging.INFO)
 
 class NodeManager:
     def __init__(self):

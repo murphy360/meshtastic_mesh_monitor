@@ -16,7 +16,7 @@ from node_manager import NodeManager
 from node import Node
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(message)s - mesh-monitor', level=logging.INFO)
 
 
 # Global variables

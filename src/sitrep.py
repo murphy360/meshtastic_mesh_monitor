@@ -4,7 +4,7 @@ import logging
 import json
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(message)s - sitrep', level=logging.INFO)
 
 class SITREP:
     def __init__(self, localNode, shortName, longName, dbHelper):
