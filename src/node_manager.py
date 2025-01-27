@@ -9,6 +9,7 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 class NodeManager:
     def __init__(self):
         self.nodes = []
+        logging.info("NodeManager initialized")
 
     def add_or_update_node(self, node):
         for existing_node in self.nodes:
