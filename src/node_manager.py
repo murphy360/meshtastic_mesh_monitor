@@ -14,9 +14,11 @@ class NodeManager:
         for existing_node in self.nodes:
             if existing_node.nodeNum == node.num:
                 existing_node.update(node)
+                logging.info(f"Node updated: {existing_node}")
                 return existing_node
             new_node = Node(node)
             self.nodes.append(new_node)
+            logging.info(f"Node added: {new_node}")
             return new_node
 
     def get_node_by_num(self, node_num):
