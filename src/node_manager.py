@@ -13,11 +13,14 @@ class NodeManager:
 
     def add_or_update_node(self, node):
         logging.info(f"Adding or updating node: {node['num']}")
+        logging.info(f"Nodes: {self.nodes}")
         for existing_node in self.nodes:
+            logging.info(f"Checking node: {existing_node.nodeNum}")
             if existing_node.nodeNum == node.num:
                 existing_node.update(node)
                 logging.info(f"Node updated: {existing_node}")
                 return existing_node
+        logging.info(f"Node not found: {node.num}")
         new_node = Node(node)
         self.nodes.append(new_node)
         logging.info(f"Node added: {new_node}")
