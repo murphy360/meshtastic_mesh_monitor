@@ -54,6 +54,70 @@ class Node:
         # Return the trend information as needed
         pass
 
+    def update(self, node):
+        self.nodeId = node['user']['id']
+        self.nodeNum = node['num']
+        self.longName = node['user']['longName']
+        self.shortName = node['user']['shortName']
+        self.lastHeard = node['lastHeard']
+        self.macaddr = node['user']['macaddr']
+        self.hwModel = node['user']['hwModel']
+        self.publicKey = node['user']['publicKey']
+        self.latitude = node['user']['latitude']
+        self.longitude = node['user']['longitude']
+        self.altitude = node['user']['altitude']
+        """
+        {'num': 1129837336, 
+        'user': {
+        'id': '!4357f318', 
+        'longName': "Don't Panic Actual", 
+        'shortName': 'DP00', 
+        'macaddr': 'SMpDV/MY', 
+        'hwModel': 'LILYGO_TBEAM_S3_CORE', 
+        'publicKey': 'cg4e5S2jcHrEZw2cui9B/dfMswJUmR6aJqA5+jBknmo='}, 
+        'position': {'latitudeI': 413319168, 
+        'longitudeI': -814759936, 'altitude': 279, 
+        'time': 1737941784, 
+        'locationSource': 'LOC_INTERNAL', 
+        'latitude': 41.3319168, 
+        'longitude': -81.4759936
+        }, 
+        'snr': 6.0, 
+        'lastHeard': 1737941848, 
+        'deviceMetrics': {
+        'batteryLevel': 100, 
+        'voltage': 4.118, 
+        'channelUtilization': 8.133333, 
+        'airUtilTx': 0.69783336, 
+        'uptimeSeconds': 116699
+        }, 'hopsAway': 0, 
+        'lastReceived': {
+        'from': 1129837336, 
+        'to': 4294967295, 
+        'decoded': {
+        'portnum': 'TEXT_MESSAGE_APP', 
+        'payload': b'Ping', 
+        'bitfield': 0, 
+        'text': 'Ping'
+        }, 
+        'id': 3028701189, 
+        'rxTime': 1737941848, 
+        'rxSnr': 6.0, 
+        'hopLimit': 3, 
+        'rxRssi': -44, 
+        'hopStart': 3, 
+        'raw': 
+        from: 1129837336
+        to: 4294967295
+        decoded {
+        portnum: TEXT_MESSAGE_APP
+        payload: "Ping"
+        bitfield: 0
+        }
+        id: 3028701189
+        """
+        
+
     def update_SNR(self, SNR):
         self.SNR = SNR
 
