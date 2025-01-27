@@ -27,7 +27,7 @@ class NodeManager:
             return new_node
         for existing_node in self.nodes:
             logging.info(f"Checking node: {existing_node.nodeNum}")
-            if existing_node.nodeNum == node.num:
+            if existing_node.nodeNum == node['num']:
                 existing_node.update(node)
                 logging.info(f"Node updated: {existing_node}")
                 return existing_node
