@@ -366,7 +366,7 @@ class SITREP:
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
         logging.info(f"SITREP written to file: {file_path}")
-        logging.info(f"File Contents: {mesh_data}")
+        # TODO logging.info(f"File Contents: {mesh_data}")
 
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         """
