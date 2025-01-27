@@ -17,6 +17,10 @@ class NodeManager:
         if self.nodes == []:
             logging.info(f"No nodes found, adding new node: {node}")
             # def __init__(self, nodeId, nodeNum, longName, shortName):
+            logging.info(f"Node: {node['user']['id']}")
+            logging.info(f"Node: {node['num']}")
+            logging.info(f"Node: {node['user']['longName']}")
+            logging.info(f"Node: {node['user']['shortName']}")
             new_node = Node(node['user']['id'], node['num'], node['user']['longName'], node['user']['shortName'])
             self.nodes.append(new_node)
             logging.info(f"Node added: {new_node}")
