@@ -139,6 +139,7 @@ def onReceive(packet, interface):
         packet (dict): The packet received from the Meshtastic device.
         interface: The interface object that is connected to the Meshtastic device.
     """
+    global node_manager
     
     try:
         if localNode == "":
