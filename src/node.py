@@ -6,6 +6,7 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 
 class Node:
     def __init__(self, nodeId, nodeNum, longName, shortName):
+        logging.info(f"Node {self.shortName} created")
         self.nodeId = nodeId
         self.nodeNum = nodeNum
         self.longName = longName
@@ -17,7 +18,7 @@ class Node:
         self.sentPackets = []
         self.receivedPackets = []
         self.historical_positions = []
-        logging.info(f"Node {self.shortName} created")
+        
 
     def __str__(self):
         return f"Node: {self.shortName}"
