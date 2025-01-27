@@ -139,8 +139,9 @@ def onReceive(packet, interface):
         packet (dict): The packet received from the Meshtastic device.
         interface: The interface object that is connected to the Meshtastic device.
     """
+    
     logging.info(f"Packet Received from {packet['from']} - {packet['decoded']}")
-
+    
     try:
         if localNode == "":
             logging.warning("Local node not set")
@@ -156,7 +157,7 @@ def onReceive(packet, interface):
 
         if 'decoded' in packet:
             node = interface.nodesByNum[node_num]
-            NodeManager.add_or_update_node(node)
+            node_manager.add_or_update_node(node)
             is_new_node = db_helper.add_or_update_node(node)
             node_of_interest = db_helper.is_node_of_interest(node)
             portnum = packet['decoded']['portnum']
