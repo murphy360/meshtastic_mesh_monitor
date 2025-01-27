@@ -140,7 +140,7 @@ def onReceive(packet, interface):
         interface: The interface object that is connected to the Meshtastic device.
     """
     global node_manager
-    
+
     try:
         if localNode == "":
             logging.warning("Local node not set")
@@ -404,7 +404,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     message = message.lower()
     logging.info(f"Replying to message: {message}")
     from_node = interface.nodesByNum[from_id]
-    logging.info(f"From Node: {from_node}")
+    #logging.info(f"From Node: {from_node}")
 
     if message == "ping":
         node_short_name = lookup_short_name(interface, from_id)

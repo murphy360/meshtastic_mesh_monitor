@@ -12,6 +12,7 @@ class NodeManager:
         logging.info("NodeManager initialized")
 
     def add_or_update_node(self, node):
+        logging.info(f"Adding or updating node: {node['num']}")
         for existing_node in self.nodes:
             if existing_node.nodeNum == node.num:
                 existing_node.update(node)
