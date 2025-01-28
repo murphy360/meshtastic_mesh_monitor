@@ -3,34 +3,31 @@ import logging
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
 
-
 class Node:
-    def __init__(self, nodeId, nodeNum, longName, shortName):
-        logging.info(f"Creating Node Object: {nodeId}, {nodeNum}, {longName}, {shortName}")
-        self.nodeId = nodeId
-        self.nodeNum = nodeNum
-        self.longName = longName
-        self.shortName = shortName
-        self.lastHeard = None
+    def __init__(self, node_id, node_num, long_name, short_name):
+        logging.info(f"Creating Node Object: {node_id}, {node_num}, {long_name}, {short_name}")
+        self.node_id = node_id
+        self.node_num = node_num
+        self.long_name = long_name
+        self.short_name = short_name
+        self.last_heard = None
         self.titles = []
         self.historical_snr = []
         self.historical_rssi = []
-        self.sentPackets = []
-        self.receivedPackets = []
+        self.sent_packets = []
+        self.received_packets = []
         self.historical_positions = []
-        
 
     def __str__(self):
-        return f"Node: {self.shortName}"
+        return f"Node: {self.short_name}"
 
     def add_packet(self, interface, packet):
-        if packet["from"] == self.nodeNum:
-            self.sentPackets.append(packet)
-        elif packet["to"] == self.nodeNum:
-            self.receivedPackets.append(packet)
+        if packet["from"] == self.node_num:
+            self.sent_packets.append(packet)
+        elif packet["to"] == self.node_num:
+            self.received_packets.append(packet)
 
-        
-        self.lastHeard = packet["rxTime"]
+        self.last_heard = packet["rxTime"]
         self.historical_rssi.append(packet["rxSnr"])
         self.historical_snr.append(packet["rxSnr"])
         self.add_position_update(packet["decoded"]["position"])
@@ -56,93 +53,41 @@ class Node:
 
     def update(self, node):
         logging.info(f"Updating Node: {node['num']}")
-        self.nodeNum = node.get('num', self.nodeNum)
+        self.node_num = node.get('num', self.node_num)
         user = node.get('user', {})
-        self.nodeId = user.get('id', self.nodeId)
-        self.longName = user.get('longName', self.longName)
-        self.shortName = user.get('shortName', self.shortName)
+        self.node_id = user.get('id', self.node_id)
+        self.long_name = user.get('longName', self.long_name)
+        self.short_name = user.get('shortName', self.short_name)
         self.macaddr = user.get('macaddr', getattr(self, 'macaddr', None))
-        self.hwModel = user.get('hwModel', getattr(self, 'hwModel', None))
-        self.publicKey = user.get('publicKey', getattr(self, 'publicKey', None))
+        self.hw_model = user.get('hwModel', getattr(self, 'hw_model', None))
+        self.public_key = user.get('publicKey', getattr(self, 'public_key', None))
         
         position = node.get('position', {})
         self.latitude = position.get('latitude', getattr(self, 'latitude', None))
         self.longitude = position.get('longitude', getattr(self, 'longitude', None))
         self.altitude = position.get('altitude', getattr(self, 'altitude', None))
         
-        self.lastHeard = node.get('lastHeard', self.lastHeard)
+        self.last_heard = node.get('lastHeard', self.last_heard)
         self.snr = node.get('snr', getattr(self, 'snr', None))
         
-        deviceMetrics = node.get('deviceMetrics', {})
-        self.batteryLevel = deviceMetrics.get('batteryLevel', getattr(self, 'batteryLevel', None))
-        self.voltage = deviceMetrics.get('voltage', getattr(self, 'voltage', None))
-        self.channelUtilization = deviceMetrics.get('channelUtilization', getattr(self, 'channelUtilization', None))
-        self.airUtilTx = deviceMetrics.get('airUtilTx', getattr(self, 'airUtilTx', None))
-        self.uptimeSeconds = deviceMetrics.get('uptimeSeconds', getattr(self, 'uptimeSeconds', None))
+        device_metrics = node.get('deviceMetrics', {})
+        self.battery_level = device_metrics.get('batteryLevel', getattr(self, 'battery_level', None))
+        self.voltage = device_metrics.get('voltage', getattr(self, 'voltage', None))
+        self.channel_utilization = device_metrics.get('channelUtilization', getattr(self, 'channel_utilization', None))
+        self.air_util_tx = device_metrics.get('airUtilTx', getattr(self, 'air_util_tx', None))
+        self.uptime_seconds = device_metrics.get('uptimeSeconds', getattr(self, 'uptime_seconds', None))
 
-        """
-        {'num': 1129837336, 
-        'user': {
-        'id': '!4357f318', 
-        'longName': "Don't Panic Actual", 
-        'shortName': 'DP00', 
-        'macaddr': 'SMpDV/MY', 
-        'hwModel': 'LILYGO_TBEAM_S3_CORE', 
-        'publicKey': 'cg4e5S2jcHrEZw2cui9B/dfMswJUmR6aJqA5+jBknmo='}, 
-        'position': {'latitudeI': 413319168, 
-        'longitudeI': -814759936, 'altitude': 279, 
-        'time': 1737941784, 
-        'locationSource': 'LOC_INTERNAL', 
-        'latitude': 41.3319168, 
-        'longitude': -81.4759936
-        }, 
-        'snr': 6.0, 
-        'lastHeard': 1737941848, 
-        'deviceMetrics': {
-        'batteryLevel': 100, 
-        'voltage': 4.118, 
-        'channelUtilization': 8.133333, 
-        'airUtilTx': 0.69783336, 
-        'uptimeSeconds': 116699
-        }, 'hopsAway': 0, 
-        'lastReceived': {
-        'from': 1129837336, 
-        'to': 4294967295, 
-        'decoded': {
-        'portnum': 'TEXT_MESSAGE_APP', 
-        'payload': b'Ping', 
-        'bitfield': 0, 
-        'text': 'Ping'
-        }, 
-        'id': 3028701189, 
-        'rxTime': 1737941848, 
-        'rxSnr': 6.0, 
-        'hopLimit': 3, 
-        'rxRssi': -44, 
-        'hopStart': 3, 
-        'raw': 
-        from: 1129837336
-        to: 4294967295
-        decoded {
-        portnum: TEXT_MESSAGE_APP
-        payload: "Ping"
-        bitfield: 0
-        }
-        id: 3028701189
-        """
-        
+    def update_snr(self, snr):
+        self.snr = snr
 
-    def update_SNR(self, SNR):
-        self.SNR = SNR
+    def update_last_heard(self, last_heard):
+        self.last_heard = last_heard
 
-    def update_last_heard(self, lastHeard):
-        self.lastHeard = lastHeard
-
-    def update_last_received_packet(self, lastReceivedPacket):
-        self.lastReceivedPacket = lastReceivedPacket
+    def update_last_received_packet(self, last_received_packet):
+        self.last_received_packet = last_received_packet
 
     def add_position_update(self, position_update):
-        self.position_updates.append(position_update)
+        self.historical_positions.append(position_update)
 
     def get_position_updates(self):
-        return self.position_updates
+        return self.historical_positions

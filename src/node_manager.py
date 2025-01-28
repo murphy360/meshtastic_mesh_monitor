@@ -37,7 +37,7 @@ class NodeManager:
     def get_node_by_num(self, node_num):
         logging.info(f"Getting node by num: {node_num}")
         for node in self.nodes:
-            if node.num == node_num:
+            if node.node_num == node_num:
                 return node
         return None
 
