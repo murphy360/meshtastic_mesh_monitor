@@ -55,17 +55,31 @@ class Node:
         pass
 
     def update(self, node):
-        self.nodeId = node['user']['id']
-        self.nodeNum = node['num']
-        self.longName = node['user']['longName']
-        self.shortName = node['user']['shortName']
-        self.lastHeard = node['lastHeard']
-        self.macaddr = node['user']['macaddr']
-        self.hwModel = node['user']['hwModel']
-        self.publicKey = node['user']['publicKey']
-        self.latitude = node['user']['latitude']
-        self.longitude = node['user']['longitude']
-        self.altitude = node['user']['altitude']
+        logging.info(f"Updating Node: {node['num']}")
+        self.nodeNum = node.get('num', self.nodeNum)
+        user = node.get('user', {})
+        self.nodeId = user.get('id', self.nodeId)
+        self.longName = user.get('longName', self.longName)
+        self.shortName = user.get('shortName', self.shortName)
+        self.macaddr = user.get('macaddr', getattr(self, 'macaddr', None))
+        self.hwModel = user.get('hwModel', getattr(self, 'hwModel', None))
+        self.publicKey = user.get('publicKey', getattr(self, 'publicKey', None))
+        
+        position = node.get('position', {})
+        self.latitude = position.get('latitude', getattr(self, 'latitude', None))
+        self.longitude = position.get('longitude', getattr(self, 'longitude', None))
+        self.altitude = position.get('altitude', getattr(self, 'altitude', None))
+        
+        self.lastHeard = node.get('lastHeard', self.lastHeard)
+        self.snr = node.get('snr', getattr(self, 'snr', None))
+        
+        deviceMetrics = node.get('deviceMetrics', {})
+        self.batteryLevel = deviceMetrics.get('batteryLevel', getattr(self, 'batteryLevel', None))
+        self.voltage = deviceMetrics.get('voltage', getattr(self, 'voltage', None))
+        self.channelUtilization = deviceMetrics.get('channelUtilization', getattr(self, 'channelUtilization', None))
+        self.airUtilTx = deviceMetrics.get('airUtilTx', getattr(self, 'airUtilTx', None))
+        self.uptimeSeconds = deviceMetrics.get('uptimeSeconds', getattr(self, 'uptimeSeconds', None))
+
         """
         {'num': 1129837336, 
         'user': {
