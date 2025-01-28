@@ -31,8 +31,8 @@ class NodeManager:
                 existing_node.update(node)
                 logging.info(f"Node updated: {existing_node}")
                 return existing_node
-        logging.info(f"Node not found: {node['num']}")
-        new_node = Node(node)
+        logging.info(f"Node not found: {node['num'], node['user']['id']}")
+        new_node = Node(node['user']['id'], node['num'], node['user']['longName'], node['user']['shortName'])
         self.nodes.append(new_node)
         logging.info(f"Node added: {new_node}")
         return new_node
