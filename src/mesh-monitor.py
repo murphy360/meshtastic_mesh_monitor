@@ -156,7 +156,7 @@ def onReceive(packet, interface):
 
         if 'decoded' in packet:
             node = interface.nodesByNum[node_num]
-            node_manager.add_or_update_node(node)
+            node_object = node_manager.add_or_update_node(node)
             is_new_node = db_helper.add_or_update_node(node)
             node_of_interest = db_helper.is_node_of_interest(node)
             portnum = packet['decoded']['portnum']

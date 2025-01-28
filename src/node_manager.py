@@ -13,18 +13,26 @@ class NodeManager:
 
     def add_or_update_node(self, node):
         logging.info(f"Adding or updating node: {node['num']}")
-        logging.info(f"Nodes: {self.nodes}")
-        for existing_node in self.nodes:
-            logging.info(f"Checking node: {existing_node.nodeNum}")
-            if existing_node.nodeNum == node['num']:
-                existing_node.update(node)
-                logging.info(f"Node updated: {existing_node}")
-                return existing_node
-        logging.info(f"Node not found: {node['num'], node['user']['id']}")
+        if self.get_node_by_num(node['num']):
+            return_node = self.update_node(node)
+        else:
+            return_node = self.add_node(node)
+        return return_node
+    
+    def add_node(self, node):
         new_node = Node(node['user']['id'], node['num'], node['user']['longName'], node['user']['shortName'])
         self.nodes.append(new_node)
         logging.info(f"Node added: {new_node}")
         return new_node
+    
+    def update_node(self, node):
+        logging.info(f"Updating node: {node['num']}")
+        node_to_update = self.get_node_by_num(node['num'])
+        if node_to_update:
+            node_to_update.update(node)
+            logging.info(f"Node updated: {node_to_update}")
+            return node_to_update
+        return None
 
     def get_node_by_num(self, node_num):
         for node in self.nodes:
