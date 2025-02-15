@@ -29,6 +29,7 @@ interface = None
 db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
+public_channel_number = 0
 private_channel_number = 1
 last_routine_sitrep_date = None
 
@@ -142,6 +143,7 @@ def onReceive(packet, interface):
 
         node_num = packet['from']
         node_short_name = lookup_short_name(interface, node_num)
+        interface.sendPositionRequest(node_num)
 
         if packet['from'] == localNode.nodeNum:
             logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
@@ -163,7 +165,13 @@ def onReceive(packet, interface):
                 check_node_health(interface, node)
             if new_node:
                 log_string += " - New node detected!"
-                send_message(interface, f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!", 0, node_num)
+                private_message = "Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!"
+                send_message(interface, private_message, public_channel_number, node_num)
+                # Notify admin of new node
+                admin_message = f"New node detected: {node_short_name}"
+                send_message(interface, admin_message, private_channel_number, "^all")
+                # Request node position
+                
 
             logging.info(log_string)
 
