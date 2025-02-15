@@ -352,22 +352,13 @@ class SITREP:
                     "lat": node["position"]["latitude"],
                     "lon": node["position"]["longitude"],
                     "alt": node["position"].get("altitude", 0),
-                    "lastHeard": "",
-                    "hopsAway": 0,
+                    "lastHeard": node["lastHeard"],
+                    "hopsAway": node["hopsAway"],
                     "connections": []
                 }
-                if "hopsAway" in node:
-                    node_data["hopsAway"] = node["hopsAway"]
-                    logging.info(f"Node Hops Away: {node['hopsAway']}")
-                else:
-                    logging.info(f"Node Hops Away not found. Must have been a direct connection")
-                    node_data["hopsAway"] = 0
-
+                if node_data["hopsAway"] > 0:
                     node_data["connections"].append(self.shortName)
-                    mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])
-
-                if "lastHeard" in node:
-                    node_data["lastHeard"] = node["lastHeard"]
+                    mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
                     
                 mesh_data["nodes"].append(node_data)
             except Exception as e:
