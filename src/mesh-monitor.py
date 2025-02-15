@@ -204,6 +204,12 @@ def onReceive(packet, interface):
                 
                 if 'longitude' in packet:
                     longitude = packet['longitude']
+                
+                if 'location_source' in packet:
+                    logging.info(f"Location Source: {packet['location_source']}")
+                    if packet['location_source'] == 'LOC_MANUAL':
+                        logging.info(f"Manual Location Source Detected from {node_short_name} not assessing further")
+                        return
 
                 if 'altitude' in packet:
                     altitude = packet['altitude']
@@ -237,7 +243,7 @@ def onReceive(packet, interface):
 
             elif 'portnum' in packet['decoded']:
                 packet_type = packet['decoded']['portnum']
-                logging.info(f"Packet received from {node_short_name} - {packet_type}")
+                logging.info(f"Unhandled Packet received from {node_short_name} - {packet_type}")
                 return
         else:
             logging.info(f"Packet received from {node_short_name} - Encrypted")
