@@ -199,15 +199,24 @@ def onReceive(packet, interface):
 
             elif portnum == 'POSITION_APP':
                 logging.info(f"Position packet received from {node_short_name} - {packet}")
-                altitude = packet['decoded']['position'].get('altitude', 0)
+                if 'latitude' in packet:
+                    latitude = packet['latitude']
                 
-                if altitude > 5000:
-                    logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
-                    message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
-                    send_message(interface, message, private_channel_number, "^all")
-                    message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
-                    send_message(interface, message, private_channel_number, node_num)
-                    db_helper.set_aircraft(node, True)
+                if 'longitude' in packet:
+                    longitude = packet['longitude']
+
+                if 'altitude' in packet:
+                    altitude = packet['altitude']
+                    if altitude > 2000:
+                        logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
+                        message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
+                        send_message(interface, message, private_channel_number, "^all")
+                        message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
+                        send_message(interface, message, private_channel_number, node_num)
+                        db_helper.set_aircraft(node, True)
+                
+                
+                
                 return
 
             elif portnum == 'NEIGHBORINFO_APP':
