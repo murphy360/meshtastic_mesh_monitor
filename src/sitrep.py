@@ -352,12 +352,14 @@ class SITREP:
                     "lat": node["position"]["latitude"],
                     "lon": node["position"]["longitude"],
                     "alt": node["position"].get("altitude", 0),
+                    "lastHeard": ""
                     "connections": []
                 }
                 if "lastHeard" in node:
+                    node_data["lastHeard"] = node["lastHeard"]
                     now = datetime.datetime.now()
                     time_difference_in_seconds = now.timestamp() - node["lastHeard"]
-                    if time_difference_in_seconds < 3600:
+                    if time_difference_in_seconds < 7200: # 2 hour
                         node_data["connections"].append(self.shortName)
                         mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])
                 mesh_data["nodes"].append(node_data)
