@@ -377,6 +377,7 @@ class SITREP:
 
         logging.info(f"SITREP written to file: {file_path}")
         logging.info(f"File Contents: {mesh_data}")
+        logging.info(f"Interface Nodes: {interface.nodes}")
 
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         """
