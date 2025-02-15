@@ -360,15 +360,17 @@ class SITREP:
                         node_data["connections"].append(self.shortName)
                         mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])
                 mesh_data["nodes"].append(node_data)
-        for line in self.lines:
+            except Exception as e:
+                print(f"Error: {e}")
             try:
-                mesh_data["sitrep"].append(line)
+                for line in self.lines:
+                    mesh_data["sitrep"].append(line)
             except Exception as e:
                 print(f"Error: {e}")
 
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
-            
+
         logging.info(f"SITREP written to file: {file_path}")
         logging.info(f"File Contents: {mesh_data}")
 
