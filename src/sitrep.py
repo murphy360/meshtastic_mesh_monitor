@@ -356,7 +356,7 @@ class SITREP:
                     "hopsAway": node["hopsAway"],
                     "connections": []
                 }
-                if node_data["hopsAway"] > 0:
+                if node_data["hopsAway"] == 0:
                     node_data["connections"].append(self.shortName)
                     mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
                     
