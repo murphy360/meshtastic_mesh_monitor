@@ -364,6 +364,7 @@ class SITREP:
                 print(f"Error: {e}")
             try:
                 for line in self.lines:
+                    logging.info(f"Adding SITREP line to file: {line}")
                     mesh_data["sitrep"].append(line)
             except Exception as e:
                 print(f"Error: {e}")
