@@ -365,7 +365,7 @@ class SITREP:
                 print(f"Error: {e}")
         try:
             for line in self.lines:
-                logging.info(f"Adding SITREP line to file: {line}")
+                #logging.info(f"Adding SITREP line to file: {line}")
                 mesh_data["sitrep"].append(line)
         except Exception as e:
             print(f"Error: {e}")
@@ -374,7 +374,7 @@ class SITREP:
             json.dump(mesh_data, file)
 
         logging.info(f"SITREP written to file: {file_path}")
-        logging.info(f"File Contents: {mesh_data}")
+        #logging.info(f"File Contents: {mesh_data}")
 
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         """
