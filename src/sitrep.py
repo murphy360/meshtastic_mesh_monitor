@@ -323,7 +323,8 @@ class SITREP:
         logging.info(f"Writing SITREP to file: {file_path}")
         mesh_data = {
             "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
-            "nodes": []
+            "nodes": [],
+            "sitrep": []
         }
         self_data = {}
 
@@ -362,12 +363,12 @@ class SITREP:
                 mesh_data["nodes"].append(node_data)
             except Exception as e:
                 print(f"Error: {e}")
-            try:
-                for line in self.lines:
-                    logging.info(f"Adding SITREP line to file: {line}")
-                    mesh_data["sitrep"].append(line)
-            except Exception as e:
-                print(f"Error: {e}")
+        try:
+            for line in self.lines:
+                logging.info(f"Adding SITREP line to file: {line}")
+                mesh_data["sitrep"].append(line)
+        except Exception as e:
+            print(f"Error: {e}")
 
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
