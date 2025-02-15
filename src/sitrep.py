@@ -358,7 +358,9 @@ class SITREP:
                 }
                 if "hopsAway" in node:
                     node_data["hopsAway"] = node["hopsAway"]
+                    logging.info(f"Node Hops Away: {node['hopsAway']}")
                 else:
+                    logging.info(f"Node Hops Away not found. Must have been a direct connection")
                     node_data["hopsAway"] = 0
                     now = datetime.datetime.now()
                     time_difference_in_seconds = now.timestamp() - node["lastHeard"]
