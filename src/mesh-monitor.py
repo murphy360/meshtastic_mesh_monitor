@@ -170,7 +170,10 @@ def onReceive(packet, interface):
                 admin_message = f"New node detected: {node_short_name}"
                 send_message(interface, admin_message, private_channel_number, "^all")
                 # Request node position
-                
+                # If HopsAway is greater than 0, send a traceroute packet
+                if node['hopsAway'] > 0:
+                    logging.info(f"Sending Traceroute to {node_short_name}")
+                    interface.sendTraceRoute(node_num, 5, public_channel_number)
 
             logging.info(log_string)
 
@@ -195,8 +198,9 @@ def onReceive(packet, interface):
                         return
 
             elif portnum == 'POSITION_APP':
+                logging.info(f"Position packet received from {node_short_name} - {packet}")
                 altitude = packet['decoded']['position'].get('altitude', 0)
-                logging.info(f"Position packet received from {node_short_name} - Altitude: {altitude}")
+                
                 if altitude > 5000:
                     logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
                     message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
