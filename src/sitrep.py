@@ -352,7 +352,7 @@ class SITREP:
                     "lat": node["position"]["latitude"],
                     "lon": node["position"]["longitude"],
                     "alt": node["position"].get("altitude", 0),
-                    "lastHeard": ""
+                    "lastHeard": "",
                     "connections": []
                 }
                 if "lastHeard" in node:
