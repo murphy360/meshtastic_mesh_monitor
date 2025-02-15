@@ -202,6 +202,9 @@ def onReceive(packet, interface):
             elif portnum == 'NEIGHBORINFO_APP':
                 logging.info(f"Neighbor Info Packet Received from {node_short_name}")
                 logging.info(f"Neighbors: {packet['decoded']['neighbors']}")
+                # Alert admin if a node is reporting neighbors
+                message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
+                send_message(interface, message, private_channel_number, node_num)
                 return
 
             elif portnum == 'TRACEROUTE_APP':
