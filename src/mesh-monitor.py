@@ -219,8 +219,6 @@ def onReceive(packet, interface):
                         send_message(interface, message, private_channel_number, node_num)
                         db_helper.set_aircraft(node, True)
                 
-                
-                
                 return
 
             elif portnum == 'NEIGHBORINFO_APP':
@@ -233,6 +231,22 @@ def onReceive(packet, interface):
 
             elif portnum == 'TRACEROUTE_APP':
                 logging.info(f"Traceroute Packet Received from {node_short_name}")
+                routeBack = packet['decoded']['traceroute'].get('routeBack', [])
+                route = packet['decoded']['traceroute'].get('route', [])
+                message = f"{packet['to']}"
+
+                if routeBack:
+                    message += f" --> {' --> '.join(map(str, routeBack))}"
+
+                message += f" --> {packet['from']}"
+
+                if route:
+                    message += f" --> {' --> '.join(map(str, route))}"
+
+                message += f" --> {packet['to']}"
+
+                logging.info(f"Traceroute: {message}")
+                
                 if packet['to'] == localNode.nodeNum:
                     logging.info(f"Traceroute packet received from {node_short_name} - Replying")
                     send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
