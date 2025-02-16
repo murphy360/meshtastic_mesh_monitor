@@ -341,7 +341,7 @@ class SITREP:
 
         for node in interface.nodes.values():
             #logging.info(f"Writing Node: {node}")
-
+            logging.info(f"Writing Node: {node['user']['shortName']}")
             try:
                 latitude = 0
                 longitude = 0
@@ -373,6 +373,7 @@ class SITREP:
                 mesh_data["nodes"].append(node_data)
             except Exception as e:
                 logging.error(f"Error: {e}")
+                
         try:
             for line in self.lines:
                 #logging.info(f"Adding SITREP line to file: {line}")
