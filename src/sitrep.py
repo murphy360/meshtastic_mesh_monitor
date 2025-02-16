@@ -335,7 +335,7 @@ class SITREP:
         self_data["id"] = self.shortName
         self_data["lat"] = localNode["position"]["latitude"]
         self_data["lon"] = localNode["position"]["longitude"]
-        self_data["alt"] = localNode["position"].get("altitude", 0)
+        self_data["alt"] = localNode["position"]["altitude"]
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
 
