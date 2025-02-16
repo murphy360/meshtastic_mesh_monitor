@@ -348,13 +348,13 @@ class SITREP:
                     logging.info(f"Updating Local Node: {node}")
                     mesh_data["nodes"][0]["lat"] = node["position"]["latitude"]
                     mesh_data["nodes"][0]["lon"] = node["position"]["longitude"]
-                    mesh_data["nodes"][0]["alt"] = node["position"]["altitude"]
+                    mesh_data["nodes"][0]["alt"] = node["position"].get("altitude", 0)
                     continue
                 node_data = {
                     "id": node["user"]["shortName"],
                     "lat": node["position"]["latitude"],
                     "lon": node["position"]["longitude"],
-                    "alt": node["position"]["altitude"],
+                    "alt": node["position"].get("altitude", 0),
                     "lastHeard": node["lastHeard"],
                     "hopsAway": node["hopsAway"],
                     "connections": []
