@@ -338,23 +338,34 @@ class SITREP:
         self_data["id"] = self.shortName
         self_data["lat"] = localNode["position"]["latitude"]
         self_data["lon"] = localNode["position"]["longitude"]
-        self_data["alt"] = localNode["position"]["altitude"]
+        if "altitude" in localNode["position"]:
+            self_data["alt"] = localNode["position"]["altitude"]
+        else:
+            self_data["alt"] = 0
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
 
         for node in interface.nodes.values():
+            logging.info(f"Writing Node: {node}")
+            latitude = node["position"]["latitude"]
+            longitude = node["position"]["longitude"]
+            if 'altitude' in node["position"]:
+                altitude = node["position"]["altitude"]
+            else:
+                altitude = 0
             try:
+
                 if self.localNode.nodeNum == node["num"]:
                     #logging.info(f"Updating Local Node: {node}")
-                    mesh_data["nodes"][0]["lat"] = node["position"]["latitude"]
-                    mesh_data["nodes"][0]["lon"] = node["position"]["longitude"]
-                    mesh_data["nodes"][0]["alt"] = node["position"].get("altitude", 0)
+                    mesh_data["nodes"][0]["lat"] = latitude
+                    mesh_data["nodes"][0]["lon"] = longitude
+                    mesh_data["nodes"][0]["alt"] = altitude
                     continue
                 node_data = {
                     "id": node["user"]["shortName"],
-                    "lat": node["position"]["latitude"],
-                    "lon": node["position"]["longitude"],
-                    "alt": node["position"].get("altitude", 0),
+                    "lat": latitude,
+                    "lon": longitude,
+                    "alt": altitude,
                     "lastHeard": node["lastHeard"],
                     "hopsAway": node["hopsAway"],
                     "connections": []
