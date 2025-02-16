@@ -322,7 +322,7 @@ class SITREP:
             interface: The interface to interact with the mesh network.
             file_path (str): The path to the file.
         """
-        logging.info(f"Writing SITREP to file: {file_path}")
+        #logging.info(f"Writing SITREP to file: {file_path}")
         mesh_data = {
             "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
             "sitrep_time": self.sitrep_time,  # Discrete field for SITREP time
@@ -383,7 +383,7 @@ class SITREP:
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
 
-        logging.info(f"SITREP written to file: {file_path}")
+        #logging.info(f"SITREP written to file: {file_path}")
         #logging.info(f"File Contents: {mesh_data}")
 
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
@@ -470,7 +470,7 @@ class SITREP:
         Returns:
             str: The short name of the node.
         """
-        logging.info(f"Sitrep: Looking up short name for node: {node_num}")
+        #logging.info(f"Sitrep: Looking up short name for node: {node_num}")
         for node in interface.nodes.values():
             if node["num"] == node_num:
                 node_short_name = node["user"]["shortName"]
