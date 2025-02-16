@@ -19,6 +19,7 @@ class SITREP:
         self.aircraft_tracks = {}
         self.messages_sent = {}
         self.nodes_connected = 0
+        self.sitrep_time = self.get_date_time_in_zulu(datetime.datetime.now())
         self.reportHeader = ""
         self.line1 = ""  # Local Nodes
         self.line2 = ""  # Aircraft Tracks
@@ -46,9 +47,10 @@ class SITREP:
             now = now.replace(hour=0, minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
+        self.sitrep_time = self.get_date_time_in_zulu(now)
         node = self.lookup_node_by_short_name(interface, self.shortName)
         self.lines = []
-        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.get_date_time_in_zulu(now)} SITREP is as follows:"
+        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.sitrep_time} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
@@ -323,6 +325,7 @@ class SITREP:
         logging.info(f"Writing SITREP to file: {file_path}")
         mesh_data = {
             "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
+            "sitrep_time": self.sitrep_time,  # Discrete field for SITREP time
             "nodes": [],
             "sitrep": []
         }
