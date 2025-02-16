@@ -345,7 +345,7 @@ class SITREP:
         for node in interface.nodes.values():
             try:
                 if self.localNode.nodeNum == node["num"]:
-                    logging.info(f"Updating Local Node: {node}")
+                    #logging.info(f"Updating Local Node: {node}")
                     mesh_data["nodes"][0]["lat"] = node["position"]["latitude"]
                     mesh_data["nodes"][0]["lon"] = node["position"]["longitude"]
                     mesh_data["nodes"][0]["alt"] = node["position"].get("altitude", 0)
