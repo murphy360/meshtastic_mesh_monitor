@@ -246,11 +246,16 @@ def onReceive(packet, interface):
                 message += f" --> {packet['to']}"
 
                 logging.info(f"Traceroute: {message}")
-                
+
                 if packet['to'] == localNode.nodeNum:
                     logging.info(f"Traceroute packet received from {node_short_name} - Replying")
                     send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
                     db_helper.set_node_of_interest(node, True)
+                return
+            
+            elif portnum == 'TELEMETRY_APP':
+                logging.info(f"Telemetry Packet Received from {node_short_name}")
+                logging.info(f"Telemetry: {packet['decoded']['telemetry']}")
                 return
 
             elif 'portnum' in packet['decoded']:
