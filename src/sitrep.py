@@ -351,7 +351,7 @@ class SITREP:
                     "id": node["user"]["shortName"],
                     "lat": node["position"]["latitude"],
                     "lon": node["position"]["longitude"],
-                    "alt": node["position"].get("altitude", 0),
+                    "alt": node["position"]["altitude"],
                     "lastHeard": node["lastHeard"],
                     "hopsAway": node["hopsAway"],
                     "connections": []
