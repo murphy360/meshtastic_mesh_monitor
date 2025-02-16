@@ -336,27 +336,23 @@ class SITREP:
             logging.info(f"Local Node not found in interface.nodes")
             return
         self_data["id"] = self.shortName
-        self_data["lat"] = localNode["position"]["latitude"]
-        self_data["lon"] = localNode["position"]["longitude"]
-        if "altitude" in localNode["position"]:
-            self_data["alt"] = localNode["position"]["altitude"]
-        else:
-            self_data["alt"] = 0
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
 
         for node in interface.nodes.values():
             logging.info(f"Writing Node: {node}")
-            latitude = node["position"]["latitude"]
-            longitude = node["position"]["longitude"]
-            if 'altitude' in node["position"]:
-                altitude = node["position"]["altitude"]
-            else:
-                altitude = 0
+
             try:
+                latitude = "None"
+                longitude = "None"
+                altitude = "None"
+
+                if "position" in node:
+                    latitude = node["position"]["latitude"]
+                    longitude = node["position"]["longitude"]
+                    altitude = node["position"]["altitude"]
 
                 if self.localNode.nodeNum == node["num"]:
-                    #logging.info(f"Updating Local Node: {node}")
                     mesh_data["nodes"][0]["lat"] = latitude
                     mesh_data["nodes"][0]["lon"] = longitude
                     mesh_data["nodes"][0]["alt"] = altitude
