@@ -343,9 +343,9 @@ class SITREP:
             logging.info(f"Writing Node: {node}")
 
             try:
-                latitude = "None"
-                longitude = "None"
-                altitude = "None"
+                latitude = 0
+                longitude = 0
+                altitude = 0
 
                 if "position" in node:
                     latitude = node["position"]["latitude"]
