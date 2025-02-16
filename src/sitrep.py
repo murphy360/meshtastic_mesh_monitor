@@ -340,7 +340,7 @@ class SITREP:
         mesh_data["nodes"].append(self_data)
 
         for node in interface.nodes.values():
-            logging.info(f"Writing Node: {node}")
+            #logging.info(f"Writing Node: {node}")
 
             try:
                 latitude = 0
