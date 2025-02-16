@@ -198,7 +198,6 @@ def onReceive(packet, interface):
                         return
 
             elif portnum == 'POSITION_APP':
-                logging.info(f"Position packet received from {node_short_name} - {packet}")
                 if 'latitude' in packet:
                     latitude = packet['latitude']
                 
@@ -206,9 +205,8 @@ def onReceive(packet, interface):
                     longitude = packet['longitude']
                 
                 if 'location_source' in packet:
-                    logging.info(f"Location Source: {packet['location_source']}")
                     if packet['location_source'] == 'LOC_MANUAL':
-                        logging.info(f"Manual Location Source Detected from {node_short_name} not assessing further")
+                        logging.info(f"{packet['location_source']} Location Source Detected from {node_short_name} not assessing further")
                         return
 
                 if 'altitude' in packet:
