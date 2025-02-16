@@ -32,7 +32,7 @@ class SITREP:
         self.nodes_of_interest = []
         self.known_nodes = []
         self.num_connections = 0
-        print("SITREP Object Created")
+        logging.info(f"SITREP initialized")
 
     def update_sitrep(self, interface, is_routine_sitrep=False):
         """
@@ -240,7 +240,7 @@ class SITREP:
             self.packets_received[packet_type] += 1
         else:
             self.packets_received[packet_type] = 1
-        print(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
+        logging.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
         return
 
     def is_packet_from_node_of_interest(self, interface, packet):
@@ -257,7 +257,7 @@ class SITREP:
         logging.info("is_packet_from_node_of_interest")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name in self.nodes_of_interest:
-            print(f"Packet received from node of interest: {from_node_short_name}")
+            logging.info(f"Node of Interest Detected: {from_node_short_name}")
             return True
         return False
 
@@ -289,7 +289,7 @@ class SITREP:
             int: The total number of packets received.
         """
         total_packets = sum(self.packets_received.values())
-        print("Total Packets Received:", total_packets)
+        logging.info(f"Total Packets Received: {total_packets}")
         return total_packets
 
     def log_message_sent(self, message_type):
@@ -372,13 +372,13 @@ class SITREP:
                     
                 mesh_data["nodes"].append(node_data)
             except Exception as e:
-                print(f"Error: {e}")
+                logging.error(f"Error: {e}")
         try:
             for line in self.lines:
                 #logging.info(f"Adding SITREP line to file: {line}")
                 mesh_data["sitrep"].append(line)
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
 
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
