@@ -370,6 +370,7 @@ class SITREP:
                     mesh_data["nodes"][0]["lon"] = longitude
                     mesh_data["nodes"][0]["alt"] = altitude
                     continue
+
                 node_data = {
                     "id": node["user"]["shortName"],
                     "lat": latitude,
@@ -380,6 +381,7 @@ class SITREP:
                     "role": role,
                     "connections": []
                 }
+                
                 if node_data["hopsAway"] == 0:
                     node_data["connections"].append(self.shortName)
                     mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             

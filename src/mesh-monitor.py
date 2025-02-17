@@ -246,6 +246,7 @@ def onReceive(packet, interface):
                 message += f" --> {packet['to']}"
 
                 logging.info(f"Traceroute: {message}")
+                send_message(interface, message, private_channel_number, node_num)
 
                 if packet['to'] == localNode.nodeNum:
                     logging.info(f"Traceroute packet received from {node_short_name} - Replying")
