@@ -353,7 +353,8 @@ class SITREP:
                 if "position" in node:
                     latitude = node["position"]["latitude"]
                     longitude = node["position"]["longitude"]
-                    altitude = node["position"]["altitude"]
+                    if "altitude" in node["position"]:
+                        altitude = node["position"]["altitude"]
                 
                 if "lastHeard" in node:
                     last_heard = node["lastHeard"]
