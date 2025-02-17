@@ -372,7 +372,7 @@ class SITREP:
                     
                 mesh_data["nodes"].append(node_data)
             except Exception as e:
-                logging.error(f"Error While processing node {node['user']['shortName']}: {e}")
+                logging.error(f"Error While processing node {node['user']['shortName']}: {e} - {node}")
                 
         try:
             for line in self.lines:
