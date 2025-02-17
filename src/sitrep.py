@@ -346,11 +346,23 @@ class SITREP:
                 latitude = 0
                 longitude = 0
                 altitude = 0
+                last_heard = 0
+                hops_away = -1
+                role = "Unknown"
 
                 if "position" in node:
                     latitude = node["position"]["latitude"]
                     longitude = node["position"]["longitude"]
                     altitude = node["position"]["altitude"]
+                
+                if "lastHeard" in node:
+                    last_heard = node["lastHeard"]
+                
+                if "hopsAway" in node:
+                    hops_away = node["hopsAway"]
+
+                if "role" in node:
+                    role = node["role"]
 
                 if self.localNode.nodeNum == node["num"]:
                     mesh_data["nodes"][0]["lat"] = latitude
@@ -362,8 +374,9 @@ class SITREP:
                     "lat": latitude,
                     "lon": longitude,
                     "alt": altitude,
-                    "lastHeard": node["lastHeard"],
-                    "hopsAway": node["hopsAway"],
+                    "lastHeard": last_heard,
+                    "hopsAway": hops_away,
+                    "role": role,
                     "connections": []
                 }
                 if node_data["hopsAway"] == 0:
