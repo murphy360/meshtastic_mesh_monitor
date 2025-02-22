@@ -529,6 +529,19 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         else:
             send_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
+    
+    # Trace Node
+    elif "trace node" in message or "tracenode" in message:
+        logging.info("Tracing node")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            send_message(interface, f"Tracing {node_short_name}", channel, to_id)
+            interface.sendTraceRoute(node['num'], 5, public_channel_number)
+            sitrep.log_message_sent("node-traced")
+        else:
+            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+        return
 
     elif "set aircraft" in message or "setaircraft" in message:
         logging.info("Setting aircraft")
