@@ -173,6 +173,9 @@ def onReceive(packet, interface):
                 # If HopsAway is greater than 0, send a traceroute packet
                 if node['hopsAway'] > 0:
                     logging.info(f"Sending Traceroute to {node_short_name}")
+                    # notify admin of traceroute
+                    admin_message = f"Sending Traceroute to {node_short_name}"
+                    send_message(interface, admin_message, private_channel_number, "^all")
                     interface.sendTraceRoute(node_num, 5, public_channel_number)
 
             logging.info(log_string)
