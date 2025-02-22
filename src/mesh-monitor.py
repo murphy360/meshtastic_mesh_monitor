@@ -286,18 +286,24 @@ def check_node_health(interface, node):
     if "deviceMetrics" not in node:
         return
 
-    battery_level = node["deviceMetrics"].get("batteryLevel", 100)
-    last_heard = node.get("lastHeard", time.time())
+    if "batteryLevel" in node["deviceMetrics"]:
+        battery_level = node["deviceMetrics"]["batteryLevel"]
+        if battery_level < 20:
+            logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
+            send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")
+        
+    if "lastHeard" in node:
+        last_heard = node.get("lastHeard", time.time())
+        last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=datetime.timezone.utc)
+        time_since_last_heard_string = time_since_last_heard(last_heard_time)
 
-    if battery_level < 20:
-        logging.info(f"Warning: {node['user']['shortName']} has low battery. Battery Level: {battery_level}")
-        send_message(interface, f"Warning: {node['user']['shortName']} has low battery", private_channel_number, "^all")
-    if last_heard < time.time() - 86400:
-        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 24 hours", private_channel_number, "^all")
-    if last_heard < time.time() - 172800:
-        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 48 hours", private_channel_number, "^all")
-    if last_heard < time.time() - 259200:
-        send_message(interface, f"Warning: {node['user']['shortName']} has not been heard from in the last 72 hours", private_channel_number, "^all")
+        # If the node has been offline for more than 24 hours and reconnects, Notify Admin
+        if last_heard < time.time() - 86400: # 24 hours
+            logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
+            send_message(interface, f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}", private_channel_number, "^all")
+            # Trace route to node
+            logging.info(f"Sending Traceroute to {node['user']['shortName']}")
+            interface.sendTraceRoute(node['num'], 5, public_channel_number) # Send trace to node, 5 hops, public channel
 
 def lookup_node(interface, node_generic_identifier):
     """
@@ -382,6 +388,25 @@ def find_distance_between_nodes(interface, node1, node2):
     if node1Lat and node1Lon and node2Lat and node2Lon:
         return geopy.distance.distance((node1Lat, node1Lon), (node2Lat, node2Lon)).miles
     return "Unknown"
+
+def time_since_last_heard(last_heard_time):
+    now = datetime.now(timezone.utc)
+    delta = now - last_heard_time
+    seconds = delta.total_seconds()
+    if seconds < 60: # Less than a minute, return seconds
+        return f"{int(seconds)}s"
+    elif seconds < 3600: # Less than an hour, return minutes
+        return f"{int(seconds // 60)}m"
+    elif seconds < 86400: # Less than a day, return hours
+        return f"{int(seconds // 3600)}h"
+    elif seconds < 604800: # Less than a week, return days
+        return f"{int(seconds // 86400)}d"
+    elif seconds < 2592000: # Less than a month, return weeks
+        return f"{int(seconds // 604800)}w"
+    elif seconds < 31536000: # Less than a year, return months
+        return f"{int(seconds // 2592000)}m"
+    else: # More than a year, return years
+        return f"{int(seconds // 31536000)}y"
 
 def should_send_sitrep_after_midnight():
     """
