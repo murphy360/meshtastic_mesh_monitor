@@ -234,22 +234,23 @@ def onReceive(packet, interface):
 
             elif portnum == 'TRACEROUTE_APP':
                 logging.info(f"Traceroute Packet Received from {node_short_name}")
-                routeBack = packet['decoded']['traceroute'].get('routeBack', [])
-                route = packet['decoded']['traceroute'].get('route', [])
-                message = f"{packet['to']}"
+                logging.info(packet)
+                logging.info(f"Traceroute: {packet['decoded']['traceroute']}")
+                #routeBack = packet['decoded']['traceroute']['routeBack']
+                #route = packet['decoded']['traceroute'].get('route', [])
+                #message = f"{packet['to']}"
 
-                if routeBack:
-                    message += f" --> {' --> '.join(map(str, routeBack))}"
+                #if routeBack:
+                    #logging.info(f"Route Back: {routeBack} from {node_short_name} to {packet['to']}")
+                    
 
-                message += f" --> {packet['from']}"
+                #if route:
+                    #logging.info(f"Route: {route} from {node_short_name} to {packet['to']}")
 
-                if route:
-                    message += f" --> {' --> '.join(map(str, route))}"
+                #message += f" --> {packet['to']}"
 
-                message += f" --> {packet['to']}"
-
-                logging.info(f"Traceroute: {message}")
-                send_message(interface, message, private_channel_number, node_num)
+                #logging.info(f"Traceroute: {message}")
+                #send_message(interface, message, private_channel_number, node_num)
 
                 if packet['to'] == localNode.nodeNum:
                     logging.info(f"Traceroute packet received from {node_short_name} - Replying")
