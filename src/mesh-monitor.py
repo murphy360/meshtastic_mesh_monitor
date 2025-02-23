@@ -144,6 +144,7 @@ def onReceive(packet, interface):
 
         node_num = packet['from']
         node_short_name = lookup_short_name(interface, node_num)
+    
 
         if packet['from'] == localNode.nodeNum:
             logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
@@ -244,7 +245,7 @@ def onReceive(packet, interface):
 
                 logging.info(f"Traceroute: {trace}")
                 # Tell admin what the traceroute is
-                message = f"Traceroute from {node_short_name} to {trace['to']}: {trace}"
+                message = f"Traceroute from {packet['from']} to {packet['to']}: {trace}"
                 send_message(interface, message, private_channel_number, "^all")
                 #routeBack = packet['decoded']['traceroute']['routeBack']
                 #route = packet['decoded']['traceroute'].get('route', [])
@@ -296,6 +297,7 @@ def check_node_health(interface, node):
     """
     logging.info(f"Checking health of node {node['user']['shortName']}")
     if "deviceMetrics" not in node:
+        logging.info(f"Node {node['user']['shortName']} does not have device metrics")
         return
 
     if "batteryLevel" in node["deviceMetrics"]:
@@ -316,9 +318,22 @@ def check_node_health(interface, node):
         if last_heard_time < datetime.now(timezone.utc) - timedelta(days=1):
             logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
             send_message(interface, f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}", private_channel_number, "^all")
-            # Trace route to node
-            logging.info(f"Sending Traceroute to {node['user']['shortName']}")
-            interface.sendTraceRoute(node['num'], 5, public_channel_number) # Send trace to node, 5 hops, public channel
+
+    
+    if "hopAway" in node:
+        logging.info(f"Checking hop away of node {node['user']['shortName']}")
+        hops_away = node["hopsAway"]
+        if "hopsAway" in node:
+            hops_away = node["hopsAway"]
+            if hops_away > 0:
+                message = f"Node {node['user']['shortName']} is {hops_away} hops away. Sending Traceroute."
+                # Trace route to node
+                logging.info(message)
+                send_message(interface, message, private_channel_number, "^all")
+                interface.sendTraceRoute(node['num'], 5, public_channel_number) # Send trace to node, 5 hops, public channel
+                
+                
+                
 
 def lookup_node(interface, node_generic_identifier):
     """
