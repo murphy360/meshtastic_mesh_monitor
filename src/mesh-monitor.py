@@ -62,16 +62,6 @@ def connect_to_radio():
     """
     global RADIO_IP
     interface = None
-    if 'RADIO_IP' in globals():
-        logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
-    else:
-        logging.error("RADIO_IP not set. Resolving hostname...")
-        try:
-            RADIO_IP = resolve_hostname(host)
-            logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
-        except Exception as e:
-            logging.error(f"Error resolving hostname: {e}")
-            return None
 
     try:
         #interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
