@@ -351,8 +351,10 @@ class SITREP:
                 role = "Unknown"
 
                 if "position" in node:
-                    latitude = node["position"]["latitude"]
-                    longitude = node["position"]["longitude"]
+                    if "latitude" in node["position"]:
+                        latitude = node["position"]["latitude"]
+                    if "longitude" in node["position"]:
+                        longitude = node["position"]["longitude"]
                     if "altitude" in node["position"]:
                         altitude = node["position"]["altitude"]
                 
