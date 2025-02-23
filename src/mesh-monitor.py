@@ -270,10 +270,9 @@ def onReceive(packet, interface):
 
                 if 'snrTowards' in trace:
                     logging.info(f"SNR Towards: {trace['snrTowards']}")
-
+                    route_to.append(originator_node)
                     if 'routeTo' in trace:
                         logging.info(f"Route To: {trace['routeTo']}")
-                        route_to.append(originator_node)
                         for hop in trace['routeTo']:
                             node = interface.nodesByNum[hop]
                             route_to.append(node)
