@@ -495,7 +495,7 @@ class SITREP:
         if time_difference_minutes < 10:
             time_difference_minutes = "0" + str(time_difference_minutes)
         date_time = self.get_date_time_in_zulu(datetime.datetime.fromtimestamp(last_heard))
-        return f"{time_difference_hours}:{time_difference_minutes} - {date_time}"
+        return f"{time_difference_hours}:{time_difference_minutes}"
 
     def lookup_short_name(self, interface, node_num):
         """
