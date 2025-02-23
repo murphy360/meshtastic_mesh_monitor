@@ -257,7 +257,6 @@ def onReceive(packet, interface):
                             route_back.append(node)
                             logging.info(f"Adding Node: {node['user']['shortName']} to Route Back")
                     route_back.append(originator_node)
-                    route_back_string = "Trace Back: "
                 else:
                     logging.info(f"I've been traced by {node_short_name}")
 
@@ -287,9 +286,10 @@ def onReceive(packet, interface):
 
                 for node in route_back:
                     message_string += f" -> {node['user']['shortName']}"
-                    # Tell admin what the traceroute is
-                    
-                send_message(interface, route_back_string, private_channel_number, "^all")
+                
+                # Tell admin what the traceroute is
+                logging.info(f"Traceroute: {message_string}")
+                send_message(interface, message_string, private_channel_number, "^all")
                 return
             
             elif portnum == 'TELEMETRY_APP':
