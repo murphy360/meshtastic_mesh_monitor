@@ -319,17 +319,15 @@ def check_node_health(interface, node):
             send_message(interface, f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}", private_channel_number, "^all")
 
     
-    if "hopAway" in node:
+    if "hopsAway" in node:
         logging.info(f"Checking hop away of node {node['user']['shortName']}")
         hops_away = node["hopsAway"]
-        if "hopsAway" in node:
-            hops_away = node["hopsAway"]
-            if hops_away > 0:
-                message = f"Node {node['user']['shortName']} is {hops_away} hops away. Sending Traceroute."
-                # Trace route to node
-                logging.info(message)
-                send_message(interface, message, private_channel_number, "^all")
-                interface.sendTraceRoute(node['num'], 5, public_channel_number) # Send trace to node, 5 hops, public channel
+        if hops_away > 0:
+            message = f"Node {node['user']['shortName']} is {hops_away} hops away. Sending Traceroute."
+            # Trace route to node
+            logging.info(message)
+            send_message(interface, message, private_channel_number, "^all")
+            interface.sendTraceRoute(node['num'], 5, public_channel_number) # Send trace to node, 5 hops, public channel
                 
                 
                 
