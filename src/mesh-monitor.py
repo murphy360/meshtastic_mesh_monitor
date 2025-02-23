@@ -36,23 +36,6 @@ last_routine_sitrep_date = None
 
 logging.info("Starting Mesh Monitor")
 
-def resolve_hostname(hostname):
-    """
-    Resolve the hostname to an IP address.
-
-    Args:
-        hostname (str): The hostname to resolve.
-
-    Returns:
-        str: The IP address of the hostname.
-    """
-    try:
-        ip = socket.getaddrinfo(hostname, None)[0][4][0]
-    except Exception as e:
-        logging.error(f"Error resolving hostname: {e}")
-        ip = os.environ.get('RADIO_IP', "192.168.68.72")
-    return ip
-
 def connect_to_radio():
     """
     Connect to the Meshtastic device using the TCPInterface.
@@ -60,14 +43,16 @@ def connect_to_radio():
     Returns:
         interface: The interface object that is connected to the Meshtastic device.
     """
-    global RADIO_IP
     interface = None
+    global connected
 
     try:
         #interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
         interface = meshtastic.serial_interface.SerialInterface()
+        connected = True
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
+        connected = False
         return None
 
     return interface
