@@ -310,7 +310,6 @@ def check_node_health(interface, node):
     if "lastHeard" in node:
         logging.info(f"Checking last heard of node {node['user']['shortName']}")
         last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
-        logging.info(f"Last Heard: {last_heard_time}")
         time_since_last_heard_string = time_since_last_heard(last_heard_time)
         logging.info(f"Time Since Last Heard: {time_since_last_heard_string}")
 
@@ -420,7 +419,7 @@ def find_distance_between_nodes(interface, node1, node2):
     return "Unknown"
 
 def time_since_last_heard(last_heard_time):
-    logging.info(f"Calculating time since last heard: {last_heard_time}")
+    logging.info(f"Calculating time since last heard: {last_heard_time} - {datetime.now(timezone.utc)}")
     now_time = datetime.now(timezone.utc)
     delta = now_time - last_heard_time
     seconds = delta.total_seconds()
