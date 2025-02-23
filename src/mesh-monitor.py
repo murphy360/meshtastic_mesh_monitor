@@ -252,8 +252,8 @@ def onReceive(packet, interface):
                 if 'snrBack' in trace:
                     logging.info(f"Received Trace Back: {trace['snrBack']}")
                     if 'routeBack' in trace:
-                        logging.info(f"Route Back: {trace['route_back']}")
-                        for hop in trace['route_back']:
+                        logging.info(f"Route Back: {trace['routeBack']}")
+                        for hop in trace['routeBack']:
                             node = interface.nodesByNum[hop]
                             route_back.append(node)
                             logging.info(f"Adding Node: {node['user']['shortName']} to Route Back")
