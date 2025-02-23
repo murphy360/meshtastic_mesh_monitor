@@ -6,8 +6,7 @@ import time
 import geopy
 from geopy import distance
 import meshtastic
-#import meshtastic.tcp_interface
-import meshtastic.serial_interface
+import meshtastic.tcp_interface
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
@@ -36,6 +35,23 @@ last_routine_sitrep_date = None
 
 logging.info("Starting Mesh Monitor")
 
+def resolve_hostname(hostname):
+    """
+    Resolve the hostname to an IP address.
+
+    Args:
+        hostname (str): The hostname to resolve.
+
+    Returns:
+        str: The IP address of the hostname.
+    """
+    try:
+        ip = socket.getaddrinfo(hostname, None)[0][4][0]
+    except Exception as e:
+        logging.error(f"Error resolving hostname: {e}")
+        ip = os.environ.get('RADIO_IP', "192.168.68.72")
+    return ip
+
 def connect_to_radio():
     """
     Connect to the Meshtastic device using the TCPInterface.
@@ -43,18 +59,23 @@ def connect_to_radio():
     Returns:
         interface: The interface object that is connected to the Meshtastic device.
     """
+    global RADIO_IP
     interface = None
-    global connected
+    if 'RADIO_IP' in globals():
+        logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
+    else:
+        logging.error("RADIO_IP not set. Resolving hostname...")
+        try:
+            RADIO_IP = resolve_hostname(host)
+            logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
+        except Exception as e:
+            logging.error(f"Error resolving hostname: {e}")
+            return None
 
     try:
-        #interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
-        interface = meshtastic.serial_interface.SerialInterface()
-        my_node_info = interface.getMyNodeInfo()
-        logging.info(f"My Node Info: {my_node_info}")
-        connected = True
+        interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
-        connected = False
         return None
 
     return interface
