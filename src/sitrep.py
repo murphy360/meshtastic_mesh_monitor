@@ -32,6 +32,7 @@ class SITREP:
         self.nodes_of_interest = []
         self.known_nodes = []
         self.num_connections = 0
+        self.extra_connections = {}
         logging.info(f"SITREP initialized")
 
     def update_sitrep(self, interface, is_routine_sitrep=False):
@@ -66,6 +67,12 @@ class SITREP:
         self.lines.append(self.line6)
         self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
+        return
+    
+    def add_extra_connection(self, node1_short_name, node2_short_name):
+       # add dictionary entry for node1_short_name with node2_short_name as value
+        if node1_short_name in self.extra_connections:
+            self.extra_connections[node1_short_name].append(node2_short_name)
         return
 
     def add_node_of_interest(self, node_short_name):
@@ -430,7 +437,7 @@ class SITREP:
 
             if "lastHeard" in node:
                 now = datetime.datetime.now()
-                #logging.info(f"Last Heard: {node['lastHeard']}")
+                logging.info(f"Now: {now} - Last Heard: {node['lastHeard']}")
                 #logging.info(f"Current Time: {now}")
                 time_difference_in_seconds = now.timestamp() - node["lastHeard"]
                 if time_difference_in_seconds < (time_threshold_minutes * 60):
