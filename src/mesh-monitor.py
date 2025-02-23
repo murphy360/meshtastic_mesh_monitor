@@ -637,8 +637,8 @@ while True:
 
         # Get radio uptime
         my_node_num = interface.myInfo.my_node_num
-        uptime = interface.myInfo.uptime
-        logging.info(f"Radio {my_node_num} Uptime: {uptime}")
+        info = interface.myInfo
+        logging.info(f"Radio {my_node_num} Info: {info}")
 
         # Check if we should send a sitrep
         if should_send_sitrep_after_midnight():
