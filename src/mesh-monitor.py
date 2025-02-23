@@ -76,6 +76,7 @@ def connect_to_radio():
         interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
+        return None
 
     return interface
 
@@ -627,7 +628,8 @@ while True:
 
         # Get radio uptime
         my_node_num = interface.myInfo.my_node_num
-        pos = interface.nodesByNum[my_node_num]["position"]
+        uptime = interface.myInfo.uptime
+        logging.info(f"Radio {my_node_num} Uptime: {uptime}")
 
         # Check if we should send a sitrep
         if should_send_sitrep_after_midnight():
