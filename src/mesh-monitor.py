@@ -49,6 +49,8 @@ def connect_to_radio():
     try:
         #interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
         interface = meshtastic.serial_interface.SerialInterface()
+        my_node_info = interface.getMyNodeInfo()
+        logging.info(f"My Node Info: {my_node_info}")
         connected = True
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
