@@ -283,16 +283,19 @@ def check_node_health(interface, node):
         interface: The interface to interact with the mesh network.
         node (dict): The node data.
     """
+    logging.info(f"Checking health of node {node['user']['shortName']}")
     if "deviceMetrics" not in node:
         return
 
     if "batteryLevel" in node["deviceMetrics"]:
+        logging.info(f"Checking battery level of node {node['user']['shortName']}")
         battery_level = node["deviceMetrics"]["batteryLevel"]
         if battery_level < 20:
             logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
             send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")
         
     if "lastHeard" in node:
+        logging.info(f"Checking last heard of node {node['user']['shortName']}")
         last_heard = node.get("lastHeard", time.time())
         last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=datetime.timezone.utc)
         time_since_last_heard_string = time_since_last_heard(last_heard_time)
@@ -390,8 +393,8 @@ def find_distance_between_nodes(interface, node1, node2):
     return "Unknown"
 
 def time_since_last_heard(last_heard_time):
-    logging.info(f"Calculating time since last heard: {last_heard_time}")
-    now = datetime.now(timezone.utc)
+    logging.info(f"Calculating time since last heard: {last_heard_time} for node {node_num}")
+    now = datetime.now(datetime.timezone.utc)
     delta = now - last_heard_time
     seconds = delta.total_seconds()
     if seconds < 60: # Less than a minute, return seconds
