@@ -395,8 +395,8 @@ def find_distance_between_nodes(interface, node1, node2):
 
 def time_since_last_heard(last_heard_time):
     logging.info(f"Calculating time since last heard: {last_heard_time}")
-    now = datetime.now(datetime.timezone.utc)
-    delta = now - last_heard_time
+    now_time = datetime.now(timezone.utc)
+    delta = now_time - last_heard_time
     seconds = delta.total_seconds()
     if seconds < 60: # Less than a minute, return seconds
         return f"{int(seconds)}s"
