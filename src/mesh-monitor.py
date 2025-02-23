@@ -239,21 +239,17 @@ def onReceive(packet, interface):
                 trace = packet['decoded']['traceroute']
                 route_to = []
                 route_back = []
+                message_string = ""
+                originator_node = interface.nodesByNum[packet['from']]
+                traced_node = interface.nodesByNum[packet['to']]
                 
-                if 'snrTowards' in trace:
-                    logging.info(f"SNR Towards: {trace['snrTowards']}")
-                    if 'route_to' in trace:
-                        logging.info(f"Route To: {trace['route_to']}")
-                        for hop in trace['route_to']:
-                            node = interface.nodesByNum[hop]
-                            route_to.append(node)
-                            logging.info(f"Adding Node: {node['user']['shortName']} to Route To")
+
 
                 if 'snrBack' in trace:
                     logging.info(f"Received Trace Back: {trace['snrBack']}")
-                    originator_node = interface.nodesByNum[packet['to']]
-                    traced_node = interface.nodesByNum[packet['from']]
-                    route_back.append(traced_node)
+                    originator_node = interface.nodesByNum[packet['to']] # Originator is the destination of the traceroute
+                    traced_node = interface.nodesByNum[packet['from']] # Traced node is the source of the traceroute (Response)
+                    
                     if 'routeBack' in trace:
                         logging.info(f"Route Back: {trace['routeBack']}")
                         for hop in trace['routeBack']:
@@ -262,13 +258,9 @@ def onReceive(packet, interface):
                             logging.info(f"Adding Node: {node['user']['shortName']} to Route Back")
                     route_back.append(originator_node)
                     route_back_string = "Trace Back: "
-                    for node in route_back:
-                        route_back_string += f"{node['user']['shortName']} -> "
-                    # Tell admin what the traceroute is
-                    
-                    send_message(interface, route_back_string, private_channel_number, "^all")
                 else:
                     logging.info(f"I've been traced by {node_short_name}")
+
                     if packet['to'] == localNode.nodeNum:
                         logging.info(f"I've been traced by {node_short_name} - {trace} Replying")
                         # Tell admin what the traceroute is
@@ -276,6 +268,28 @@ def onReceive(packet, interface):
                         send_message(interface, message, private_channel_number, "^all")
                         send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
                         db_helper.set_node_of_interest(node, True)
+
+                if 'snrTowards' in trace:
+                    logging.info(f"SNR Towards: {trace['snrTowards']}")
+
+                    if 'routeTo' in trace:
+                        logging.info(f"Route To: {trace['routeTo']}")
+                        route_to.append(originator_node)
+                        for hop in trace['routeTo']:
+                            node = interface.nodesByNum[hop]
+                            route_to.append(node)
+                            logging.info(f"Adding Node: {node['user']['shortName']} to Route To")
+                
+                for node in route_to:
+                    message_string += f"{node['user']['shortName']} -> "
+                
+                message_string += f"{traced_node['user']['shortName']}"
+
+                for node in route_back:
+                    message_string += f" -> {node['user']['shortName']}"
+                    # Tell admin what the traceroute is
+                    
+                send_message(interface, route_back_string, private_channel_number, "^all")
                 return
             
             elif portnum == 'TELEMETRY_APP':
