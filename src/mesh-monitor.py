@@ -6,7 +6,8 @@ import time
 import geopy
 from geopy import distance
 import meshtastic
-import meshtastic.tcp_interface
+#import meshtastic.tcp_interface
+import meshtastic.serial_interface
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
@@ -73,7 +74,8 @@ def connect_to_radio():
             return None
 
     try:
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
+        #interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
+        interface = meshtastic.serial_interface.SerialInterface()
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
         return None
