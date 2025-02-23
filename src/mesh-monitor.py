@@ -164,6 +164,7 @@ def onReceive(packet, interface):
             if node_of_interest:
                 log_string += " - Node of interest detected!"
                 check_node_health(interface, node)
+
             if new_node:
                 log_string += " - New node detected!"
                 private_message = "Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!"
@@ -223,7 +224,6 @@ def onReceive(packet, interface):
                         message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
                         send_message(interface, message, private_channel_number, node_num)
                         db_helper.set_aircraft(node, True)
-                
                 return
 
             elif portnum == 'NEIGHBORINFO_APP':
@@ -238,8 +238,6 @@ def onReceive(packet, interface):
                 logging.info(f"Traceroute Packet Received from {node_short_name}")
                 trace = packet['decoded']['traceroute']
                 
-                
-
                 if 'snrTowards' in trace:
                     logging.info(f"SNR Towards: {trace['snrTowards']}")
 
