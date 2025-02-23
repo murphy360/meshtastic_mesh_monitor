@@ -421,7 +421,7 @@ def should_send_sitrep_after_midnight():
         bool: True if a SITREP should be sent, False otherwise.
     """
     global last_routine_sitrep_date
-    today = datetime.date.today()
+    today = datetime.now().date()
     if last_routine_sitrep_date is None or last_routine_sitrep_date != today:
         last_routine_sitrep_date = today
         return True
