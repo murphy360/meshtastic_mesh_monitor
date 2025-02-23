@@ -251,7 +251,7 @@ def onReceive(packet, interface):
 
                 if 'snrBack' in trace:
                     logging.info(f"Received Trace Back: {trace['snrBack']}")
-                    if 'route_back' in trace:
+                    if 'routeBack' in trace:
                         logging.info(f"Route Back: {trace['route_back']}")
                         for hop in trace['route_back']:
                             node = interface.nodesByNum[hop]
