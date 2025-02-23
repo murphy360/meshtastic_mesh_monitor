@@ -251,8 +251,8 @@ def onReceive(packet, interface):
 
                 if 'snrBack' in trace:
                     logging.info(f"Received Trace Back: {trace['snrBack']}")
-                    originator_node = interface.nodesByNum[trace['to']]
-                    traced_node = interface.nodesByNum[trace['from']]
+                    originator_node = interface.nodesByNum[packet['to']]
+                    traced_node = interface.nodesByNum[packet['from']]
                     route_back.append(traced_node)
                     if 'routeBack' in trace:
                         logging.info(f"Route Back: {trace['routeBack']}")
