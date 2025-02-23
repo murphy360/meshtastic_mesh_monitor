@@ -237,36 +237,27 @@ def onReceive(packet, interface):
             elif portnum == 'TRACEROUTE_APP':
                 logging.info(f"Traceroute Packet Received from {node_short_name}")
                 trace = packet['decoded']['traceroute']
-                if 'snrTowards' in trace:
-                    logging.info(f"SNR Towards: {trace['snrTowards']}")
-                if 'snrBack' in trace:
-                    logging.info(f"SNR Back: {trace['snrBack']}")
+                
                 
 
-                logging.info(f"Traceroute: {trace}")
-                # Tell admin what the traceroute is
-                message = f"Traceroute from {packet['from']} to {packet['to']}: {trace}"
-                send_message(interface, message, private_channel_number, "^all")
-                #routeBack = packet['decoded']['traceroute']['routeBack']
-                #route = packet['decoded']['traceroute'].get('route', [])
-                #message = f"{packet['to']}"
+                if 'snrTowards' in trace:
+                    logging.info(f"SNR Towards: {trace['snrTowards']}")
 
-                #if routeBack:
-                    #logging.info(f"Route Back: {routeBack} from {node_short_name} to {packet['to']}")
-                    
-
-                #if route:
-                    #logging.info(f"Route: {route} from {node_short_name} to {packet['to']}")
-
-                #message += f" --> {packet['to']}"
-
-                #logging.info(f"Traceroute: {message}")
-                #send_message(interface, message, private_channel_number, node_num)
-
-                if packet['to'] == localNode.nodeNum:
-                    logging.info(f"Traceroute packet received from {node_short_name} - Replying")
-                    send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
-                    db_helper.set_node_of_interest(node, True)
+                if 'snrBack' in trace:
+                    logging.info(f"Received Trace Back: {trace['snrBack']}")
+                    logging.info(f"Traceroute: {trace}")
+                    # Tell admin what the traceroute is
+                    message = f"Traceroute from {packet['from']} to {packet['to']}: {trace}"
+                    send_message(interface, message, private_channel_number, "^all")
+                else:
+                    logging.info(f"I've been traced by {node_short_name}")
+                    if packet['to'] == localNode.nodeNum:
+                        logging.info(f"I've been traced by {node_short_name} - {trace} Replying")
+                        # Tell admin what the traceroute is
+                        message = f"Traceroute from {packet['from']} to {packet['to']}: {trace}"
+                        send_message(interface, message, private_channel_number, "^all")
+                        send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
+                        db_helper.set_node_of_interest(node, True)
                 return
             
             elif portnum == 'TELEMETRY_APP':
