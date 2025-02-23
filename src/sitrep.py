@@ -432,30 +432,40 @@ class SITREP:
                 log_message += " - Local Node"
                 continue
 
-            hops_away = node.get("hopsAway", 0)
-            log_message += f" Hops Away: {hops_away}"
-
             if "lastHeard" in node:
                 now = datetime.datetime.now()
-                logging.info(f"Now: {now} - Last Heard: {node['lastHeard']}")
-                #logging.info(f"Current Time: {now}")
-                time_difference_in_seconds = now.timestamp() - node["lastHeard"]
-                if time_difference_in_seconds < (time_threshold_minutes * 60):
-                    time_difference_hours = time_difference_in_seconds // 3600
-                    time_difference_minutes = time_difference_in_seconds % 60
-                    log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
-
-                    if hops_away <= hop_threshold:
-                        log_message += f" Hops Away: {hops_away}"
-                        response_string += " " + node['user']['shortName']
-                        self.nodes_connected += 1
+                if node["lastHeard"]:
+                    logging.info(f"Now: {now} - Last Heard: {node['lastHeard']}")
+                    time_difference_in_seconds = now.timestamp() - node["lastHeard"]
+                    if time_difference_in_seconds < (time_threshold_minutes * 60):
+                        time_difference_hours = time_difference_in_seconds // 3600
+                        time_difference_minutes = time_difference_in_seconds % 60
+                        log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
                     else:
-                        log_message += f" - Node is more than {hop_threshold} hops away"
+                        log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
+                        continue
                 else:
-                    log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
+                    log_message += " - Node doesn't have lastHeard data"
+                    continue
             else:
-                log_message += " - Node doesn't have lastHeard or hopsAway data"
-
+                log_message += " - Node doesn't have lastHeard data"
+                continue
+            
+            if "hopsAway" in node:
+                hops_away = node["hopsAway"]
+                if hops_away <= hop_threshold:
+                    log_message += f" Hops Away: {hops_away}"
+                    response_string += " " + node['user']['shortName']
+                else:
+                    log_message += f" - Node is more than {hop_threshold} hops away ({hops_away})"
+                    continue
+            else:
+                log_message += " - Node doesn't have hopsAway data"
+                continue
+            
+            logging.info(log_message)
+            self.nodes_connected += 1
+                
         if self.nodes_connected <= 20:
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
