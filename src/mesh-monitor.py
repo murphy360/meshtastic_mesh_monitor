@@ -237,12 +237,26 @@ def onReceive(packet, interface):
             elif portnum == 'TRACEROUTE_APP':
                 logging.info(f"Traceroute Packet Received from {node_short_name}")
                 trace = packet['decoded']['traceroute']
+                route_to = []
+                route_back = []
                 
                 if 'snrTowards' in trace:
                     logging.info(f"SNR Towards: {trace['snrTowards']}")
+                    if 'route_to' in trace:
+                        logging.info(f"Route To: {trace['route_to']}")
+                        for hop in trace['route_to']:
+                            node = interface.nodesByNum[hop]
+                            route_to.append(node)
+                            logging.info(f"Adding Node: {node['user']['shortName']} to Route To")
 
                 if 'snrBack' in trace:
                     logging.info(f"Received Trace Back: {trace['snrBack']}")
+                    if 'route_back' in trace:
+                        logging.info(f"Route Back: {trace['route_back']}")
+                        for hop in trace['route_back']:
+                            node = interface.nodesByNum[hop]
+                            route_back.append(node)
+                            logging.info(f"Adding Node: {node['user']['shortName']} to Route Back")
                     logging.info(f"Traceroute: {trace}")
                     # Tell admin what the traceroute is
                     message = f"Traceroute from {packet['from']} to {packet['to']}: {trace}"
