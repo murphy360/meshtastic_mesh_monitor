@@ -390,6 +390,7 @@ def find_distance_between_nodes(interface, node1, node2):
     return "Unknown"
 
 def time_since_last_heard(last_heard_time):
+    logging.info(f"Calculating time since last heard: {last_heard_time}")
     now = datetime.now(timezone.utc)
     delta = now - last_heard_time
     seconds = delta.total_seconds()
