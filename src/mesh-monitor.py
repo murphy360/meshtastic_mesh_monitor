@@ -1,5 +1,4 @@
 from asyncio import sleep
-import datetime
 import json
 import os
 import socket
@@ -12,6 +11,7 @@ from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
 import logging
+from datetime import datetime, timezone, timedelta
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -296,11 +296,13 @@ def check_node_health(interface, node):
         
     if "lastHeard" in node:
         logging.info(f"Checking last heard of node {node['user']['shortName']}")
-        last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=datetime.timezone.utc)
+        last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
+        logging.info(f"Last Heard: {last_heard_time}")
         time_since_last_heard_string = time_since_last_heard(last_heard_time)
+        logging.info(f"Time Since Last Heard: {time_since_last_heard_string}")
 
         # If the node has been offline for more than 24 hours and reconnects, Notify Admin
-        if last_heard_time < datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1):
+        if last_heard_time < datetime.now(timezone.utc) - timedelta(days=1):
             logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
             send_message(interface, f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}", private_channel_number, "^all")
             # Trace route to node
