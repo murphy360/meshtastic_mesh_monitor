@@ -47,9 +47,9 @@ class SITREP:
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
         self.sitrep_time = self.get_date_time_in_zulu(now)
-        node = self.lookup_node_by_short_name(interface, self.localNode["user"]["shortName"])
+        node = self.lookup_node_by_short_name(interface, self.localNode['user']['shortName'])
         self.lines = []
-        self.reportHeader = f"CQ CQ CQ de {self.localNode["user"]["shortName"]}.  My {self.sitrep_time} SITREP is as follows:"
+        self.reportHeader = f"CQ CQ CQ de {self.localNode['user']['shortName']}.  My {self.sitrep_time} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
@@ -63,7 +63,7 @@ class SITREP:
         self.lines.append(self.line5)
         self.line6 = "Line 6: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line6)
-        self.reportFooter = f"de {self.localNode["user"]["shortName"]} out"
+        self.reportFooter = f"de {self.localNode['user']['shortName']} out"
         self.lines.append(self.reportFooter)
         return
     
@@ -112,13 +112,13 @@ class SITREP:
                 num_nodes += 1
                 report_string += node_short_name
                 if "lastHeard" in node:
-                    report_string += " - " + self.get_time_difference_string(node["lastHeard"])
+                    report_string += " - " + self.get_time_difference_string(node['lastHeard'])
                 if "hopsAway" in node:
-                    report_string += " " + str(node["hopsAway"]) + " Hops."
+                    report_string += " " + str(node['hopsAway']) + " Hops."
                 elif "rxRssi" in node:
-                    report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
+                    report_string += " RSSI: " + str(node['rxRssi']) + "dBm."
                 elif "snr" in node:
-                    report_string += " SNR: " + str(node["snr"]) + "dB."
+                    report_string += " SNR: " + str(node['snr']) + "dB."
             else:
                 report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
@@ -146,13 +146,13 @@ class SITREP:
                 num_nodes += 1
                 report_string += node_short_name
                 if "lastHeard" in node:
-                    report_string += " - " + self.get_time_difference_string(node["lastHeard"])
+                    report_string += " - " + self.get_time_difference_string(node['lastHeard'])
                 if "hopsAway" in node:
-                    report_string += " " + str(node["hopsAway"]) + " Hops."
+                    report_string += " " + str(node['hopsAway']) + " Hops."
                 elif "rxRssi" in node:
-                    report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
+                    report_string += " RSSI: " + str(node['rxRssi']) + "dBm."
                 elif "snr" in node:
-                    report_string += " SNR: " + str(node["snr"]) + "dB."
+                    report_string += " SNR: " + str(node['snr']) + "dB."
             else:
                 report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
@@ -193,7 +193,7 @@ class SITREP:
         Returns:
             str: The formatted uptime string.
         """
-        uptime_seconds_total = int(node["deviceMetrics"]["uptimeSeconds"])
+        uptime_seconds_total = int(node['deviceMetrics']['uptimeSeconds'])
         uptime_days = uptime_seconds_total // 86400
         uptime_hours = (uptime_seconds_total % 86400) // 3600
         uptime_minutes = (uptime_seconds_total % 3600) // 60
@@ -328,13 +328,13 @@ class SITREP:
         }
         self_data = {}
 
-        self.localNode = self.lookup_node_by_short_name(interface, self.localNode["user"]["shortName"])
+        self.localNode = self.lookup_node_by_short_name(interface, self.localNode['user']['shortName'])
         if localNode is None:
             logging.info(f"Local Node not found in interface.nodes")
             return
-        self_data["id"] = self.localNode["user"]["shortName"]
-        self_data["connections"] = []
-        mesh_data["nodes"].append(self_data)
+        self_data['id'] = self.localNode['user']['shortName']
+        self_data['connections'] = []
+        mesh_data['nodes'].append(self_data)
 
         for node in interface.nodes.values():
             #logging.info(f"Writing Node: {node}")
@@ -348,30 +348,30 @@ class SITREP:
                 role = "Unknown"
 
                 if "position" in node:
-                    if "latitude" in node["position"]:
-                        latitude = node["position"]["latitude"]
-                    if "longitude" in node["position"]:
-                        longitude = node["position"]["longitude"]
-                    if "altitude" in node["position"]:
-                        altitude = node["position"]["altitude"]
+                    if "latitude" in node['position']:
+                        latitude = node['position']['latitude']
+                    if "longitude" in node['position']:
+                        longitude = node['position']['longitude']
+                    if "altitude" in node['position']:
+                        altitude = node['position']['altitude']
                 
                 if "lastHeard" in node:
-                    last_heard = node["lastHeard"]
+                    last_heard = node['lastHeard']
                 
                 if "hopsAway" in node:
-                    hops_away = node["hopsAway"]
+                    hops_away = node['hopsAway']
 
                 if "role" in node:
-                    role = node["role"]
+                    role = node['role']
 
-                if self.localNode.nodeNum == node["num"]:
-                    mesh_data["nodes"][0]["lat"] = latitude
-                    mesh_data["nodes"][0]["lon"] = longitude
-                    mesh_data["nodes"][0]["alt"] = altitude
+                if self.localNode.nodeNum == node['num']:
+                    mesh_data['nodes'][0]['lat'] = latitude
+                    mesh_data['nodes'][0]['lon'] = longitude
+                    mesh_data['nodes'][0]['alt'] = altitude
                     continue
 
                 node_data = {
-                    "id": node["user"]["shortName"],
+                    "id": node['user']['shortName'],
                     "lat": latitude,
                     "lon": longitude,
                     "alt": altitude,
@@ -381,18 +381,18 @@ class SITREP:
                     "connections": []
                 }
                 
-                if node_data["hopsAway"] == 0:
-                    node_data["connections"].append(self.localNode["user"]["shortName"])
-                    mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
+                if node_data['hopsAway'] == 0:
+                    node_data['connections'].append(self.localNode['user']['shortName'])
+                    mesh_data['nodes'][0]['connections'].append(node['user']['shortName'])             
                     
-                mesh_data["nodes"].append(node_data)
+                mesh_data['nodes'].append(node_data)
             except Exception as e:
                 logging.error(f"Error While processing node {node['user']['shortName']}: {e} - {node}")
                 
         try:
             for line in self.lines:
                 #logging.info(f"Adding SITREP line to file: {line}")
-                mesh_data["sitrep"].append(line)
+                mesh_data['sitrep'].append(line)
         except Exception as e:
             logging.error(f"Error: {e}")
 
@@ -418,15 +418,15 @@ class SITREP:
         response_string = ""
         for node in interface.nodes.values():
             log_message = f"Node ID: {node['user']['id']} Long Name: {node['user']['longName']} Short Name: {node['user']['shortName']}"
-            if self.localNode.nodeNum == node["num"]:
+            if self.localNode.nodeNum == node['num']:
                 log_message += " - Local Node"
                 continue
 
             if "lastHeard" in node:
                 now = datetime.datetime.now()
-                if node["lastHeard"]:
+                if node['lastHeard']:
                     logging.info(f"Now: {now} - Last Heard: {node['lastHeard']}")
-                    time_difference_in_seconds = now.timestamp() - node["lastHeard"]
+                    time_difference_in_seconds = now.timestamp() - node['lastHeard']
                     if time_difference_in_seconds < (time_threshold_minutes * 60):
                         time_difference_hours = time_difference_in_seconds // 3600
                         time_difference_minutes = time_difference_in_seconds % 60
@@ -442,7 +442,7 @@ class SITREP:
                 continue
             
             if "hopsAway" in node:
-                hops_away = node["hopsAway"]
+                hops_away = node['hopsAway']
                 if hops_away <= hop_threshold:
                     log_message += f" Hops Away: {hops_away}"
                     response_string += " " + node['user']['shortName']
@@ -500,8 +500,8 @@ class SITREP:
         """
         #logging.info(f"Sitrep: Looking up short name for node: {node_num}")
         for node in interface.nodes.values():
-            if node["num"] == node_num:
-                node_short_name = node["user"]["shortName"]
+            if node['num'] == node_num:
+                node_short_name = node['user']['shortName']
                 logging.info(f"Node found: {node_short_name}")
                 return node_short_name
         return "Unknown"
@@ -519,7 +519,7 @@ class SITREP:
         """
         logging.info(f"Sitrep: Looking up node by short name: {short_name}")
         for node in interface.nodes.values():
-            if node["user"]["shortName"] == short_name:
+            if node['user']['shortName'] == short_name:
                 return node
         return None
 
