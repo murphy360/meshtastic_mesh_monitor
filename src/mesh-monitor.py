@@ -613,7 +613,8 @@ async def retry_interface():
     await asyncio.sleep(3)  # Wait before retrying
 
     try:
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
+        radio_ip = os.environ.get('radio_ip', "192.168.68.72")
+        interface = meshtastic.tcp_interface.TCPInterface(hostname=radio_ip)
         logging.info("Interface reinitialized.")
         return interface
     except (ConnectionRefusedError, socket.error, Exception) as e:
