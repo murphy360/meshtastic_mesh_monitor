@@ -30,45 +30,19 @@ db_helper = None
 sitrep = None
 last_routine_sitrep_date = None
 
-def resolve_hostname(hostname):
-    """
-    Resolve the hostname to an IP address.
-
-    Args:
-        hostname (str): The hostname to resolve.
-
-    Returns:
-        str: The IP address of the hostname.
-    """
-    try:
-        ip = socket.getaddrinfo(hostname, None)[0][4][0]
-    except Exception as e:
-        logging.error(f"Error resolving hostname: {e}")
-        ip = os.environ.get('RADIO_IP', "192.168.68.72")
-    return ip
-
-def connect_to_radio():
+def connect_tcp_to_radio():
     """
     Connect to the Meshtastic device using the TCPInterface.
 
     Returns:
         interface: The interface object that is connected to the Meshtastic device.
     """
-    global RADIO_IP
+    radio_ip = os.environ.get('radio_ip', "192.168.68.72")
     interface = None
-    if 'RADIO_IP' in globals():
-        logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
-    else:
-        logging.error("RADIO_IP not set. Resolving hostname...")
-        try:
-            RADIO_IP = resolve_hostname(host)
-            logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
-        except Exception as e:
-            logging.error(f"Error resolving hostname: {e}")
-            return None
 
     try:
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
+        logging.info(f"Connecting to Meshtastic device at {radio_ip}...")
+        interface = meshtastic.tcp_interface.TCPInterface(hostname=radio_ip)
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
         return None
@@ -121,7 +95,7 @@ def on_lost_meshtastic_connection(interface):
     logging.info("Closing Old Interface...")
     interface.close()
     logging.info("Reconnecting...")
-    connect_to_radio()
+    connect_tcp_to_radio()
 
 def onReceive(packet, interface):
     """
@@ -686,7 +660,8 @@ async def check_and_reconnect(interface):
 
 
 async def new_main():
-    interface = connect_to_radio()
+    interface = connect_tcp_to_radio()
+    logging.info("Connected to Radio. Main Logic Loop Starting...")
     db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
     sitrep = SITREP(localNode, short_name, long_name, db_helper)
     pub.subscribe(onReceive, 'meshtastic.receive')
@@ -696,7 +671,7 @@ async def new_main():
     while True:
         interface = await check_and_reconnect(interface)
         await asyncio.sleep(30)
-        
+
         if interface:
             logging.info("Connected to Radio.")
             
