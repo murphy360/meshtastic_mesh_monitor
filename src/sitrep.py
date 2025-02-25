@@ -7,11 +7,9 @@ import json
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
 
 class SITREP:
-    def __init__(self, localNode, shortName, longName, dbHelper):
+    def __init__(self, localNode, dbHelper):
         self.localNode = localNode
         logging.info(f"Local Node init: {localNode}")
-        self.shortName = shortName
-        self.longName = longName
         self.dbHelper = dbHelper
         self.date = self.get_date_time_in_zulu(datetime.datetime.now())
         self.messages_received = []
@@ -49,9 +47,9 @@ class SITREP:
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
         self.sitrep_time = self.get_date_time_in_zulu(now)
-        node = self.lookup_node_by_short_name(interface, self.shortName)
+        node = self.lookup_node_by_short_name(interface, self.localNode["user"]["shortName"])
         self.lines = []
-        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.sitrep_time} SITREP is as follows:"
+        self.reportHeader = f"CQ CQ CQ de {self.localNode["user"]["shortName"]}.  My {self.sitrep_time} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
@@ -65,7 +63,7 @@ class SITREP:
         self.lines.append(self.line5)
         self.line6 = "Line 6: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line6)
-        self.reportFooter = f"de {self.shortName} out"
+        self.reportFooter = f"de {self.localNode["user"]["shortName"]} out"
         self.lines.append(self.reportFooter)
         return
     
@@ -162,14 +160,6 @@ class SITREP:
 
     def set_local_node(self, localNode):
         self.localNode = localNode
-        return
-
-    def set_short_name(self, shortName):
-        self.shortName = shortName
-        return
-
-    def set_long_name(self, longName):
-        self.longName = longName
         return
 
     def get_date_time_in_zulu(self, date):
@@ -338,11 +328,11 @@ class SITREP:
         }
         self_data = {}
 
-        localNode = self.lookup_node_by_short_name(interface, self.shortName)
+        self.localNode = self.lookup_node_by_short_name(interface, self.localNode["user"]["shortName"])
         if localNode is None:
             logging.info(f"Local Node not found in interface.nodes")
             return
-        self_data["id"] = self.shortName
+        self_data["id"] = self.localNode["user"]["shortName"]
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
 
@@ -392,7 +382,7 @@ class SITREP:
                 }
                 
                 if node_data["hopsAway"] == 0:
-                    node_data["connections"].append(self.shortName)
+                    node_data["connections"].append(self.localNode["user"]["shortName"])
                     mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
                     
                 mesh_data["nodes"].append(node_data)

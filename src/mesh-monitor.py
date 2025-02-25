@@ -106,9 +106,8 @@ def onReceive(packet, interface):
         interface: The interface object that is connected to the Meshtastic device.
     """
     try:
-        if localNode == "":
+        if localNode == None:
             logging.warning("Local node not set")
-            interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
             return
 
         node_num = packet['from']
