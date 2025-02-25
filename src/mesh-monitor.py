@@ -1,6 +1,7 @@
 from asyncio import sleep
 import asyncio
 import contextlib
+import io
 import json
 import os
 import socket
@@ -608,19 +609,20 @@ def send_message(interface, message, channel, to_id):
 
 # Async function to retry connection
 async def retry_interface():
-    print("Retrying connection to the interface...")
+    logging.info("Reinitializing interface...")
     await asyncio.sleep(3)  # Wait before retrying
 
     try:
         interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
-        print("Interface reinitialized successfully.")
+        logging.info("Interface reinitialized.")
         return interface
     except (ConnectionRefusedError, socket.error, Exception) as e:
-        print(f"Failed to reinitialize interface: {e}")
+        logging.error(f"Error reinitializing interface: {e}")
         return None
     
 # Function to get firmware version
 def getNodeFirmware(interface):
+    logging.info("Getting firmware version...")
     try:
         output_capture = io.StringIO()
         with contextlib.redirect_stdout(output_capture), contextlib.redirect_stderr(output_capture):
@@ -633,18 +635,19 @@ def getNodeFirmware(interface):
 
         return -1
     except (socket.error, BrokenPipeError, ConnectionResetError, Exception) as e:
-        print(f"Error retrieving firmware: {e}")
+        logging.error(f"Error getting firmware version: {e}")
         raise e  # Propagate the error to handle reconnection
     
 # Function to check connection and reconnect if needed
 async def check_and_reconnect(interface):
+    logging.info("Checking interface connection...")
     if interface is None:
-        print("No valid interface. Attempting to reconnect...")
+        logging.info("No valid interface. Attempting to reconnect...")
         interface = await retry_interface()
         return interface
 
     try:
-        print("Checking interface connection...")
+        logging.info("Checking connection...")
         fw_ver = getNodeFirmware(interface)
         if fw_ver != -1:
             print(f"Firmware Version: {fw_ver}")
@@ -669,7 +672,9 @@ async def new_main():
     
     while True:
         interface = await check_and_reconnect(interface)
+        logging.info("Sleeping for 30 seconds...")
         await asyncio.sleep(30)
+        logging.info("Waking up...")
 
         if interface:
             logging.info("Connected to Radio.")
