@@ -19,23 +19,16 @@ from datetime import datetime, timezone, timedelta
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
 
 # Global variables
-localNode = ""
-sitrep = ""
 connected = False
-connect_timeout = 10
-reply_message = "Message Received"
 host = 'meshtastic.local'
-short_name = 'Monitor'  # Overwritten in onConnection
-long_name = 'Mesh Monitor'  # Overwritten in onConnection
-interface = None
-db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
-sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 public_channel_number = 0
 private_channel_number = 1
+interface = None
+localNode = None
+db_helper = None
+sitrep = None
 last_routine_sitrep_date = None
-
-logging.info("Starting Mesh Monitor")
 
 def resolve_hostname(hostname):
     """
@@ -353,9 +346,6 @@ def check_node_health(interface, node):
             #send_message(interface, message, private_channel_number, "^all")
             #interface.sendTraceRoute(node['num'], 5, public_channel_number) # Send trace to node, 5 hops, public channel
                 
-                
-                
-
 def lookup_node(interface, node_generic_identifier):
     """
     Lookup a node by its short name or long name.
@@ -697,6 +687,8 @@ async def check_and_reconnect(interface):
 
 async def new_main():
     interface = connect_to_radio()
+    db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
+    sitrep = SITREP(localNode, short_name, long_name, db_helper)
     pub.subscribe(onReceive, 'meshtastic.receive')
     pub.subscribe(onConnection, "meshtastic.connection.established")
     pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
@@ -704,6 +696,7 @@ async def new_main():
     while True:
         interface = await check_and_reconnect(interface)
         await asyncio.sleep(30)
+        
         if interface:
             logging.info("Connected to Radio.")
             
