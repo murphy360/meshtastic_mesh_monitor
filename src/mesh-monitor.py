@@ -38,7 +38,7 @@ def connect_tcp_to_radio():
     Returns:
         interface: The interface object that is connected to the Meshtastic device.
     """
-    radio_ip = os.environ.get('radio_ip', "192.168.68.72")
+    radio_ip = os.environ.get('radio_ip', "192.168.68.73")
     interface = None
 
     try:
@@ -613,7 +613,7 @@ async def retry_interface():
     await asyncio.sleep(3)  # Wait before retrying
 
     try:
-        radio_ip = os.environ.get('radio_ip', "192.168.68.72")
+        radio_ip = os.environ.get('radio_ip', "192.168.68.73")
         interface = meshtastic.tcp_interface.TCPInterface(hostname=radio_ip)
         logging.info("Interface reinitialized.")
         return interface
