@@ -12,7 +12,7 @@ import meshtastic
 import meshtastic.tcp_interface
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
-from sitrep import SITREP
+from sitrep import SITREP as SITREP
 import logging
 from datetime import datetime, timezone, timedelta
 
