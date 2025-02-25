@@ -108,6 +108,7 @@ def onReceive(packet, interface):
     """
     try:
         if localNode == None:
+            localNode = interface.getNode('^local')
             logging.warning("Local node not set")
             return
 

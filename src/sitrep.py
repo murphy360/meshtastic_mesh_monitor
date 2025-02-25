@@ -42,6 +42,10 @@ class SITREP:
             is_routine_sitrep (bool): Flag to indicate if this is a routine SITREP.
         """
         now = datetime.datetime.now()
+        if self.localNode is None:
+            return
+            #self.localNode = self.lookup_node_by_short_name(interface, self.localNode['user']['shortName'])
+
         if is_routine_sitrep:
             now = now.replace(hour=0, minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
