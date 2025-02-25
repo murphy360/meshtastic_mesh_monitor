@@ -662,7 +662,7 @@ async def new_main():
     interface = connect_tcp_to_radio()
     logging.info("Connected to Radio. Main Logic Loop Starting...")
     db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
-    sitrep = SITREP(localNode, short_name, long_name, db_helper)
+    sitrep = SITREP(localNode, db_helper)
     pub.subscribe(onReceive, 'meshtastic.receive')
     pub.subscribe(onConnection, "meshtastic.connection.established")
     pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
