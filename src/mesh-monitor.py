@@ -1,7 +1,4 @@
 from asyncio import sleep
-import asyncio
-import contextlib
-import io
 import json
 import os
 import socket
@@ -12,7 +9,7 @@ import meshtastic
 import meshtastic.tcp_interface
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
-from sitrep import SITREP as SITREP
+from sitrep import SITREP
 import logging
 from datetime import datetime, timezone, timedelta
 
@@ -20,30 +17,63 @@ from datetime import datetime, timezone, timedelta
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
 
 # Global variables
+localNode = ""
+sitrep = ""
 connected = False
+connect_timeout = 10
+reply_message = "Message Received"
 host = 'meshtastic.local'
+short_name = 'Monitor'  # Overwritten in onConnection
+long_name = 'Mesh Monitor'  # Overwritten in onConnection
+interface = None
+db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
+sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 public_channel_number = 0
 private_channel_number = 1
-interface = None
-localNode = None
-db_helper = None
-sitrep = None
 last_routine_sitrep_date = None
 
-def connect_tcp_to_radio():
+logging.info("Starting Mesh Monitor")
+
+def resolve_hostname(hostname):
+    """
+    Resolve the hostname to an IP address.
+
+    Args:
+        hostname (str): The hostname to resolve.
+
+    Returns:
+        str: The IP address of the hostname.
+    """
+    try:
+        ip = socket.getaddrinfo(hostname, None)[0][4][0]
+    except Exception as e:
+        logging.error(f"Error resolving hostname: {e}")
+        ip = os.environ.get('RADIO_IP', "192.168.68.72")
+    return ip
+
+def connect_to_radio():
     """
     Connect to the Meshtastic device using the TCPInterface.
 
     Returns:
         interface: The interface object that is connected to the Meshtastic device.
     """
-    radio_ip = os.environ.get('radio_ip', "192.168.68.73")
+    global RADIO_IP
     interface = None
+    if 'RADIO_IP' in globals():
+        logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
+    else:
+        logging.error("RADIO_IP not set. Resolving hostname...")
+        try:
+            RADIO_IP = resolve_hostname(host)
+            logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
+        except Exception as e:
+            logging.error(f"Error resolving hostname: {e}")
+            return None
 
     try:
-        logging.info(f"Connecting to Meshtastic device at {radio_ip}...")
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=radio_ip)
+        interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
         return None
@@ -96,7 +126,7 @@ def on_lost_meshtastic_connection(interface):
     logging.info("Closing Old Interface...")
     interface.close()
     logging.info("Reconnecting...")
-    connect_tcp_to_radio()
+    connect_to_radio()
 
 def onReceive(packet, interface):
     """
@@ -107,9 +137,9 @@ def onReceive(packet, interface):
         interface: The interface object that is connected to the Meshtastic device.
     """
     try:
-        if localNode == None:
-            localNode = interface.getNode('^local')
+        if localNode == "":
             logging.warning("Local node not set")
+            interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
             return
 
         node_num = packet['from']
@@ -321,6 +351,9 @@ def check_node_health(interface, node):
             #send_message(interface, message, private_channel_number, "^all")
             #interface.sendTraceRoute(node['num'], 5, public_channel_number) # Send trace to node, 5 hops, public channel
                 
+                
+                
+
 def lookup_node(interface, node_generic_identifier):
     """
     Lookup a node by its short name or long name.
@@ -608,100 +641,46 @@ def send_message(interface, message, channel, to_id):
         node_name = lookup_short_name(interface, to_id)
     logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
-# Async function to retry connection
-async def retry_interface():
-    logging.info("Reinitializing interface...")
-    await asyncio.sleep(3)  # Wait before retrying
+pub.subscribe(onReceive, 'meshtastic.receive')
+pub.subscribe(onConnection, "meshtastic.connection.established")
+pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 
-    try:
-        radio_ip = os.environ.get('radio_ip', "192.168.68.73")
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=radio_ip)
-        logging.info("Interface reinitialized.")
-        return interface
-    except (ConnectionRefusedError, socket.error, Exception) as e:
-        logging.error(f"Error reinitializing interface: {e}")
-        return None
-    
-# Function to get firmware version
-def getNodeFirmware(interface):
-    logging.info("Getting firmware version...")
-    try:
-        output_capture = io.StringIO()
-        with contextlib.redirect_stdout(output_capture), contextlib.redirect_stderr(output_capture):
-            interface.localNode.getMetadata()
+# Main loop
+logging.info("Starting Main Loop")
+while True:
+    if not connected:
+        logging.info("Not connected to Radio, trying to connect")
+        try:
+            interface = connect_to_radio()
+            if interface:
+                logging.info("Connection to Radio Established.")
+            else:
+                logging.error("Error connecting to interface: Interface is None.")
+                connect_timeout += 10
+        except Exception as e:
+            logging.error(f"Error connecting to interface: {e}")
+            continue
+    else:
+        connect_timeout = 30
+        try:
+            localNode = interface.getNode('^local')
+        except Exception as e:
+            logging.error(f"Error getting local node: {e}")
+            connected = False
+            continue
 
-        console_output = output_capture.getvalue()
+        # Get radio uptime
+        my_node_num = interface.myInfo.my_node_num
+        info = interface.myInfo
+        logging.info(f"Radio {my_node_num} Info: {info}")
 
-        if "firmware_version" in console_output:
-            return console_output.split("firmware_version: ")[1].split("\n")[0]
+        # Check if we should send a sitrep
+        if should_send_sitrep_after_midnight():
+            sitrep.update_sitrep(interface, True)
 
-        return -1
-    except (socket.error, BrokenPipeError, ConnectionResetError, Exception) as e:
-        logging.error(f"Error getting firmware version: {e}")
-        raise e  # Propagate the error to handle reconnection
-    
-# Function to check connection and reconnect if needed
-async def check_and_reconnect(interface):
-    logging.info("Checking interface connection...")
-    if interface is None:
-        logging.info("No valid interface. Attempting to reconnect...")
-        interface = await retry_interface()
-        return interface
+        logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
 
-    try:
-        logging.info("Checking connection...")
-        fw_ver = getNodeFirmware(interface)
-        if fw_ver != -1:
-            print(f"Firmware Version: {fw_ver}")
-            return interface
-        else:
-            raise Exception("Failed to retrieve firmware version.")
+        # Used by meshtastic_mesh_visualizer to display nodes on a map
+        sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
 
-    except (socket.error, BrokenPipeError, ConnectionResetError, Exception) as e:
-        print(f"Error with the interface, setting to None and attempting reconnect: {e}")
-        return await retry_interface()
-
-
-
-async def new_main():
-    interface = connect_tcp_to_radio()
-    logging.info("Connected to Radio. Main Logic Loop Starting...")
-    db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
-    sitrep = SITREP(localNode, db_helper)
-    pub.subscribe(onReceive, 'meshtastic.receive')
-    pub.subscribe(onConnection, "meshtastic.connection.established")
-    pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
-    
-    while True:
-        interface = await check_and_reconnect(interface)
-        logging.info("Sleeping for 30 seconds...")
-        await asyncio.sleep(30)
-        logging.info("Waking up...")
-
-        if interface:
-            logging.info("Connected to Radio.")
-            
-            # Get radio uptime
-            my_node_num = interface.myInfo.my_node_num
-            info = interface.myInfo
-            logging.info(f"Radio {my_node_num} Info: {info}")
-
-            # Check if we should send a sitrep
-            if should_send_sitrep_after_midnight():
-                sitrep.update_sitrep(interface, True)
-
-            #
-            logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
-
-            # Used by meshtastic_mesh_visualizer to display nodes on a map
-            sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
-        else:
-            logging.error("Failed to connect to Radio.")
-
-# run the main function
-if __name__ == "__main__":
-    logging.info("Starting Mesh Monitor")
-    try:
-        asyncio.run(new_main())
-    except KeyboardInterrupt:
-        print("Exiting...")
+    time.sleep(connect_timeout)
