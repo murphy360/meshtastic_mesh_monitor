@@ -54,26 +54,18 @@ def resolve_hostname(hostname):
 
 def connect_to_radio():
     """
-    Connect to the Meshtastic device using the TCPInterface.
+    Function to connect to the radio.
 
+    Args:
+        None
+    
     Returns:
-        interface: The interface object that is connected to the Meshtastic device.
+        interface: The interface object representing the connection.
     """
-    global RADIO_IP
-    interface = None
-    if 'RADIO_IP' in globals():
-        logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
-    else:
-        logging.error("RADIO_IP not set. Resolving hostname...")
-        try:
-            RADIO_IP = resolve_hostname(host)
-            logging.info(f"Connecting to Meshtastic device at {RADIO_IP}...")
-        except Exception as e:
-            logging.error(f"Error resolving hostname: {e}")
-            return None
-
+    
     try:
-        interface = meshtastic.tcp_interface.TCPInterface(hostname=RADIO_IP)
+        interface = meshtastic.serial_interface.SerialInterface('/dev/ttyUSB0')
+        logging.info("Connected to Meshtastic device")
     except Exception as e:
         logging.error(f"Error connecting to interface: {e}")
         return None
@@ -139,7 +131,6 @@ def onReceive(packet, interface):
     try:
         if localNode == "":
             logging.warning("Local node not set")
-            interface = meshtastic.tcp_interface.TCPInterface(hostname=host)
             return
 
         node_num = packet['from']
