@@ -35,23 +35,6 @@ last_routine_sitrep_date = None
 
 logging.info("Starting Mesh Monitor")
 
-def resolve_hostname(hostname):
-    """
-    Resolve the hostname to an IP address.
-
-    Args:
-        hostname (str): The hostname to resolve.
-
-    Returns:
-        str: The IP address of the hostname.
-    """
-    try:
-        ip = socket.getaddrinfo(hostname, None)[0][4][0]
-    except Exception as e:
-        logging.error(f"Error resolving hostname: {e}")
-        ip = os.environ.get('RADIO_IP', "192.168.68.72")
-    return ip
-
 def connect_to_radio():
     """
     Function to connect to the radio.
@@ -89,7 +72,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
-                       Connected to {long_name} on {interface.hostname} \n\n \
+                       Connected to {long_name} on {interface} \n\n \
                 **************************************************************\n \
                 **************************************************************\n\n ")
 
