@@ -6,7 +6,7 @@ import time
 import geopy
 from geopy import distance
 import meshtastic
-import meshtastic.tcp_interface
+import meshtastic.serial_interface
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
