@@ -9,6 +9,8 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 reply_message = "Message Received"
 
 interface = meshtastic.serial_interface.SerialInterface()
+logging.info("Connecting to Meshtastic device...")
+
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info("Connected to Meshtastic device")
 
