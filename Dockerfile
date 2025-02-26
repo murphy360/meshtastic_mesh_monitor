@@ -20,4 +20,4 @@ COPY src/ /app
 WORKDIR /app
 
 # Run mesh-monitor.py on startup
-CMD ["python3", "serial-test.py"]
+CMD ["python3", "mesh-monitor.py"]
