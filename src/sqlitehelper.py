@@ -3,7 +3,7 @@ import sqlite3
 import logging
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
 
 class SQLiteHelper:
     def __init__(self, db_name):
@@ -71,6 +71,19 @@ class SQLiteHelper:
             self.conn.execute(query, (num, node_id, shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at))
         self.conn.commit()
         return new
+    
+    def remove_node(self, node):
+        """
+        Remove a node from the database.
+
+        Args:
+            node (dict): The node data.
+        """
+        node_id = node["user"]["id"]
+        query = "DELETE FROM node_database WHERE id = ?"
+        self.conn.execute(query, (node_id,))
+        self.conn.commit()
+        logging.info(f"Node {node_id} removed")
 
     def is_node_of_interest(self, node):
         """

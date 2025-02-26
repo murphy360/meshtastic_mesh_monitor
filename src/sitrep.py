@@ -4,7 +4,7 @@ import logging
 import json
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
 
 class SITREP:
     def __init__(self, localNode, shortName, longName, dbHelper):
@@ -19,6 +19,7 @@ class SITREP:
         self.aircraft_tracks = {}
         self.messages_sent = {}
         self.nodes_connected = 0
+        self.sitrep_time = self.get_date_time_in_zulu(datetime.datetime.now())
         self.reportHeader = ""
         self.line1 = ""  # Local Nodes
         self.line2 = ""  # Aircraft Tracks
@@ -31,7 +32,8 @@ class SITREP:
         self.nodes_of_interest = []
         self.known_nodes = []
         self.num_connections = 0
-        print("SITREP Object Created")
+        self.extra_connections = {}
+        logging.info(f"SITREP initialized")
 
     def update_sitrep(self, interface, is_routine_sitrep=False):
         """
@@ -46,9 +48,10 @@ class SITREP:
             now = now.replace(hour=0, minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
+        self.sitrep_time = self.get_date_time_in_zulu(now)
         node = self.lookup_node_by_short_name(interface, self.shortName)
         self.lines = []
-        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.get_date_time_in_zulu(now)} SITREP is as follows:"
+        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.sitrep_time} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
@@ -64,6 +67,12 @@ class SITREP:
         self.lines.append(self.line6)
         self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
+        return
+    
+    def add_extra_connection(self, node1_short_name, node2_short_name):
+       # add dictionary entry for node1_short_name with node2_short_name as value
+        if node1_short_name in self.extra_connections:
+            self.extra_connections[node1_short_name].append(node2_short_name)
         return
 
     def add_node_of_interest(self, node_short_name):
@@ -238,7 +247,7 @@ class SITREP:
             self.packets_received[packet_type] += 1
         else:
             self.packets_received[packet_type] = 1
-        print(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
+        logging.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
         return
 
     def is_packet_from_node_of_interest(self, interface, packet):
@@ -255,7 +264,7 @@ class SITREP:
         logging.info("is_packet_from_node_of_interest")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name in self.nodes_of_interest:
-            print(f"Packet received from node of interest: {from_node_short_name}")
+            logging.info(f"Node of Interest Detected: {from_node_short_name}")
             return True
         return False
 
@@ -287,7 +296,7 @@ class SITREP:
             int: The total number of packets received.
         """
         total_packets = sum(self.packets_received.values())
-        print("Total Packets Received:", total_packets)
+        logging.info(f"Total Packets Received: {total_packets}")
         return total_packets
 
     def log_message_sent(self, message_type):
@@ -320,10 +329,12 @@ class SITREP:
             interface: The interface to interact with the mesh network.
             file_path (str): The path to the file.
         """
-        logging.info(f"Writing SITREP to file: {file_path}")
+        #logging.info(f"Writing SITREP to file: {file_path}")
         mesh_data = {
             "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
-            "nodes": []
+            "sitrep_time": self.sitrep_time,  # Discrete field for SITREP time
+            "nodes": [],
+            "sitrep": []
         }
         self_data = {}
 
@@ -332,41 +343,74 @@ class SITREP:
             logging.info(f"Local Node not found in interface.nodes")
             return
         self_data["id"] = self.shortName
-        self_data["lat"] = localNode["position"]["latitude"]
-        self_data["lon"] = localNode["position"]["longitude"]
-        self_data["alt"] = localNode["position"].get("altitude", 0)
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
 
         for node in interface.nodes.values():
+            #logging.info(f"Writing Node: {node}")
+            #logging.info(f"Writing Node: {node['user']['shortName']}")
             try:
+                latitude = 0
+                longitude = 0
+                altitude = 0
+                last_heard = 0
+                hops_away = -1
+                role = "Unknown"
+
+                if "position" in node:
+                    if "latitude" in node["position"]:
+                        latitude = node["position"]["latitude"]
+                    if "longitude" in node["position"]:
+                        longitude = node["position"]["longitude"]
+                    if "altitude" in node["position"]:
+                        altitude = node["position"]["altitude"]
+                
+                if "lastHeard" in node:
+                    last_heard = node["lastHeard"]
+                
+                if "hopsAway" in node:
+                    hops_away = node["hopsAway"]
+
+                if "role" in node:
+                    role = node["role"]
+
                 if self.localNode.nodeNum == node["num"]:
-                    logging.info(f"Updating Local Node: {node}")
-                    mesh_data["nodes"][0]["lat"] = node["position"]["latitude"]
-                    mesh_data["nodes"][0]["lon"] = node["position"]["longitude"]
-                    mesh_data["nodes"][0]["alt"] = node["position"]["altitude"]
+                    mesh_data["nodes"][0]["lat"] = latitude
+                    mesh_data["nodes"][0]["lon"] = longitude
+                    mesh_data["nodes"][0]["alt"] = altitude
                     continue
+
                 node_data = {
                     "id": node["user"]["shortName"],
-                    "lat": node["position"]["latitude"],
-                    "lon": node["position"]["longitude"],
-                    "alt": node["position"].get("altitude", 0),
+                    "lat": latitude,
+                    "lon": longitude,
+                    "alt": altitude,
+                    "lastHeard": last_heard,
+                    "hopsAway": hops_away,
+                    "role": role,
                     "connections": []
                 }
-                if "lastHeard" in node:
-                    now = datetime.datetime.now()
-                    time_difference_in_seconds = now.timestamp() - node["lastHeard"]
-                    if time_difference_in_seconds < 3600:
-                        node_data["connections"].append(self.shortName)
-                        mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])
+                
+                if node_data["hopsAway"] == 0:
+                    node_data["connections"].append(self.shortName)
+                    mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
+                    
                 mesh_data["nodes"].append(node_data)
             except Exception as e:
-                print(f"Error: {e}")
+                logging.error(f"Error While processing node {node['user']['shortName']}: {e} - {node}")
+                
+        try:
+            for line in self.lines:
+                #logging.info(f"Adding SITREP line to file: {line}")
+                mesh_data["sitrep"].append(line)
+        except Exception as e:
+            logging.error(f"Error: {e}")
 
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
-        logging.info(f"SITREP written to file: {file_path}")
-        logging.info(f"File Contents: {mesh_data}")
+
+        #logging.info(f"SITREP written to file: {file_path}")
+        #logging.info(f"File Contents: {mesh_data}")
 
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         """
@@ -388,28 +432,40 @@ class SITREP:
                 log_message += " - Local Node"
                 continue
 
-            hops_away = node.get("hopsAway", 0)
-            log_message += f" Hops Away: {hops_away}"
-
             if "lastHeard" in node:
                 now = datetime.datetime.now()
-                time_difference_in_seconds = now.timestamp() - node["lastHeard"]
-                if time_difference_in_seconds < (time_threshold_minutes * 60):
-                    time_difference_hours = time_difference_in_seconds // 3600
-                    time_difference_minutes = time_difference_in_seconds % 60
-                    log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
-
-                    if hops_away <= hop_threshold:
-                        log_message += f" Hops Away: {hops_away}"
-                        response_string += " " + node['user']['shortName']
-                        self.nodes_connected += 1
+                if node["lastHeard"]:
+                    logging.info(f"Now: {now} - Last Heard: {node['lastHeard']}")
+                    time_difference_in_seconds = now.timestamp() - node["lastHeard"]
+                    if time_difference_in_seconds < (time_threshold_minutes * 60):
+                        time_difference_hours = time_difference_in_seconds // 3600
+                        time_difference_minutes = time_difference_in_seconds % 60
+                        log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
                     else:
-                        log_message += f" - Node is more than {hop_threshold} hops away"
+                        log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
+                        continue
                 else:
-                    log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
+                    log_message += " - Node doesn't have lastHeard data"
+                    continue
             else:
-                log_message += " - Node doesn't have lastHeard or hopsAway data"
-
+                log_message += " - Node doesn't have lastHeard data"
+                continue
+            
+            if "hopsAway" in node:
+                hops_away = node["hopsAway"]
+                if hops_away <= hop_threshold:
+                    log_message += f" Hops Away: {hops_away}"
+                    response_string += " " + node['user']['shortName']
+                else:
+                    log_message += f" - Node is more than {hop_threshold} hops away ({hops_away})"
+                    continue
+            else:
+                log_message += " - Node doesn't have hopsAway data"
+                continue
+            
+            logging.info(log_message)
+            self.nodes_connected += 1
+                
         if self.nodes_connected <= 20:
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
@@ -439,7 +495,7 @@ class SITREP:
         if time_difference_minutes < 10:
             time_difference_minutes = "0" + str(time_difference_minutes)
         date_time = self.get_date_time_in_zulu(datetime.datetime.fromtimestamp(last_heard))
-        return f"{time_difference_hours}:{time_difference_minutes} - {date_time}"
+        return f"{time_difference_hours}:{time_difference_minutes}"
 
     def lookup_short_name(self, interface, node_num):
         """
@@ -452,7 +508,7 @@ class SITREP:
         Returns:
             str: The short name of the node.
         """
-        logging.info(f"Sitrep: Looking up short name for node: {node_num}")
+        #logging.info(f"Sitrep: Looking up short name for node: {node_num}")
         for node in interface.nodes.values():
             if node["num"] == node_num:
                 node_short_name = node["user"]["shortName"]
