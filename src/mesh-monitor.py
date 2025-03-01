@@ -256,8 +256,11 @@ def onReceive(packet, interface):
                     message_string += f"{node['user']['shortName']} -> "
 
                 for node in route_back:
-                    message_string += f" -> {node['user']['shortName']}"
+                    message_string += f"{node['user']['shortName']} ->"
+                
+                logging.info(f"Combining Route To and Route Back")
                 route_full = route_to + route_back
+                logging.info(f"Route Full: {route_full}")
                 sitrep.add_traceroute(route_full)
                 
 
