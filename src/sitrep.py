@@ -70,8 +70,10 @@ class SITREP:
         return
     
     def add_trace(self, trace):
+        logging.info(f"Adding trace: {trace}")
         # Iterate through list of nodes in trace and use add_extra_connection to add connections
         for i in range(len(trace) - 1):
+            logging.info(f"Adding extra connection between {trace[i]} and {trace[i + 1]}")
             self.add_extra_connection(trace[i], trace[i + 1])
     
     def add_extra_connection(self, node1_short_name, node2_short_name):
