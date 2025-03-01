@@ -250,10 +250,10 @@ def onReceive(packet, interface):
                             route_to.append(node)
                             logging.info(f"Adding Node: {node['user']['shortName']} to Route To")
                 
+                route_to.append(traced_node)
+                
                 for node in route_to:
                     message_string += f"{node['user']['shortName']} -> "
-                
-                message_string += f"{traced_node['user']['shortName']}"
 
                 for node in route_back:
                     message_string += f" -> {node['user']['shortName']}"
