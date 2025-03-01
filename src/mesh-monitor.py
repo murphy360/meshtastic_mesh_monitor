@@ -1,7 +1,4 @@
 from asyncio import sleep
-import json
-import os
-import socket
 import time
 import geopy
 from geopy import distance
@@ -261,6 +258,9 @@ def onReceive(packet, interface):
                 for node in route_back:
                     message_string += f" -> {node['user']['shortName']}"
                 
+                sitrep.add_trace(route_to)
+                sitrep.add_trace(route_back)
+
                 # Tell admin what the traceroute is
                 logging.info(f"Traceroute: {message_string}")
                 send_message(interface, message_string, private_channel_number, "^all")

@@ -69,10 +69,17 @@ class SITREP:
         self.lines.append(self.reportFooter)
         return
     
+    def add_trace(self, trace):
+        # Iterate through list of nodes in trace and use add_extra_connection to add connections
+        for i in range(len(trace) - 1):
+            self.add_extra_connection(trace[i], trace[i + 1])
+    
     def add_extra_connection(self, node1_short_name, node2_short_name):
        # add dictionary entry for node1_short_name with node2_short_name as value
         if node1_short_name in self.extra_connections:
-            self.extra_connections[node1_short_name].append(node2_short_name)
+            # append to existing list if node2_short_name not already in list
+            if node2_short_name not in self.extra_connections[node1_short_name]:
+                self.extra_connections[node1_short_name].append(node2_short_name)
         return
 
     def add_node_of_interest(self, node_short_name):
@@ -396,6 +403,12 @@ class SITREP:
                     mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
                     
                 mesh_data["nodes"].append(node_data)
+
+                # Add extra connections
+                if node["user"]["shortName"] in self.extra_connections:
+                    for connection in self.extra_connections[node["user"]["shortName"]]:
+                        node_data["connections"].append(connection)
+
             except Exception as e:
                 logging.error(f"Error While processing node {node['user']['shortName']}: {e} - {node}")
                 
