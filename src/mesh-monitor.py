@@ -261,7 +261,7 @@ def onReceive(packet, interface):
                 logging.info(f"Combining Route To and Route Back")
                 route_full = route_to + route_back
                 logging.info(f"Route Full: {route_full}")
-                sitrep.add_traceroute(route_full)
+                sitrep.add_trace(route_full)
                 
 
                 # Tell admin what the traceroute is
