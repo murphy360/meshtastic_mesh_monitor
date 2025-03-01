@@ -73,15 +73,27 @@ class SITREP:
         #logging.info(f"Adding trace: {trace}")
         # Iterate through list of nodes in trace and use add_extra_connection to add connections
         for i in range(len(trace) - 1):
+            
             logging.info(f"Adding extra connection between {trace[i]['user']['shortName']} and {trace[i + 1]['user']['shortName']}")
             self.add_extra_connection(trace[i]['user']['shortName'], trace[i + 1]['user']['shortName'])
     
     def add_extra_connection(self, node1_short_name, node2_short_name):
        # add dictionary entry for node1_short_name with node2_short_name as value
-        if node1_short_name in self.extra_connections:
+        if node1_short_name not in self.extra_connections:
+            self.extra_connections[node1_short_name] = [node2_short_name]
+        else:
             # append to existing list if node2_short_name not already in list
             if node2_short_name not in self.extra_connections[node1_short_name]:
                 self.extra_connections[node1_short_name].append(node2_short_name)
+
+        if node2_short_name not in self.extra_connections:
+            self.extra_connections[node2_short_name] = [node1_short_name]
+        else:
+            # append to existing list if node1_short_name not already in list
+            if node1_short_name not in self.extra_connections[node2_short_name]:
+                self.extra_connections[node2_short_name].append(node1_short_name)
+        
+        logging.info(f"Extra Connections: {self.extra_connections}")
         return
 
     def add_node_of_interest(self, node_short_name):
