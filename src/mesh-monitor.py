@@ -257,9 +257,9 @@ def onReceive(packet, interface):
 
                 for node in route_back:
                     message_string += f" -> {node['user']['shortName']}"
+                route_full = route_to + route_back
+                sitrep.add_traceroute(route_full)
                 
-                sitrep.add_trace(route_to)
-                sitrep.add_trace(route_back)
 
                 # Tell admin what the traceroute is
                 logging.info(f"Traceroute: {message_string}")
