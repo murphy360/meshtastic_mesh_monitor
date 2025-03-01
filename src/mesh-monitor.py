@@ -111,6 +111,7 @@ def onReceive(packet, interface):
         packet (dict): The packet received from the Meshtastic device.
         interface: The interface object that is connected to the Meshtastic device.
     """
+    logging.info(f"Packet Received from {packet['from']}")
     try:
         if localNode == "":
             logging.warning("Local node not set")
