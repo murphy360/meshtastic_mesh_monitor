@@ -655,9 +655,9 @@ while True:
         if should_send_sitrep_after_midnight():
             sitrep.update_sitrep(interface, True)
 
-        logging.info(f"Connected to Radio {my_node_num}, Sleeping...")
-
         # Used by meshtastic_mesh_visualizer to display nodes on a map
         sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
+
+        logging.info(f"Connected to Radio {my_node_num}, Sleeping for {connect_timeout} seconds")
 
     time.sleep(connect_timeout)
