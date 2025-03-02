@@ -498,7 +498,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     message = message.lower()
     logging.info(f"Replying to message: {message}")
     from_node = interface.nodesByNum[from_id]
-    logging.info(f"From Node: {from_node}")
+    #logging.info(f"From Node: {from_node}")
 
     if message == "ping":
         node_short_name = lookup_short_name(interface, from_id)
@@ -625,6 +625,7 @@ pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 
 # Main loop
 logging.info("Starting Main Loop")
+connect_timeout = 30
 while True:
     if not connected:
         logging.info("Not connected to Radio, trying to connect")
@@ -634,12 +635,11 @@ while True:
                 logging.info("Connection to Radio Established.")
             else:
                 logging.error("Error connecting to interface: Interface is None.")
-                connect_timeout += 10
         except Exception as e:
             logging.error(f"Error connecting to interface: {e}")
             continue
     else:
-        connect_timeout = 30
+        
         try:
             localNode = interface.getNode('^local')
         except Exception as e:
