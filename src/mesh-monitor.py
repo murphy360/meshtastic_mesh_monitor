@@ -625,7 +625,7 @@ pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 
 # Main loop
 logging.info("Starting Main Loop")
-connect_timeout = 30
+connect_timeout = 30 # seconds
 while True:
     if not connected:
         logging.info("Not connected to Radio, trying to connect")
