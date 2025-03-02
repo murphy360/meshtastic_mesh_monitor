@@ -635,22 +635,21 @@ while True:
                 logging.info("Connection to Radio Established.")
             else:
                 logging.error("Error connecting to interface: Interface is None.")
+                connected = False
         except Exception as e:
             logging.error(f"Error connecting to interface: {e}")
             continue
     else:
-        
         try:
             localNode = interface.getNode('^local')
+            # Get radio uptime
+            my_node_num = interface.myInfo.my_node_num
+            info = interface.myInfo
+            logging.info(f"Radio {my_node_num} Info: {info}")
         except Exception as e:
             logging.error(f"Error getting local node: {e}")
             connected = False
             continue
-
-        # Get radio uptime
-        my_node_num = interface.myInfo.my_node_num
-        info = interface.myInfo
-        logging.info(f"Radio {my_node_num} Info: {info}")
 
         # Check if we should send a sitrep
         if should_send_sitrep_after_midnight():
