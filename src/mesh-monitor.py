@@ -619,9 +619,7 @@ def send_message(interface, message, channel, to_id):
         node_name = lookup_short_name(interface, to_id)
     logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
-pub.subscribe(onReceive, 'meshtastic.receive')
-pub.subscribe(onConnection, "meshtastic.connection.established")
-pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
+
 
 # Main loop
 logging.info("Starting Main Loop")
@@ -633,6 +631,9 @@ while True:
             interface = connect_to_radio()
             if interface:
                 logging.info("Connection to Radio Established.")
+                pub.subscribe(onReceive, 'meshtastic.receive')
+                pub.subscribe(onConnection, "meshtastic.connection.established")
+                pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
             else:
                 logging.error("Error connecting to interface: Interface is None.")
                 connected = False
@@ -646,6 +647,7 @@ while True:
             my_node_num = interface.myInfo.my_node_num
             info = interface.myInfo
             logging.info(f"Radio {my_node_num} Info: {info}")
+            connected = True
         except Exception as e:
             logging.error(f"Error getting local node: {e}")
             connected = False
