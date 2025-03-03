@@ -114,9 +114,19 @@ def should_trace_node(node_num):
         bool: True if the node should be traced, False otherwise.
     """
     now = datetime.now(timezone.utc)
-    if now - last_trace_time[node_num] > trace_interval:
+    logging.info(f"Checking if node {node_num} should be traced")
+    if node_num not in last_trace_time:
+        logging.info(f"Node {node_num} not in last trace time, tracing")
         last_trace_time[node_num] = now
         return True
+    
+    if now - last_trace_time[node_num] > trace_interval:
+        time_since_last_trace_string = time_since_last_heard(last_trace_time[node_num])
+        logging.info(f"Node {node_num} was last traced at {last_trace_time[node_num]} - {time_since_last_trace_string} ago")
+        last_trace_time[node_num] = now
+        return True
+    
+    logging.info(f"Node {node_num} was last traced at {last_trace_time[node_num]} - Skipping")
     return False
 
 def onReceive(packet, interface):
