@@ -167,7 +167,7 @@ def onReceive(packet, interface):
             if node_of_interest:
                 log_string += " - Node of interest detected!"
                 check_node_health(interface, node)
-
+                '''
                 if should_trace_node(node_num):
                     logging.info(f"Sending Traceroute to {node_short_name}")
                     admin_message = f"Sending Traceroute to {node_short_name}"
@@ -175,7 +175,7 @@ def onReceive(packet, interface):
                     interface.sendTraceRoute(node_num, 5, public_channel_number)
                 else:
                     logging.info(f"Skipping Traceroute for {node_short_name}, last traced at {last_trace_time[node_num]}")
-
+                '''
             if new_node:
                 log_string += " - New node detected!"
                 private_message = "Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!"
@@ -185,7 +185,7 @@ def onReceive(packet, interface):
                 send_message(interface, admin_message, private_channel_number, "^all")
                 # Request node position
                 # If HopsAway is greater than 0, send a traceroute packet
-                if node['hopsAway'] > 0 and should_trace_node(node_num):
+                if node['hopsAway'] > 0:
                     logging.info(f"Sending Traceroute to {node_short_name}")
                     # notify admin of traceroute
                     admin_message = f"Sending Traceroute to {node_short_name}"
@@ -363,13 +363,14 @@ def check_node_health(interface, node):
     if "hopsAway" in node:
         logging.info(f"Checking hop away of node {node['user']['shortName']}")
         hops_away = node["hopsAway"]
+        '''
         if hops_away > 0 and should_trace_node(node['num']):
             message = f"Node {node['user']['shortName']} is {hops_away} hops away."
             logging.info(message)
             interface.sendTraceRoute(node['num'], 5, public_channel_number)  # Send trace to node, 5 hops, public channel
         else:
             logging.info(f"Skipping Traceroute for {node['user']['shortName']}, last traced at {last_trace_time[node['num']]}")
-                
+        '''        
                 
                 
 
@@ -606,12 +607,13 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         admin_message = f"Tracing {node_short_name}"
         if node:
+            '''
             if should_trace_node(node['num']):
                 admin_message = f"Tracing {node_short_name}"
             else:
                 last_trace_time = last_trace_time[node['num']]
                 admin_message = f"Tracing {node_short_name} - Last traced at {last_trace_time}"
-
+            '''
             send_message(interface, admin_message, private_channel_number, "^all")
             sitrep.log_message_sent("node-traced")
             interface.sendTraceRoute(node['num'], 5, public_channel_number)
