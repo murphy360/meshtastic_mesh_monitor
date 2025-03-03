@@ -115,6 +115,8 @@ def should_trace_node(node_num):
     """
     now = datetime.now(timezone.utc)
     logging.info(f"Checking if node {node_num} should be traced")
+    # log dictionary
+    logging.info(last_trace_time)
     if node_num not in last_trace_time:
         logging.info(f"Node {node_num} not in last trace time, tracing")
         last_trace_time[node_num] = now
