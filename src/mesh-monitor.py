@@ -219,8 +219,8 @@ def onReceive(packet, interface):
 
                 if 'snrBack' in trace:
                     logging.info(f"Received Trace Back: {trace['snrBack']}")
-                    originator_node = interface.nodesByNum[packet['to']] # Originator is the destination of the traceroute
-                    traced_node = interface.nodesByNum[packet['from']] # Traced node is the source of the traceroute (Response)
+                    originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
+                    traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
                     
                     if 'routeBack' in trace:
                         logging.info(f"Route Back: {trace['routeBack']}")
@@ -228,8 +228,8 @@ def onReceive(packet, interface):
                             node = interface.nodesByNum[hop]
                             route_back.append(node)
                             logging.info(f"Adding Node: {node['user']['shortName']} to Route Back")
-                    route_back.append(originator_node)
-                else:
+                    route_back.append(originator_node) # Add the originator node to the route back (local node)
+                else: # If no route back in trace, then the trace was not initiated by the local node
                     logging.info(f"I've been traced by {node_short_name}")
 
                     if packet['to'] == localNode.nodeNum:
@@ -240,7 +240,7 @@ def onReceive(packet, interface):
                         send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
                         db_helper.set_node_of_interest(node, True)
 
-                if 'snrTowards' in trace:
+                if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
                     logging.info(f"SNR Towards: {trace['snrTowards']}")
                     route_to.append(originator_node)
                     if 'routeTo' in trace:
