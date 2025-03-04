@@ -73,6 +73,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     sitrep.set_local_node(localNode)
     sitrep.set_short_name(short_name)
     sitrep.set_long_name(long_name)
+    sitrep.update_sitrep(interface)
     sitrep.log_connect()
 
     if initial_connect:
@@ -111,8 +112,7 @@ def should_trace_node(node_num):
         logging.info(f"Node {node_num} has not been traced - Tracing")
         last_trace_time[node_num] = now
         return True
-    logging.info(f"Node {node_num} in last_trace_time")
-    logging.info(f"Checking has been traced in the last {trace_interval}")
+    logging.info(f"Checking Node {node_num} has been traced in the last {trace_interval}")
     if now - last_trace_time[node_num] > trace_interval:
         logging.info(f"Node {node_num} has not been traced in the last {trace_interval} - Tracing")
         time_since_last_trace_string = time_since_last_heard(last_trace_time[node_num])
