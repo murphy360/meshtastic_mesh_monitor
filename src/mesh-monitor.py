@@ -587,7 +587,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.remove_node(node)
-            interface.removeNode(node['num'])
+            interface.removeNodeByNum(node['num'])
             send_message(interface, f"{node_short_name} has been removed", channel, to_id)
             sitrep.log_message_sent("node-removed")
         else:
