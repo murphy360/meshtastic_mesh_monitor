@@ -104,7 +104,7 @@ def should_trace_node(node_num):
         bool: True if the node should be traced, False otherwise.
     """
     now = datetime.now(timezone.utc)
-    logging.info(f"Checking if node {node_num} should be traced")
+    logging.info(f"Checking if node {node_num} should be traced:\nLast trace time: {last_trace_time[node_num]}\nNow: {now}")
     # log dictionary
     logging.info(last_trace_time)
     if node_num not in last_trace_time:
@@ -284,9 +284,7 @@ def onReceive(packet, interface):
                 for node in route_back:
                     message_string += f"{node['user']['shortName']} ->"
                 
-                logging.info(f"Combining Route To and Route Back")
                 route_full = route_to + route_back
-                logging.info(f"Route Full: {route_full}")
                 sitrep.add_trace(route_full)
                 
 
@@ -305,6 +303,10 @@ def onReceive(packet, interface):
             
             elif portnum == 'ROUTING_APP':
                 logging.info(f"Routing: {packet['decoded']}")
+                now = datetime.now(timezone.utc)
+                now_string = now.strftime("%Y-%m-%d %H:%M:%S")
+                admin_message = f"Routing Packet received from {node_short_name} at {now_string}"
+                send_message(interface, admin_message, private_channel_number, "^all")
                 return
 
             elif 'portnum' in packet['decoded']:
@@ -676,7 +678,7 @@ while True:
         info = interface.myInfo
         logging.info(f"Radio {my_node_num} Info: {info}")
 
-        logging.info(interface.sendHeartbeat())
+        interface.sendHeartbeat()
                 
         sitrep.send_sitrep_if_new_day(interface)
 

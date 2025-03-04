@@ -73,7 +73,7 @@ class SITREP:
         # Iterate through list of nodes in trace and use add_extra_connection to add connections
         for i in range(len(trace) - 1):
             
-            logging.info(f"Adding extra connection between {trace[i]['user']['shortName']} and {trace[i + 1]['user']['shortName']}")
+            #logging.info(f"Adding extra connection between {trace[i]['user']['shortName']} and {trace[i + 1]['user']['shortName']}")
             self.add_extra_connection(trace[i]['user']['shortName'], trace[i + 1]['user']['shortName'])
     
     def add_extra_connection(self, node1_short_name, node2_short_name):
@@ -92,7 +92,7 @@ class SITREP:
             if node1_short_name not in self.extra_connections[node2_short_name]:
                 self.extra_connections[node2_short_name].append(node1_short_name)
         
-        logging.info(f"Extra Connections: {self.extra_connections}")
+        #logging.info(f"Extra Connections: {self.extra_connections}")
         return
 
     def add_node_of_interest(self, node_short_name):
@@ -554,7 +554,6 @@ class SITREP:
         Returns:
             dict: The node data if found, None otherwise.
         """
-        logging.info(f"Sitrep: Looking up node by short name: {short_name}")
         for node in interface.nodes.values():
             if node["user"]["shortName"] == short_name:
                 return node
