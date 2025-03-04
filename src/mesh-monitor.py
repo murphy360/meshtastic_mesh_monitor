@@ -131,7 +131,14 @@ def onNodeUpdate(node, interface):
         node (dict): The node data.
         interface: The interface object that is connected to the Meshtastic device.
     """
-    logging.info(f"Node Updated: {node}")
+
+    logging.info(f"\n\n \
+            **************************************************************\n \
+            **************************************************************\n\n \
+                Node {node['user']['shortName']} updated.\n\n \
+            **************************************************************\n \
+            ***
+            \n\n ")
 
 
 def onReceive(packet, interface):
