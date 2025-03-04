@@ -302,6 +302,10 @@ def onReceive(packet, interface):
             elif portnum == 'NODEINFO_APP':
                 logging.info(f"Node Info: {packet['decoded']['nodeInfo']}")
                 return
+            
+            elif portnum == 'ROUTING_APP':
+                logging.info(f"Routing: {packet['decoded']}")
+                return
 
             elif 'portnum' in packet['decoded']:
                 packet_type = packet['decoded']['portnum']
