@@ -477,19 +477,7 @@ def time_since_last_heard(last_heard_time):
     else: # More than a year, return years
         return f"{int(seconds // 31536000)}y"
 
-def should_send_sitrep_after_midnight():
-    """
-    Check if a SITREP should be sent after midnight.
 
-    Returns:
-        bool: True if a SITREP should be sent, False otherwise.
-    """
-    global last_routine_sitrep_date
-    today = datetime.now().date()
-    if last_routine_sitrep_date is None or last_routine_sitrep_date != today:
-        last_routine_sitrep_date = today
-        return True
-    return False
 
 def find_my_location(interface, node_num):
     """
@@ -682,14 +670,11 @@ pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 
 while True:
     try:
-            
-        # Get radio uptime
         my_node_num = interface.myInfo.my_node_num
         info = interface.myInfo
         logging.info(f"Radio {my_node_num} Info: {info}")
-        # Check if we should send a sitrep
-        if should_send_sitrep_after_midnight():
-            sitrep.update_sitrep(interface, True)
+                
+        sitrep.send_sitrep_if_new_day(interface)
 
         # Used by meshtastic_mesh_visualizer to display nodes on a map
         sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")

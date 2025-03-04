@@ -559,6 +559,21 @@ class SITREP:
             if node["user"]["shortName"] == short_name:
                 return node
         return None
+    
+    def send_sitrep_if_new_day(self, interface):
+        """
+        Check if last routine SITREP was sent yesterday. If so, send a new SITREP.
+
+        Returns:
+            bool: True if a SITREP should be sent, False otherwise.
+        """
+        now = datetime.datetime.now()
+        # is self.sitrep_time yesterday?
+        if now.day != self.sitrep_time.day:
+            logging.info("Sending SITREP because last SITREP was sent yesterday")
+            self.update_sitrep(interface, is_routine_sitrep=True)
+            self.send_report(interface, 1, 'all')
+        return False
 
     def send_report(self, interface, channelId, to_id):
         for line in self.lines:
