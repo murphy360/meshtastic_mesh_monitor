@@ -137,6 +137,7 @@ def onReceive(packet, interface):
 
         node_num = packet['from']
         node_short_name = lookup_short_name(interface, node_num)
+        channelId = packet['channel']
     
 
         if packet['from'] == localNode.nodeNum:
@@ -233,8 +234,8 @@ def onReceive(packet, interface):
             elif portnum == 'NEIGHBORINFO_APP':
                 logging.info(f"Neighbors: {packet['decoded']['neighbors']}")
                 # Alert admin if a node is reporting neighbors
-                message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
-                send_message(interface, message, private_channel_number, node_num)
+                admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
+                send_message(interface, admin_message, private_channel_number, "^all")
                 return
 
             elif portnum == 'TRACEROUTE_APP':
@@ -263,9 +264,10 @@ def onReceive(packet, interface):
                     if packet['to'] == localNode.nodeNum:
                         logging.info(f"I've been traced by {node_short_name} - {trace} Replying")
                         # Tell admin what the traceroute is
-                        message = f"Traceroute from {packet['from']} to {packet['to']}: {trace}"
-                        send_message(interface, message, private_channel_number, "^all")
-                        send_message(interface, f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you.", 0, node_num)
+                        admin_message = f"Traceroute received from {node_short_name}"
+                        send_message(interface, admin_message, private_channel_number, "^all")
+                        reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
+                        send_message(interface, reply_message, channelId, node_num)
                         db_helper.set_node_of_interest(node, True)
 
                 if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
@@ -344,7 +346,6 @@ def check_node_health(interface, node):
         logging.info(f"Checking last heard of node {node['user']['shortName']}")
         last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
         time_since_last_heard_string = time_since_last_heard(last_heard_time)
-        logging.info(f"Time Since Last Heard: {time_since_last_heard_string}")
 
         # If the node has been offline for more than 24 hours and reconnects, Notify Admin
         if last_heard_time < datetime.now(timezone.utc) - timedelta(days=1):
@@ -460,7 +461,6 @@ def time_since_last_heard(last_heard_time):
     Returns:
         str: The time since the node was last heard in a human-readable format.
     """
-    logging.info(f"Calculating time since last heard: {last_heard_time} - {datetime.now(timezone.utc)}")
     now_time = datetime.now(timezone.utc)
     delta = now_time - last_heard_time
     seconds = delta.total_seconds()
