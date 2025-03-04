@@ -13,13 +13,12 @@ class SITREP:
         self.shortName = shortName
         self.longName = longName
         self.dbHelper = dbHelper
-        self.date = self.get_date_time_in_zulu(datetime.datetime.now())
         self.messages_received = []
         self.packets_received = {"position_app_aircraft": 0}
         self.aircraft_tracks = {}
         self.messages_sent = {}
         self.nodes_connected = 0
-        self.sitrep_time = self.get_date_time_in_zulu(datetime.datetime.now())
+        self.sitrep_time = datetime.datetime.now()
         self.reportHeader = ""
         self.line1 = ""  # Local Nodes
         self.line2 = ""  # Aircraft Tracks
@@ -43,15 +42,15 @@ class SITREP:
             interface: The interface to interact with the mesh network.
             is_routine_sitrep (bool): Flag to indicate if this is a routine SITREP.
         """
-        now = datetime.datetime.now()
+        self.sitrep_time = datetime.datetime.now()
         if is_routine_sitrep:
-            now = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.sitrep_time = self.sitrep_time.replace(hour=0, minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
-        self.sitrep_time = self.get_date_time_in_zulu(now)
+        sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
         node = self.lookup_node_by_short_name(interface, self.shortName)
         self.lines = []
-        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {self.sitrep_time} SITREP is as follows:"
+        self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {sitrep_time_string} SITREP is as follows:"
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
         self.lines.append(self.line1)
@@ -351,9 +350,10 @@ class SITREP:
             file_path (str): The path to the file.
         """
         #logging.info(f"Writing SITREP to file: {file_path}")
+        sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
         mesh_data = {
             "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
-            "sitrep_time": self.sitrep_time,  # Discrete field for SITREP time
+            "sitrep_time": sitrep_time_string,  # Discrete field for SITREP time
             "nodes": [],
             "sitrep": []
         }
