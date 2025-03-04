@@ -183,17 +183,18 @@ def onReceive(packet, interface):
                     interface.sendTraceRoute(node_num, 5, public_channel_number)
                 else:
                     logging.info(f"Skipping Traceroute for {node_short_name}, last traced at {last_trace_time[node_num]}")
-
+            
             logging.info(log_string)
 
             if portnum == 'TEXT_MESSAGE_APP':
                 message_bytes = packet['decoded']['payload']
                 message_string = message_bytes.decode('utf-8')
+                
 
                 if 'toId' in packet:
                     to_id = packet['to']
                     if to_id == localNode.nodeNum:
-                        logging.info(f"Message sent to local node from {packet['from']}")
+                        logging.info(f"Message sent directly to local node from {packet['from']}")
                         send_message(interface, "Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
                         return
                     elif 'channel' in packet:
@@ -230,7 +231,6 @@ def onReceive(packet, interface):
                 return
 
             elif portnum == 'NEIGHBORINFO_APP':
-                logging.info(f"Neighbor Info Packet Received from {node_short_name}")
                 logging.info(f"Neighbors: {packet['decoded']['neighbors']}")
                 # Alert admin if a node is reporting neighbors
                 message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
@@ -238,7 +238,6 @@ def onReceive(packet, interface):
                 return
 
             elif portnum == 'TRACEROUTE_APP':
-                logging.info(f"Traceroute Packet Received from {node_short_name}")
                 trace = packet['decoded']['traceroute']
                 route_to = []
                 route_back = []
@@ -299,18 +298,18 @@ def onReceive(packet, interface):
                 return
             
             elif portnum == 'TELEMETRY_APP':
-                logging.info(f"Telemetry Packet Received from {node_short_name}")
                 #logging.info(f"Telemetry: {packet['decoded']['telemetry']}")
                 return
             
             elif portnum == 'NODEINFO_APP':
-                logging.info(f"Node Info Packet Received from {node_short_name}")
                 logging.info(f"Node Info: {packet['decoded']['nodeInfo']}")
                 return
 
             elif 'portnum' in packet['decoded']:
                 packet_type = packet['decoded']['portnum']
                 logging.info(f"Unhandled Packet received from {node_short_name} - {packet_type}")
+                admin_message = f"Unhandled Packet received from {node_short_name} - {packet_type}"
+                send_message(interface, admin_message, private_channel_number, "^all")
                 return
         else:
             logging.info(f"Packet received from {node_short_name} - Encrypted")
