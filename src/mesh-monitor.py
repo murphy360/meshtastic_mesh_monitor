@@ -17,9 +17,7 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 # Global variables
 localNode = ""
 sitrep = ""
-connected = False
 connect_timeout = 10
-reply_message = "Message Received"
 host = 'meshtastic.local'
 short_name = 'Monitor'  # Overwritten in onConnection
 long_name = 'Mesh Monitor'  # Overwritten in onConnection
@@ -66,7 +64,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info("Connection established")
     global localNode, connected, short_name, long_name, sitrep, initial_connect
     localNode = interface.getNode('^local')
-    connected = True
     short_name = lookup_short_name(interface, localNode.nodeNum)
     long_name = lookup_long_name(interface, localNode.nodeNum)
     logging.info(f"\n\n \
@@ -674,42 +671,29 @@ def send_message(interface, message, channel, to_id):
 # Main loop
 logging.info("Starting Main Loop")
 connect_timeout = 30 # seconds
-while True:
-    if not connected:
-        logging.info("Not connected to Radio, trying to connect")
-        try:
-            interface = connect_to_radio()
-            if interface:
-                logging.info("Connection to Radio Established.")
-                pub.subscribe(onReceive, 'meshtastic.receive')
-                pub.subscribe(onConnection, "meshtastic.connection.established")
-                pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
-            else:
-                logging.error("Error connecting to interface: Interface is None.")
-                connected = False
-        except Exception as e:
-            logging.error(f"Error connecting to interface: {e}")
-            continue
-    else:
-        try:
-            localNode = interface.getNode('^local')
-            # Get radio uptime
-            my_node_num = interface.myInfo.my_node_num
-            info = interface.myInfo
-            logging.info(f"Radio {my_node_num} Info: {info}")
-            connected = True
-        except Exception as e:
-            logging.error(f"Error getting local node: {e}")
-            connected = False
-            continue
+interface = connect_to_radio()
+logging.info("Connection to Radio Established.")
+localNode = interface.getNode('^local')
+pub.subscribe(onReceive, 'meshtastic.receive')
+pub.subscribe(onConnection, "meshtastic.connection.established")
+pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 
+while True:
+    try:
+            
+        # Get radio uptime
+        my_node_num = interface.myInfo.my_node_num
+        info = interface.myInfo
+        logging.info(f"Radio {my_node_num} Info: {info}")
         # Check if we should send a sitrep
         if should_send_sitrep_after_midnight():
             sitrep.update_sitrep(interface, True)
 
         # Used by meshtastic_mesh_visualizer to display nodes on a map
         sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
-
         logging.info(f"Connected to Radio {my_node_num}, Sleeping for {connect_timeout} seconds")
 
+    except Exception as e:
+        logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
+        
     time.sleep(connect_timeout)
