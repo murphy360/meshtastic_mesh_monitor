@@ -246,8 +246,6 @@ def onReceive(packet, interface):
                 originator_node = interface.nodesByNum[packet['from']]
                 traced_node = interface.nodesByNum[packet['to']]
                 
-
-
                 if 'snrBack' in trace:
                     logging.info(f"Received Trace Back: {trace['snrBack']}")
                     originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
@@ -302,7 +300,12 @@ def onReceive(packet, interface):
             
             elif portnum == 'TELEMETRY_APP':
                 logging.info(f"Telemetry Packet Received from {node_short_name}")
-                logging.info(f"Telemetry: {packet['decoded']['telemetry']}")
+                #logging.info(f"Telemetry: {packet['decoded']['telemetry']}")
+                return
+            
+            elif portnum == 'NODEINFO_APP':
+                logging.info(f"Node Info Packet Received from {node_short_name}")
+                logging.info(f"Node Info: {packet['decoded']['nodeInfo']}")
                 return
 
             elif 'portnum' in packet['decoded']:
