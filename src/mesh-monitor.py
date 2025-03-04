@@ -673,6 +673,8 @@ while True:
         my_node_num = interface.myInfo.my_node_num
         info = interface.myInfo
         logging.info(f"Radio {my_node_num} Info: {info}")
+
+        interface.sendHeartbeat()
                 
         sitrep.send_sitrep_if_new_day(interface)
 
