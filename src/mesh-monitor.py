@@ -107,11 +107,13 @@ def should_trace_node(node_num):
     logging.info(f"Checking if node {node_num} should be traced:\nLast trace time: {last_trace_time[node_num]}\nNow: {now}")
 
     if node_num not in last_trace_time:
+        logging.info(f"Node {node_num} not in last_trace_time - Adding")
         last_trace_time[node_num] = now
-        logging.info(f"Adding node {node_num} to last_trace_time")
         return True
-    
+    logging.info(f"Node {node_num} in last_trace_time")
+    logging.info(f"Checking has been traced in the last {trace_interval}")
     if now - last_trace_time[node_num] > trace_interval:
+        logging.info(f"Node {node_num} has not been traced in the last {trace_interval} - Tracing")
         time_since_last_trace_string = time_since_last_heard(last_trace_time[node_num])
         logging.info(f"Node {node_num} was last traced at {last_trace_time[node_num]} - {time_since_last_trace_string} ago")
         last_trace_time[node_num] = now
