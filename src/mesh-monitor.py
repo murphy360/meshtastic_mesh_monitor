@@ -35,13 +35,10 @@ logging.info("Starting Mesh Monitor")
 
 def connect_to_radio():
     """
-    Function to connect to the radio.
+    Connect to the Meshtastic radio device.
 
-    Args:
-        None
-    
     Returns:
-        interface: The interface object representing the connection.
+        interface: The interface object representing the connection, or None if the connection fails.
     """
     
     try:
@@ -55,7 +52,7 @@ def connect_to_radio():
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
-    Callback function that is called when a connection is established.
+    Handle the event when a connection to the Meshtastic device is established.
 
     Args:
         interface: The interface object representing the connection.
@@ -87,17 +84,13 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
 def on_lost_meshtastic_connection(interface):
     """
-    Callback function that is called when the connection is lost.
+    Handle the event when the connection to the Meshtastic device is lost.
 
     Args:
         interface: The interface object representing the connection.
     """
-    logging.info("Disconnected")
-    global connected
-    connected = False
-    logging.info("Closing Old Interface...")
+    logging.info("Disconnected. Closing interface and reconnecting.")
     interface.close()
-    logging.info("Reconnecting...")
     connect_to_radio()
 
 def should_trace_node(node_num):
@@ -130,7 +123,7 @@ def should_trace_node(node_num):
 
 def onReceive(packet, interface):
     """
-    Callback function that is called when a packet is received from the Meshtastic device.
+    Handle the event when a packet is received from another Meshtastic device.
 
     Args:
         packet (dict): The packet received from the Meshtastic device.
@@ -432,7 +425,7 @@ def find_distance_between_nodes(interface, node1, node2):
         node2 (int): The number of the second node.
 
     Returns:
-        float: The distance between the nodes in miles.
+        float: The distance between the nodes in miles, or "Unknown" if the distance cannot be determined.
     """
     logging.info(f"Finding distance between {node1} and {node2}")
     node1Lat, node1Lon, node2Lat, node2Lon = None, None, None, None
@@ -456,6 +449,15 @@ def find_distance_between_nodes(interface, node1, node2):
     return "Unknown"
 
 def time_since_last_heard(last_heard_time):
+    """
+    Calculate the time since a node was last heard.
+
+    Args:
+        last_heard_time (datetime): The last heard time of the node.
+
+    Returns:
+        str: The time since the node was last heard in a human-readable format.
+    """
     logging.info(f"Calculating time since last heard: {last_heard_time} - {datetime.now(timezone.utc)}")
     now_time = datetime.now(timezone.utc)
     delta = now_time - last_heard_time
@@ -498,7 +500,7 @@ def find_my_location(interface, node_num):
         node_num (int): The number of the local node.
 
     Returns:
-        str: The location of the local node.
+        str: The location of the local node, or "Unknown" if the location cannot be determined.
     """
     for node in interface.nodes.values():
         if node["num"] == node_num:
