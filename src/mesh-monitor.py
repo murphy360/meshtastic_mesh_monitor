@@ -123,6 +123,17 @@ def should_trace_node(node_num):
     logging.info(f"Node {node_num} was last traced at {last_trace_time[node_num]} - Skipping")
     return False
 
+def onNodeUpdate(node, interface):
+    """
+    Handle the event when a node is updated.
+
+    Args:
+        node (dict): The node data.
+        interface: The interface object that is connected to the Meshtastic device.
+    """
+    logging.info(f"Node Updated: {node}")
+
+
 def onReceive(packet, interface):
     """
     Handle the event when a packet is received from another Meshtastic device.
@@ -587,7 +598,6 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.remove_node(node)
-            interface.removeNodeByNum(node['num'])
             send_message(interface, f"{node_short_name} has been removed", channel, to_id)
             sitrep.log_message_sent("node-removed")
         else:
@@ -674,6 +684,7 @@ localNode = interface.getNode('^local')
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
+pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
 while True:
     try:
