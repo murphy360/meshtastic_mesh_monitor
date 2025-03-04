@@ -137,10 +137,13 @@ def onReceive(packet, interface):
 
         node_num = packet['from']
         node_short_name = lookup_short_name(interface, node_num)
-        channelId = packet['channel']
+        
+        channelId = 0
+        if 'channel' in packet:
+            channelId = int(packet['channel'])
     
 
-        if packet['from'] == localNode.nodeNum:
+        if node_num == localNode.nodeNum:
             logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
             return
 
@@ -153,7 +156,7 @@ def onReceive(packet, interface):
             short_name_string_padded = node_short_name.ljust(4)
             if len(node_short_name) == 1:
                 short_name_string_padded = node_short_name + "  "
-            log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum}"
+            log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum} on channel {channelId}"
 
             if node_of_interest:
                 log_string += " - Node of interest detected!"
