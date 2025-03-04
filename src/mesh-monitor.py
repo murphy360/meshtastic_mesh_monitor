@@ -105,11 +105,10 @@ def should_trace_node(node_num):
     """
     now = datetime.now(timezone.utc)
     logging.info(f"Checking if node {node_num} should be traced:\nLast trace time: {last_trace_time[node_num]}\nNow: {now}")
-    # log dictionary
-    logging.info(last_trace_time)
+
     if node_num not in last_trace_time:
-        logging.info(f"Node {node_num} not in last trace time, tracing")
         last_trace_time[node_num] = now
+        logging.info(f"Adding node {node_num} to last_trace_time")
         return True
     
     if now - last_trace_time[node_num] > trace_interval:
@@ -179,7 +178,7 @@ def onReceive(packet, interface):
                 send_message(interface, admin_message, private_channel_number, "^all")
                 interface.sendTraceRoute(node_num, 5, public_channel_number)
             else:
-                logging.info(f"Skipping Traceroute for {node_short_name}, last traced at {last_trace_time[node_num]}")
+                logging.info(f"Skipping Traceroute for {node_short_name}, last traced at {last_trace_time[node_num]} - HopsAway: {node['hopsAway']}")
                 
             logging.info(log_string)
 
@@ -298,7 +297,7 @@ def onReceive(packet, interface):
                 return
             
             elif portnum == 'NODEINFO_APP':
-                logging.info(f"Node Info: {packet['decoded']['nodeInfo']}")
+                logging.info(f"Node Info: {packet['decoded']}")
                 return
             
             elif portnum == 'ROUTING_APP':
