@@ -569,14 +569,11 @@ class SITREP:
         """
         now = datetime.datetime.now()
         # is self.sitrep_time yesterday?
-        logging.info(f"Now day: {now.day}")
-        logging.info(f"SITREP day: {self.sitrep_time.day}")
         if now.day != self.sitrep_time.day:
             logging.info("Sending SITREP because last SITREP was sent yesterday")
             self.update_sitrep(interface, is_routine_sitrep=True)
             self.send_report(interface, 1, 'all')
-        else:
-            logging.info("Not sending SITREP because last SITREP was sent today")
+
         return False
 
     def send_report(self, interface, channelId, to_id):
