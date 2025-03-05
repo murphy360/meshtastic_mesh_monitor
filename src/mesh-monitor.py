@@ -17,6 +17,7 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 # Global variables
 localNode = ""
 sitrep = ""
+location = ""
 connect_timeout = 10
 host = 'meshtastic.local'
 short_name = 'Monitor'  # Overwritten in onConnection
@@ -30,6 +31,7 @@ private_channel_number = 1
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
+serial_port = '/dev/ttyUSB0'
 
 logging.info("Starting Mesh Monitor")
 
@@ -42,10 +44,11 @@ def connect_to_radio():
     """
     
     try:
-        interface = meshtastic.serial_interface.SerialInterface('/dev/ttyUSB0')
-        logging.info("Connected to Meshtastic device")
+        logging.info(f"Connecting to radio on {serial_port}")
+        interface = meshtastic.serial_interface.SerialInterface(serial_port)
+        
     except Exception as e:
-        logging.error(f"Error connecting to interface: {e}")
+        logging.error(f"Error connecting to interface on {serial_port}: {e}")
         return None
 
     return interface
@@ -59,10 +62,11 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         topic: The topic of the connection (default: pub.AUTO_TOPIC).
     """
     logging.info("Connection established")
-    global localNode, connected, short_name, long_name, sitrep, initial_connect
+    global localNode, location, short_name, long_name, sitrep, initial_connect
     localNode = interface.getNode('^local')
     short_name = lookup_short_name(interface, localNode.nodeNum)
     long_name = lookup_long_name(interface, localNode.nodeNum)
+    location = find_my_location(interface, localNode.nodeNum)
     logging.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
@@ -78,7 +82,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     if initial_connect:
         initial_connect = False
-        location = find_my_location(interface, localNode.nodeNum)
         send_message(interface, f"CQ CQ CQ de {short_name} in {location}", private_channel_number, "^all")
     else:
         send_message(interface, f"Reconnected to the Mesh", private_channel_number, "^all")
@@ -685,27 +688,31 @@ def send_message(interface, message, channel, to_id):
 # Main loop
 logging.info("Starting Main Loop")
 connect_timeout = 30 # seconds
-interface = connect_to_radio()
-logging.info("Connection to Radio Established.")
-localNode = interface.getNode('^local')
+
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
+
 while True:
     try:
-        my_node_num = interface.myInfo.my_node_num
-        info = interface.myInfo
-        logging.info(f"Radio {my_node_num} Info: {info}")
+        if interface is None:
+            logging.info("Interface is None, reconnecting")
+            interface = connect_to_radio()
+        else:
 
-        interface.sendHeartbeat()
-                
-        sitrep.send_sitrep_if_new_day(interface)
+            my_node_num = interface.myInfo.my_node_num
+            info = interface.myInfo
+            logging.info(f"Radio {my_node_num} Info: {info}")
 
-        # Used by meshtastic_mesh_visualizer to display nodes on a map
-        sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
-        logging.info(f"Connected to Radio {my_node_num}, Sleeping for {connect_timeout} seconds")
+            interface.sendHeartbeat()
+                    
+            sitrep.send_sitrep_if_new_day(interface)
+
+            # Used by meshtastic_mesh_visualizer to display nodes on a map
+            sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
+            logging.info(f"Connected to Radio {my_node_num}, Sleeping for {connect_timeout} seconds")
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
