@@ -163,7 +163,7 @@ def onReceive(packet, interface):
         packet (dict): The packet received from the Meshtastic device.
         interface: The interface object that is connected to the Meshtastic device.
     """
-    logging.info(f"Packet Received from {packet['from']}")
+    
     try:
         if localNode == "":
             logging.warning("Local node not set")
@@ -171,7 +171,7 @@ def onReceive(packet, interface):
 
         node_num = packet['from']
         node_short_name = lookup_short_name(interface, node_num)
-        
+        logging.info(f"Packet Received from {packet['from']} - {node_short_name}")
         channelId = 0
         if 'channel' in packet:
             channelId = int(packet['channel'])
@@ -355,8 +355,9 @@ def onReceive(packet, interface):
             return
 
     except KeyError as e:
-        logging.error(f"Error processing packet: {e}")
+        logging.error(f"Error processing packet from {packet['from']}: {e}")
         logging.error(f"Packet: {packet}")
+        
 
 def check_node_health(interface, node):
     """
