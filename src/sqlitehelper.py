@@ -36,6 +36,7 @@ class SQLiteHelper:
         Returns:
             bool: True if the node is new, False if it was updated.
         """
+        logging.info(f"Adding or updating node: {node['user']['shortName']}")
         new = False
         num = node["num"]
         node_id = node["user"]["id"]
