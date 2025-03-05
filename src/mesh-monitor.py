@@ -134,7 +134,8 @@ def onNodeUpdate(node, interface):
         node (dict): The node data.
         interface: The interface object that is connected to the Meshtastic device.
     """
-
+    if initial_connect:
+        return
     logging.info(f"\n\n \
             **************************************************************\n \
             **************************************************************\n\n \
@@ -698,7 +699,7 @@ pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 while True:
     try:
         if interface is None:
-            logging.info("Interface is None, reconnecting")
+            logging.info("Interface is None, connecting to radio")
             interface = connect_to_radio()
         else:
 
