@@ -99,10 +99,32 @@ def onDisconnect(interface):
                 Disconnected from {serial_port}\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
-    
+    if initial_connect:
+        logging.info("Initial connect")
     if interface is not None:
+        logging.info("Closing interface")
         interface.close()
     connect_to_radio()
+
+def onNodeUpdate(node, interface):
+    """
+    Handle the event when a node is updated.
+
+    Args:
+        node (dict): The node data.
+        interface: The interface object that is connected to the Meshtastic device.
+    """
+    if initial_connect:
+        logging.info("Initial connect")
+
+    logging.info(f"\n\n \
+            **************************************************************\n \
+            **************************************************************\n\n \
+                Node {node['user']['shortName']} updated.\n\n \
+            **************************************************************\n \
+            **************************************************************\n\n ")
+    logging.info(f"Node: {node}")
+    db_helper.add_or_update_node(node)
 
 def should_trace_node(node_num):
     """
@@ -132,25 +154,6 @@ def should_trace_node(node_num):
     
     logging.info(f"Node {node_num} was last traced at {last_trace_time[node_num]} - Skipping")
     return False
-
-def onNodeUpdate(node, interface):
-    """
-    Handle the event when a node is updated.
-
-    Args:
-        node (dict): The node data.
-        interface: The interface object that is connected to the Meshtastic device.
-    """
-    if initial_connect:
-        return
-    logging.info(f"\n\n \
-            **************************************************************\n \
-            **************************************************************\n\n \
-                Node {node['user']['shortName']} updated.\n\n \
-            **************************************************************\n \
-            **************************************************************\n\n ")
-
-
 
 def onReceive(packet, interface):
     """
@@ -726,3 +729,4 @@ while True:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
         
     time.sleep(connect_timeout)
+interface.close()

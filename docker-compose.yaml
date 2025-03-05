@@ -9,4 +9,4 @@ services:
     volumes:
       - ~/mesh-monitor/data:/data
     devices:
-      - /dev/ttyACM0:/dev/ttyUSB0
+      - /dev/ttyACM1:/dev/ttyUSB0
