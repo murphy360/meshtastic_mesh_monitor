@@ -94,7 +94,8 @@ def on_lost_meshtastic_connection(interface):
         interface: The interface object representing the connection.
     """
     logging.info("Disconnected. Closing interface and reconnecting.")
-    interface.close()
+    if interface is not None:
+        interface.close()
     connect_to_radio()
 
 def should_trace_node(node_num):
