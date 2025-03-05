@@ -86,14 +86,20 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     else:
         send_message(interface, f"Reconnected to the Mesh", private_channel_number, "^all")
 
-def on_lost_meshtastic_connection(interface):
+def onDisconnect(interface):
     """
     Handle the event when the connection to the Meshtastic device is lost.
 
     Args:
         interface: The interface object representing the connection.
     """
-    logging.info("Disconnected. Closing interface and reconnecting.")
+    logging.info(f"\n\n \
+            **************************************************************\n \
+            **************************************************************\n\n \
+                Disconnected from {serial_port}\n\n \
+            **************************************************************\n \
+            **************************************************************\n\n ")
+    
     if interface is not None:
         interface.close()
     connect_to_radio()
@@ -693,7 +699,7 @@ connect_timeout = 30 # seconds
 
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
-pub.subscribe(on_lost_meshtastic_connection, "meshtastic.connection.lost")
+pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
 
