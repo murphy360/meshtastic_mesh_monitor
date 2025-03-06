@@ -36,7 +36,7 @@ class SQLiteHelper:
         Returns:
             bool: True if the node is new, False if it was updated.
         """
-        logging.info(f"Adding or updating node: {node['user']['shortName']}")
+        #logging.info(f"Adding or updating node: {node['user']['shortName']}")
         new = False
         num = node["num"]
         if "user" not in node:
@@ -103,14 +103,15 @@ class SQLiteHelper:
         cursor = self.conn.execute(query, (node_id,))
         result = cursor.fetchone()
 
+        log_string = f"node {node_id} - {shortname} - {longname} - {macaddr} - {hwModel} - {lastHeard} - {battery} - {voltage} - {channelUtilization} - {airUtilTx} - {uptimeSeconds} - {created_at} - {updated_at}"
         if result:
             new = False
-            logging.info(f"Updating node {node_id} {shortname} {longname} {macaddr} {hwModel} {lastHeard} {battery} {voltage} {channelUtilization} {airUtilTx} {uptimeSeconds} {updated_at}")
+            logging.info(f"Updating {log_string}")
             query = "UPDATE node_database SET shortname = ?, longname = ?, macaddr = ?, hwModel = ?, lastHeard = ?, batteryLevel = ?, voltage = ?, channelUtilization = ?, airUtilTx = ?, uptimeSeconds = ?, updated_at = ? WHERE id = ?"
             self.conn.execute(query, (shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, updated_at, node_id))
         else:
             new = True
-            logging.info(f"Adding new node {node_id} {shortname} {longname} {macaddr} {hwModel} {lastHeard} {battery} {voltage} {channelUtilization} {airUtilTx} {uptimeSeconds} {created_at}")
+            logging.info(f"Adding {log_string}")
             query = "INSERT INTO node_database (num, id, shortname, longname, macaddr, hwModel, lastHeard, batteryLevel, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             self.conn.execute(query, (num, node_id, shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at))
         self.conn.commit()

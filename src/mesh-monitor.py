@@ -365,20 +365,20 @@ def check_node_health(interface, node):
         interface: The interface to interact with the mesh network.
         node (dict): The node data.
     """
-    logging.info(f"Checking health of node {node['user']['shortName']}")
+    #logging.info(f"Checking health of node {node['user']['shortName']}")
     if "deviceMetrics" not in node:
         logging.info(f"Node {node['user']['shortName']} does not have device metrics")
         return
 
     if "batteryLevel" in node["deviceMetrics"]:
-        logging.info(f"Checking battery level of node {node['user']['shortName']}")
+        #logging.info(f"Checking battery level of node {node['user']['shortName']}")
         battery_level = node["deviceMetrics"]["batteryLevel"]
         if battery_level < 20:
             logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
             send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")
         
     if "lastHeard" in node:
-        logging.info(f"Checking last heard of node {node['user']['shortName']}")
+        #logging.info(f"Checking last heard of node {node['user']['shortName']}")
         last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
         time_since_last_heard_string = time_since_last_heard(last_heard_time)
 
@@ -389,7 +389,7 @@ def check_node_health(interface, node):
 
     
     if "hopsAway" in node:
-        logging.info(f"Checking hop away of node {node['user']['shortName']}")
+        #logging.info(f"Checking hop away of node {node['user']['shortName']}")
         hops_away = node["hopsAway"]
         '''
         if hops_away > 0 and should_trace_node(node['num']):
@@ -717,7 +717,10 @@ while True:
             
             interface.sendHeartbeat()
 
-            logging.info(f"Interface Connected: {interface.isConnected}")
+            if interface.isConnected:
+                logging.info(f"Interface is connected: {interface.isConnected}")
+            else:   
+                logging.info(f"Interface is not connected: {interface.isConnected}")
                     
             sitrep.send_sitrep_if_new_day(interface)
 

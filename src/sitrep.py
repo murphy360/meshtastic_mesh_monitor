@@ -462,7 +462,6 @@ class SITREP:
             if "lastHeard" in node:
                 now = datetime.datetime.now()
                 if node["lastHeard"]:
-                    logging.info(f"Now: {now} - Last Heard: {node['lastHeard']}")
                     time_difference_in_seconds = now.timestamp() - node["lastHeard"]
                     if time_difference_in_seconds < (time_threshold_minutes * 60):
                         time_difference_hours = time_difference_in_seconds // 3600
