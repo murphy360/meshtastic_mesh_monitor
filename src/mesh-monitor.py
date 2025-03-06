@@ -139,19 +139,21 @@ def should_trace_node(node_num):
         bool: True if the node should be traced, False otherwise.
     """
     now = datetime.now(timezone.utc)
-    
+    should_trace_node = False
     default_time = datetime.min
+    log_string = f"Checking if node {node_num} should be traced"
     logging.info(f"Checking if node {node_num} should be traced:\nLast trace time: {last_trace_time[node_num]}\nNow: {now}\nDefault Time: {default_time}\nTrace Interval: {trace_interval}")
     if last_trace_time[node_num] == default_time:
-        logging.info(f"Node {node_num} has not been traced - Tracing")
+        log_string += " - This node has never been traced"
         last_trace_time[node_num] = now
-        return True
+        should_trace_node = True
     if now - last_trace_time[node_num] > trace_interval:
+        log_string += "- Time to trace this node:\nLast Traced: {last_trace_time[node_num]}\nNow: {now}\nTrace Interval: {trace_interval}"
         last_trace_time[node_num] = now
-        return True
+        should_trace_node = True
     
-    logging.info(f"Node {node_num} was last traced at {last_trace_time[node_num]} - Skipping")
-    return False
+    logging.info(log_string)
+    return should_trace_node
 
 def onReceive(packet, interface):
     """
@@ -273,16 +275,13 @@ def onReceive(packet, interface):
                 traced_node = interface.nodesByNum[packet['to']]
                 
                 if 'snrBack' in trace:
-                    logging.info(f"Received Trace Back: {trace['snrBack']}")
                     originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
                     traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
                     
                     if 'routeBack' in trace:
-                        logging.info(f"Route Back: {trace['routeBack']}")
                         for hop in trace['routeBack']:
                             node = interface.nodesByNum[hop]
                             route_back.append(node)
-                            logging.info(f"Adding Node: {node['user']['shortName']} to Route Back")
                     route_back.append(originator_node) # Add the originator node to the route back (local node)
                 else: # If no route back in trace, then the trace was not initiated by the local node
                     logging.info(f"I've been traced by {node_short_name}")
@@ -297,14 +296,11 @@ def onReceive(packet, interface):
                         db_helper.set_node_of_interest(node, True)
 
                 if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
-                    logging.info(f"SNR Towards: {trace['snrTowards']}")
                     route_to.append(originator_node)
                     if 'routeTo' in trace:
-                        logging.info(f"Route To: {trace['routeTo']}")
                         for hop in trace['routeTo']:
                             node = interface.nodesByNum[hop]
                             route_to.append(node)
-                            logging.info(f"Adding Node: {node['user']['shortName']} to Route To")
                 
                 route_to.append(traced_node)
                 
@@ -317,7 +313,6 @@ def onReceive(packet, interface):
                 route_full = route_to + route_back
                 sitrep.add_trace(route_full)
                 
-
                 # Tell admin what the traceroute is
                 logging.info(f"Traceroute: {message_string}")
                 send_message(interface, message_string, private_channel_number, "^all")

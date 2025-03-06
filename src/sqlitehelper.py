@@ -272,7 +272,6 @@ class SQLiteHelper:
         cursor = self.conn.execute(query)
         results = cursor.fetchall()
         for result in results:
-            logging.info(f"Node of interest: {result[0]}")
             nodes_of_interest.append(result[0])
         return nodes_of_interest
 
