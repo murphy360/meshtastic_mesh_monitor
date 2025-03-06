@@ -171,7 +171,7 @@ def onReceive(packet, interface):
 
         node_num = packet['from']
         node_short_name = lookup_short_name(interface, node_num)
-        logging.info(f"Packet Received from {packet['from']} - {node_short_name}")
+        
         channelId = 0
         if 'channel' in packet:
             channelId = int(packet['channel'])
@@ -212,9 +212,7 @@ def onReceive(packet, interface):
                 admin_message = f"Sending Traceroute to {node_short_name}"
                 send_message(interface, admin_message, private_channel_number, "^all")
                 interface.sendTraceRoute(node_num, 5, public_channel_number)
-            else:
-                logging.info(f"Skipping Traceroute for {node_short_name}, last traced at {last_trace_time[node_num]} - HopsAway: {node['hopsAway']}")
-                
+
             logging.info(log_string)
 
             if portnum == 'TEXT_MESSAGE_APP':
@@ -712,19 +710,22 @@ while True:
         if interface is None:
             logging.info("Interface is None, connecting to radio")
             interface = connect_to_radio()
+
         else:
 
-            my_node_num = interface.myInfo.my_node_num
-            info = interface.myInfo
-            logging.info(f"Radio {my_node_num} Info: {info}")
 
+            
             interface.sendHeartbeat()
+
+            logging.info(f"Interface Connected: {interface.isConnected}")
                     
             sitrep.send_sitrep_if_new_day(interface)
 
             # Used by meshtastic_mesh_visualizer to display nodes on a map
             sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
-            logging.info(f"Connected to Radio {my_node_num}, Sleeping for {connect_timeout} seconds")
+
+
+            logging.info(f"Connected to Radio {interface.myInfo.my_node_num}, Sleeping for {connect_timeout} seconds\n\n{interface.myInfo}")
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
