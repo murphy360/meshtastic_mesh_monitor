@@ -454,7 +454,7 @@ class SITREP:
         self.nodes_connected = 0
         response_string = ""
         for node in interface.nodes.values():
-            log_message = f"Node ID: {node['user']['id']} Long Name: {node['user']['longName']} Short Name: {node['user']['shortName']}"
+            log_message = f"Node ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
             if self.localNode.nodeNum == node["num"]:
                 log_message += " - Local Node"
                 continue
@@ -466,7 +466,7 @@ class SITREP:
                     if time_difference_in_seconds < (time_threshold_minutes * 60):
                         time_difference_hours = time_difference_in_seconds // 3600
                         time_difference_minutes = time_difference_in_seconds % 60
-                        log_message += f" Last Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
+                        log_message += f"\nLast Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
                     else:
                         log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
                         continue
@@ -480,7 +480,7 @@ class SITREP:
             if "hopsAway" in node:
                 hops_away = node["hopsAway"]
                 if hops_away <= hop_threshold:
-                    log_message += f" Hops Away: {hops_away}"
+                    log_message += f"\nHops Away: {hops_away}"
                     response_string += " " + node['user']['shortName']
                 else:
                     log_message += f" - Node is more than {hop_threshold} hops away ({hops_away})"

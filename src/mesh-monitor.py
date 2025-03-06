@@ -114,8 +114,6 @@ def onNodeUpdate(node, interface):
         node (dict): The node data.
         interface: The interface object that is connected to the Meshtastic device.
     """
-    if initial_connect:
-        logging.info("Initial connect")
 
     logging.info(f"\n\n \
             **************************************************************\n \
@@ -123,7 +121,11 @@ def onNodeUpdate(node, interface):
                 Node {node['user']['shortName']} updated.\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
-    logging.info(f"Node: {node}")
+    
+    if not initial_connect:
+        admin_message = f"Node {node['user']['shortName']} updated"
+        send_message(interface, admin_message, private_channel_number, "^all")
+
     db_helper.add_or_update_node(node)
 
 def should_trace_node(node_num):
@@ -144,11 +146,7 @@ def should_trace_node(node_num):
         logging.info(f"Node {node_num} has not been traced - Tracing")
         last_trace_time[node_num] = now
         return True
-    logging.info(f"Checking Node {node_num} has been traced in the last {trace_interval}")
     if now - last_trace_time[node_num] > trace_interval:
-        logging.info(f"Node {node_num} has not been traced in the last {trace_interval} - Tracing")
-        time_since_last_trace_string = time_since_last_heard(last_trace_time[node_num])
-        logging.info(f"Node {node_num} was last traced at {last_trace_time[node_num]} - {time_since_last_trace_string} ago")
         last_trace_time[node_num] = now
         return True
     
@@ -712,21 +710,18 @@ while True:
             interface = connect_to_radio()
 
         else:
-
-
-            
             interface.sendHeartbeat()
 
-            if interface.isConnected:
-                logging.info(f"Interface is connected: {interface.isConnected}")
-            else:   
-                logging.info(f"Interface is not connected: {interface.isConnected}")
-                    
+            if not interface.isConnected:  
+                logging.info(f"Interface is not connected")
+                admin_message = f"Interface is not connected"
+                send_message(interface, admin_message, private_channel_number, "^all")
+
+            # Send a routine sitrep every 24 hours at 00:00 UTC        
             sitrep.send_sitrep_if_new_day(interface)
 
             # Used by meshtastic_mesh_visualizer to display nodes on a map
             sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
-
 
             logging.info(f"Connected to Radio {interface.myInfo.my_node_num}, Sleeping for {connect_timeout} seconds\n\n{interface.myInfo}")
 
