@@ -267,6 +267,7 @@ def onReceive(packet, interface):
                 return
 
             elif portnum == 'TRACEROUTE_APP':
+                logging.info(f"Traceroute: {packet['decoded']['traceroute']}")
                 trace = packet['decoded']['traceroute']
                 route_to = []
                 route_back = []
