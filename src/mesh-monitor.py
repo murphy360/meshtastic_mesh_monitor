@@ -200,16 +200,22 @@ def onReceive(packet, interface):
                 log_string += " - New node detected!"
                 private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!"
                 send_message(interface, private_message, public_channel_number, node_num)
+
                 # Notify admin of new node
                 admin_message = f"New node detected: {node_short_name}"
                 send_message(interface, admin_message, private_channel_number, "^all")
                 # Request node position
                 # If HopsAway is greater than 0, send a traceroute packet
                 
-            if node['hopsAway'] > 0 and should_trace_node(node_num):
-                                
+            if 'hopsAway' not in node and should_trace_node(node_num):
+                log_string += f" - HopsAway not detected in node {node_num}"
+                admin_message = f"Sending Traceroute to {node_short_name} - HopsAway not detected"
+                send_message(interface, admin_message, private_channel_number, "^all")
+                interface.sendTraceRoute(node_num, 5, public_channel_number)                
+                
+            if node['hopsAway'] > 0 and should_trace_node(node_num): 
                 log_string += " - Tracing node"
-                admin_message = f"Sending Traceroute to {node_short_name}"
+                admin_message = f"Sending Traceroute to {node_short_name} - HopsAway = {node['hopsAway']}"
                 send_message(interface, admin_message, private_channel_number, "^all")
                 interface.sendTraceRoute(node_num, 5, public_channel_number)
 
