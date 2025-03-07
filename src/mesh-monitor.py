@@ -198,7 +198,7 @@ def onReceive(packet, interface):
                             
             if new_node:
                 log_string += " - New node detected!"
-                private_message = "Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!"
+                private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!"
                 send_message(interface, private_message, public_channel_number, node_num)
                 # Notify admin of new node
                 admin_message = f"New node detected: {node_short_name}"
