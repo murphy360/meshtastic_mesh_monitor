@@ -213,7 +213,7 @@ def onReceive(packet, interface):
                 send_message(interface, admin_message, private_channel_number, "^all")
                 interface.sendTraceRoute(node_num, 5, public_channel_number)                
                 
-            if node['hopsAway'] > 0 and should_trace_node(node_num): 
+            elif node['hopsAway'] > 0 and should_trace_node(node_num): 
                 log_string += " - Tracing node"
                 admin_message = f"Sending Traceroute to {node_short_name} - HopsAway = {node['hopsAway']}"
                 send_message(interface, admin_message, private_channel_number, "^all")
