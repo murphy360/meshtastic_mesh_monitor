@@ -72,10 +72,14 @@ class SQLiteHelper:
         if "deviceMetrics" not in node:
             logging.info(f"Node {num} does not have device metrics data")
         else:
+            logging.info(f"Node {num} has device metrics data")
             if "batteryLevel" in node["deviceMetrics"]:
+                logging.info(f"Node {num} has battery level data")
                 battery = node["deviceMetrics"]["batteryLevel"]
             else:
+                logging.info(f"Node {num} does not have battery level data")
                 battery = ""
+            logging.info(f"Node {num} battery: {battery}")
             if "voltage" in node["deviceMetrics"]:
                 voltage = node["deviceMetrics"]["voltage"]
             else:
