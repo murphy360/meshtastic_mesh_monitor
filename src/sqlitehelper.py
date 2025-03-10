@@ -64,8 +64,10 @@ class SQLiteHelper:
                 hwModel = node["user"]["hwModel"]
             else:
                 hwModel = ""
+    
         if "lastHeard" in node:
-            lastHeard = node["lastHeard"]  
+            lastHeard = node["lastHeard"] 
+            logging.info(f"Node {num} last heard: {lastHeard}") 
         else:
             lastHeard = ""
 
