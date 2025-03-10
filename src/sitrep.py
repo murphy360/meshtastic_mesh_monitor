@@ -123,6 +123,7 @@ class SITREP:
         Returns:
             str: The aircraft tracks report.
         """
+        logging.info("Building Aircraft Tracks Report")
         num_nodes = 0
         report_string = ""
         line_letter = "A"
@@ -157,6 +158,7 @@ class SITREP:
         Returns:
             str: The nodes of interest report.
         """
+        logging.info("Building Nodes of Interest Report")
         num_nodes = 0
         report_string = ""
         line_letter = "A"
@@ -223,6 +225,7 @@ class SITREP:
         Returns:
             str: The formatted uptime string.
         """
+        logging.info(f"Getting Node Uptime for {node['user']['shortName']}")
         uptime_seconds_total = int(node["deviceMetrics"]["uptimeSeconds"])
         uptime_days = uptime_seconds_total // 86400
         uptime_hours = (uptime_seconds_total % 86400) // 3600
