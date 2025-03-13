@@ -71,9 +71,13 @@ class SQLiteHelper:
         else:
             lastHeard = ""
 
-        if "deviceMetrics" not in node:
-            logging.info(f"Node {num} does not have device metrics data")
-        else:
+        # Default values for device metrics
+        battery = ""
+        voltage = ""
+        channelUtilization = "" 
+        airUtilTx = ""
+        uptimeSeconds = ""
+        if "deviceMetrics" in node:
             logging.info(f"Node {num} has device metrics data")
             if "batteryLevel" in node["deviceMetrics"]:
                 logging.info(f"Node {num} has battery level data")
