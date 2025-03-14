@@ -573,7 +573,7 @@ class SITREP:
         if now.day != self.sitrep_time.day:
             logging.info("Sending SITREP because last SITREP was sent yesterday")
             self.update_sitrep(interface, is_routine_sitrep=True)
-            self.send_report(interface, 1, 'all')
+            self.send_report(interface, 1, '^all')
 
         return False
 
