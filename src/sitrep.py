@@ -44,7 +44,7 @@ class SITREP:
         """
         self.sitrep_time = datetime.datetime.now()
         if is_routine_sitrep:
-            self.sitrep_time = self.sitrep_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.sitrep_time = self.sitrep_time.replace(minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
         sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
