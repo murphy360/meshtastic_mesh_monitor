@@ -563,15 +563,15 @@ class SITREP:
     
     def send_sitrep_if_new_day(self, interface):
         """
-        Check if the hour has changed since the last SITREP. If so, send a new SITREP.
+        Check if a new day has started since the last SITREP. If so, send a new SITREP.
 
         Returns:
             bool: True if a SITREP should be sent, False otherwise.
         """
         now = datetime.datetime.now()
-        # Check if the hour has changed
-        if now.hour != self.sitrep_time.hour:
-            logging.info("Sending SITREP because the hour has changed")
+        # Check if the day has changed
+        if now.date() != self.sitrep_time.date():
+            logging.info("Sending SITREP because a new day has started")
             self.update_sitrep(interface, is_routine_sitrep=True)
             self.send_report(interface, 1, '^all')
 
