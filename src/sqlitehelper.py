@@ -36,37 +36,92 @@ class SQLiteHelper:
         Returns:
             bool: True if the node is new, False if it was updated.
         """
+        #logging.info(f"Adding or updating node: {node['user']['shortName']}")
         new = False
         num = node["num"]
-        node_id = node["user"]["id"]
-        shortname = node["user"]["shortName"]
-        longname = node["user"]["longName"]
-        macaddr = node["user"]["macaddr"]
-        hwModel = node["user"]["hwModel"]
-        lastHeard = node["lastHeard"]
-        battery = node["deviceMetrics"]["batteryLevel"]
-        voltage = node["deviceMetrics"]["voltage"]
-        channelUtilization = node["deviceMetrics"].get("channelUtilization", "")
-        airUtilTx = node["deviceMetrics"].get("airUtilTx", "")
-        uptimeSeconds = node["deviceMetrics"].get("uptimeSeconds", "")
+        if "user" not in node:
+            logging.error(f"Node {num} does not have user data")
+            return
+
+        else: 
+            if "id" in node["user"]:
+                node_id = node["user"]["id"]
+            else:
+                node_id = ""
+            if "shortName" in node["user"]:
+                shortname = node["user"]["shortName"]
+            else:
+                shortname = ""
+            if "longName" in node["user"]:
+                longname = node["user"]["longName"]
+            else:
+                longname = ""
+            if "macaddr" in node["user"]:
+                macaddr = node["user"]["macaddr"]
+            else:
+                macaddr = ""
+            if "hwModel" in node["user"]:
+                hwModel = node["user"]["hwModel"]
+            else:
+                hwModel = ""
+    
+        if "lastHeard" in node:
+            lastHeard = node["lastHeard"] 
+            logging.info(f"Node {num} last heard: {lastHeard}") 
+        else:
+            lastHeard = ""
+
+        # Default values for device metrics
+        battery = ""
+        voltage = ""
+        channelUtilization = "" 
+        airUtilTx = ""
+        uptimeSeconds = ""
+        if "deviceMetrics" in node:
+            logging.info(f"Node {num} has device metrics data")
+            if "batteryLevel" in node["deviceMetrics"]:
+                logging.info(f"Node {num} has battery level data")
+                battery = node["deviceMetrics"]["batteryLevel"]
+            else:
+                logging.info(f"Node {num} does not have battery level data")
+                battery = ""
+            logging.info(f"Node {num} battery: {battery}")
+            if "voltage" in node["deviceMetrics"]:
+                voltage = node["deviceMetrics"]["voltage"]
+            else:
+                voltage = ""
+            if "channelUtilization" in node["deviceMetrics"]:
+                channelUtilization = node["deviceMetrics"]["channelUtilization"]
+            else:
+                channelUtilization = ""
+            if "airUtilTx" in node["deviceMetrics"]:
+                airUtilTx = node["deviceMetrics"]["airUtilTx"]
+            else:
+                airUtilTx = ""
+            if "uptimeSeconds" in node["deviceMetrics"]:
+                uptimeSeconds = node["deviceMetrics"]["uptimeSeconds"]
+            else:
+                uptimeSeconds = ""
         nodeOfInterest = False
         aircraft = False
         now = datetime.datetime.now()
         created_at = now.strftime("%Y-%m-%d %H:%M:%S")
         updated_at = now.strftime("%Y-%m-%d %H:%M:%S")
 
+        # Check if the node already exists in the database
         query = "SELECT * FROM node_database WHERE id = ?"
         cursor = self.conn.execute(query, (node_id,))
         result = cursor.fetchone()
 
+        log_string = f"node {node_id} - {shortname} - {longname} - {macaddr} - {hwModel} - {lastHeard} - {battery} - {voltage} - {channelUtilization} - {airUtilTx} - {uptimeSeconds} - {created_at} - {updated_at}"
         if result:
             new = False
-            logging.info(f"Updating node {node_id} {shortname} {longname} {macaddr} {hwModel} {lastHeard} {battery} {voltage} {channelUtilization} {airUtilTx} {uptimeSeconds} {updated_at}")
+            logging.info(f"Updating {log_string}")
             query = "UPDATE node_database SET shortname = ?, longname = ?, macaddr = ?, hwModel = ?, lastHeard = ?, batteryLevel = ?, voltage = ?, channelUtilization = ?, airUtilTx = ?, uptimeSeconds = ?, updated_at = ? WHERE id = ?"
             self.conn.execute(query, (shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, updated_at, node_id))
         else:
             new = True
-            logging.info(f"Adding new node {node_id} {shortname} {longname} {macaddr} {hwModel} {lastHeard} {battery} {voltage} {channelUtilization} {airUtilTx} {uptimeSeconds} {created_at}")
+            logging.info(f"Adding {log_string}")
             query = "INSERT INTO node_database (num, id, shortname, longname, macaddr, hwModel, lastHeard, batteryLevel, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             self.conn.execute(query, (num, node_id, shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at))
         self.conn.commit()
@@ -227,7 +282,6 @@ class SQLiteHelper:
         cursor = self.conn.execute(query)
         results = cursor.fetchall()
         for result in results:
-            logging.info(f"Node of interest: {result[0]}")
             nodes_of_interest.append(result[0])
         return nodes_of_interest
 
