@@ -206,18 +206,26 @@ def onReceive(packet, interface):
                 send_message(interface, admin_message, private_channel_number, "^all")
                 # Request node position
                 # If HopsAway is greater than 0, send a traceroute packet
-                
-            if 'hopsAway' not in node and should_trace_node(node_num):
-                log_string += f" - HopsAway not detected in node {node_num}"
-                admin_message = f"Sending Traceroute to {node_short_name} - HopsAway not detected"
-                send_message(interface, admin_message, private_channel_number, "^all")
-                interface.sendTraceRoute(node_num, 5, public_channel_number)                
-                
-            elif node['hopsAway'] > 0 and should_trace_node(node_num): 
-                log_string += " - Tracing node"
-                admin_message = f"Sending Traceroute to {node_short_name} - HopsAway = {node['hopsAway']}"
-                send_message(interface, admin_message, private_channel_number, "^all")
-                interface.sendTraceRoute(node_num, 5, public_channel_number)
+            
+            admin_message = f"Node {node_short_name} "
+            
+            if 'hopsAway' in node:
+                if node['hopsAway'] > 0:
+                    log_string += f" - HopsAway: {node['hopsAway']}"
+                    admin_message += f" - HopsAway: {node['hopsAway']}"
+                    if should_trace_node(node_num):
+                        log_string += " - Tracing node"
+                        admin_message += " - Tracing node"
+                        send_message(interface, admin_message, private_channel_number, "^all")
+                        interface.sendTraceRoute(node_num, 5, public_channel_number)
+            else:
+                log_string += " - HopsAway not detected"
+                admin_message += " - HopsAway not detected"
+                if should_trace_node(node_num):
+                    log_string += " - Tracing node"
+                    admin_message += " - Tracing node"
+                    send_message(interface, admin_message, private_channel_number, "^all")
+                    interface.sendTraceRoute(node_num, 5, public_channel_number)
 
             logging.info(log_string)
 
