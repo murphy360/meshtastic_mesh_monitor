@@ -390,7 +390,11 @@ def check_node_health(interface, node):
             logging.info(f"Node {node['user']['shortName']} has never been heard from")
             # Log all nodes last heard time
             for n in interface.nodes.values():
-                logging.info(f"Node {n['user']['shortName']} - Last Heard: {n['lastHeard']}")
+                try:
+                    logging.info(f"Node {n['user']['shortName']} - Last Heard: {n['lastHeard']}")
+                except Exception as e:
+                    logging.error(f"Error logging last heard time for node {n['user']['shortName']}: {e}")
+            # Notify admin of node that has never been heard from
             admin_message = f"Node {node['user']['shortName']} has never been heard from"
             send_message(interface, admin_message, private_channel_number, "^all")
         else:
