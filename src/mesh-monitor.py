@@ -386,15 +386,21 @@ def check_node_health(interface, node):
             send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")
         
     if "lastHeard" in node:
-        logging.info(f"Checking last heard of node {node['user']['shortName']} - {node['lastHeard']}")
-        last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
-        time_since_last_heard_string = time_since_last_heard(last_heard_time)
+        if node["lastHeard"] == None:
+            logging.info(f"Node {node['user']['shortName']} has never been heard from")
+            admin_message = f"Node {node['user']['shortName']} has never been heard from"
+            send_message(interface, admin_message, private_channel_number, "^all")
+        else:
+            logging.info(f"Checking last heard of node {node['user']['shortName']} - {node['lastHeard']}")
+            last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
+            time_since_last_heard_string = time_since_last_heard(last_heard_time)
 
-        # If the node has been offline for more than 24 hours and reconnects, Notify Admin
-        if last_heard_time < datetime.now(timezone.utc) - timedelta(days=1):
-            logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
-            send_message(interface, f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}", private_channel_number, "^all")
-
+            # If the node has been offline for more than 24 hours and reconnects, Notify Admin
+            if last_heard_time < datetime.now(timezone.utc) - timedelta(days=1):
+                logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
+                admin_message = f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}"
+                send_message(interface, admin_message, private_channel_number, "^all")
+                
     
     if "hopsAway" in node:
         #logging.info(f"Checking hop away of node {node['user']['shortName']}")
