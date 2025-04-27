@@ -169,7 +169,6 @@ def should_trace_node(node, interface):
         send_message(interface, admin_message, private_channel_number, "^all")
         interface.sendTraceRoute(node['num'], 5, public_channel_number)
     
-    logging.info(log_string)
     return should_trace_node
 
 def onReceive(packet, interface):
