@@ -161,7 +161,7 @@ def should_trace_node(node, interface):
 
     # If the node should be traced, Trace it
     if should_trace_node:
-        logging.info(f"Tracing node {node['user']['shortName']}")
+        logging.info(f"Tracing node {node['user']['shortName']} on channel {public_channel_number}")
         interface.sendTraceRoute(node['num'], 5, public_channel_number)
         admin_message = f"Node {node['user']['shortName']} is being traced..."
         send_message(interface, admin_message, private_channel_number, "^all")
