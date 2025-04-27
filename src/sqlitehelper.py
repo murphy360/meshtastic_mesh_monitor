@@ -118,6 +118,7 @@ class SQLiteHelper:
             new = False
             logging.info(f"Updating {log_string}")
             query = "UPDATE node_database SET shortname = ?, longname = ?, macaddr = ?, hwModel = ?, lastHeard = ?, batteryLevel = ?, voltage = ?, channelUtilization = ?, airUtilTx = ?, uptimeSeconds = ?, updated_at = ? WHERE id = ?"
+            logging.info(f"Updating node {node_id} in database: {log_string}")
             self.conn.execute(query, (shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, updated_at, node_id))
         else:
             new = True
@@ -125,6 +126,7 @@ class SQLiteHelper:
             query = "INSERT INTO node_database (num, id, shortname, longname, macaddr, hwModel, lastHeard, batteryLevel, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             self.conn.execute(query, (num, node_id, shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at))
         self.conn.commit()
+        logging.info("Returning from add_or_update_node method")
         return new
     
     def remove_node(self, node):

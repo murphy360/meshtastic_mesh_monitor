@@ -154,7 +154,7 @@ def should_trace_node(node_num):
         log_string += " - This node has never been traced"
         last_trace_time[node_num] = now
         should_trace_node = True
-        
+
     if now - last_trace_time[node_num] > trace_interval:
         log_string += "- Time to trace this node:\nLast Traced: {last_trace_time[node_num]}\nNow: {now}\nTrace Interval: {trace_interval}"
         last_trace_time[node_num] = now
@@ -424,7 +424,7 @@ def check_node_health(interface, node):
         should_trace_node = False
     
     if "hopsAway" in node:
-        #logging.info(f"Checking hop away of node {node['user']['shortName']}")
+        logging.info(f"Checking hop away of node {node['user']['shortName']}")
         hops_away = node["hopsAway"]
 
         if hops_away > 0 and should_trace_node(node['num']):
