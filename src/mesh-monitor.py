@@ -161,8 +161,7 @@ def should_trace_node(node, interface):
 
     # If the node should be traced, Trace it
     if should_trace_node:
-        logging.info(f"Tracing node {node['user']['shortName']} on channel {public_channel_number}")
-        interface.sendTraceRoute(node['num'], 5, public_channel_number)
+        send_trace_route(interface, node_num, public_channel_number)
         admin_message = f"Node {node['user']['shortName']} is being traced..."
         send_message(interface, admin_message, private_channel_number, "^all")
     
@@ -621,7 +620,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
 
             send_message(interface, admin_message, private_channel_number, "^all")
             sitrep.log_message_sent("node-traced")
-            interface.sendTraceRoute(node['num'], 5, public_channel_number)
+            send_trace_route(interface, node['num'], public_channel_number)
         else:
             send_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -651,6 +650,22 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         return
     else:
         logging.info(f"Message not recognized: {message}. Not replying.")
+        return
+
+def send_trace_route(interface, node_num, channel):
+    """
+    Send a traceroute request to a specified node.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        node_num (int): The number of the node to trace.
+        channel (int): The channel to send the traceroute request to.
+    """
+    logging.info(f"Sending traceroute request to node {node_num} on channel {channel}")
+    try:
+        interface.sendTraceRoute(node_num, 5, channel)
+    except Exception as e:
+        logging.error(f"Error sending traceroute request: {e}")
         return
 
 def send_message(interface, message, channel, to_id):
