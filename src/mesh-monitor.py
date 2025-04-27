@@ -664,6 +664,7 @@ def send_trace_route(interface, node_num, channel):
     logging.info(f"Sending traceroute request to node {node_num} on channel {channel}")
     try:
         interface.sendTraceRoute(node_num, 5, channel)
+        logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
         return
