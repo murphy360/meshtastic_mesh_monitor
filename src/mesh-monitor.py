@@ -158,7 +158,7 @@ def should_trace_node(node, interface):
         should_trace_node = True
 
     # Check if the node has been traced within the trace interval. Trace it if it has been longer than the interval.
-    if now - last_trace_time[node_num] > trace_interval:
+    elif now - last_trace_time[node_num] > trace_interval:
         logging.info(f"Node {node['user']['shortName']} has not been traced within the interval, should trace")
         should_trace_node = True
 
