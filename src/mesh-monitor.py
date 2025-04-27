@@ -138,15 +138,23 @@ def should_trace_node(node_num):
     Returns:
         bool: True if the node should be traced, False otherwise.
     """
+    logging.info(f"Checking if node {node_num} should be traced in method should_trace_node")
     now = datetime.now(timezone.utc)
+    logging.info(f"Current time: {now}")
     should_trace_node = False
     default_time = datetime.min
+    logging.info(f"Default time: {default_time}")
     log_string = f"Checking if node {node_num} should be traced"
-    logging.info(f"Checking if node {node_num} should be traced:\nLast trace time: {last_trace_time[node_num]}\nNow: {now}\nDefault Time: {default_time}\nTrace Interval: {trace_interval}")
+    if node_num not in last_trace_time:
+        log_string += " - This node has never been traced"
+        last_trace_time[node_num] = now
+        should_trace_node = True
+
     if last_trace_time[node_num] == default_time:
         log_string += " - This node has never been traced"
         last_trace_time[node_num] = now
         should_trace_node = True
+        
     if now - last_trace_time[node_num] > trace_interval:
         log_string += "- Time to trace this node:\nLast Traced: {last_trace_time[node_num]}\nNow: {now}\nTrace Interval: {trace_interval}"
         last_trace_time[node_num] = now
