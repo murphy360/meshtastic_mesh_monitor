@@ -388,12 +388,6 @@ def check_node_health(interface, node):
     if "lastHeard" in node:
         if node["lastHeard"] == None:
             logging.info(f"Node {node['user']['shortName']} has never been heard from")
-            # Log all nodes last heard time
-            for n in interface.nodes.values():
-                try:
-                    logging.info(f"Node {n['user']['shortName']} - Last Heard: {n['lastHeard']}")
-                except Exception as e:
-                    logging.error(f"Error logging last heard time for node {n['user']['shortName']}: {e}")
             # Notify admin of node that has never been heard from
             admin_message = f"Node {node['user']['shortName']} has never been heard from"
             send_message(interface, admin_message, private_channel_number, "^all")
@@ -407,7 +401,11 @@ def check_node_health(interface, node):
                 logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
                 admin_message = f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}"
                 send_message(interface, admin_message, private_channel_number, "^all")
-                
+    else:
+        logging.info(f"Node {node['user']['shortName']} does not have last heard time")
+        # Notify admin of node that does not have last heard time
+        admin_message = f"Node {node['user']['shortName']} does not have last heard time"
+        send_message(interface, admin_message, private_channel_number, "^all")
     
     if "hopsAway" in node:
         #logging.info(f"Checking hop away of node {node['user']['shortName']}")
