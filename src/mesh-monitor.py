@@ -142,10 +142,7 @@ def should_trace_node(node, interface):
     logging.info(f"Checking if node {node['user']['shortName']} should be traced")
     node_num = node['num']
     now = datetime.now(timezone.utc)
-    logging.info(f"Current time: {now}")
     should_trace_node = False
-    default_time = datetime.min
-    logging.info(f"Default time: {default_time}")
    
     # Check if the node has hopsAway attribute. If not, we should trace it.
     if "hopsAway" not in node:
@@ -153,7 +150,7 @@ def should_trace_node(node, interface):
         should_trace_node = True
     
     # Check if we have ever traced this node. We should trace it if we have never traced it before.
-    if node_num not in last_trace_time or last_trace_time[node_num] == default_time:
+    if node_num not in last_trace_time:
         logging.info(f"Node {node['user']['shortName']} has never been traced")
         should_trace_node = True
 
