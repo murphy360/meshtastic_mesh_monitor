@@ -128,10 +128,9 @@ def onNodeUpdate(node, interface):
 
     db_helper.add_or_update_node(node)
 
-def should_trace_node(node_num):
-    logging.info("should_trace_node called")
+def should_trace_node(node, interface):
     """
-    Determine if a node should be traced based on the last trace time.
+    Determine if a node should be traced based on the last trace time and hops away.
 
     Args:
         node_num (int): The node number.
@@ -139,27 +138,36 @@ def should_trace_node(node_num):
     Returns:
         bool: True if the node should be traced, False otherwise.
     """
-    logging.info(f"Checking if node {node_num} should be traced in method should_trace_node")
+    
+    logging.info(f"Checking if node {node['user']['shortName']} should be traced")
+    node_num = node['num']
     now = datetime.now(timezone.utc)
     logging.info(f"Current time: {now}")
     should_trace_node = False
     default_time = datetime.min
     logging.info(f"Default time: {default_time}")
-    log_string = f"Checking if node {node_num} should be traced"
+   
+    if "hopsAway" not in node:
+        logging.info(f"Node {node['user']['shortName']} does not have hopsAway attribute, should trace")
+        should_trace_node = True
+    
     if node_num not in last_trace_time:
         log_string += " - This node has never been traced"
-        last_trace_time[node_num] = now
         should_trace_node = True
 
     if last_trace_time[node_num] == default_time:
         log_string += " - This node has never been traced"
-        last_trace_time[node_num] = now
         should_trace_node = True
 
     if now - last_trace_time[node_num] > trace_interval:
         log_string += "- Time to trace this node:\nLast Traced: {last_trace_time[node_num]}\nNow: {now}\nTrace Interval: {trace_interval}"
-        last_trace_time[node_num] = now
         should_trace_node = True
+
+    if should_trace_node:
+        last_trace_time[node_num] = now
+        admin_message = f"Node {node['user']['shortName']} is being traced. Setting last trace time to {now}"
+        send_message(interface, admin_message, private_channel_number, "^all")
+        interface.sendTraceRoute(node['num'], 5, public_channel_number)
     
     logging.info(log_string)
     return should_trace_node
@@ -213,28 +221,13 @@ def onReceive(packet, interface):
                 # Notify admin of new node
                 admin_message = f"New node detected: {node_short_name}"
                 send_message(interface, admin_message, private_channel_number, "^all")
-                # Request node position
-                # If HopsAway is greater than 0, send a traceroute packet
+                # TODO Request node position
+                
+            
+            # Check if the node is of interest should be traced and send traceroute packet if so
+            should_trace_node(node, interface)
             
             admin_message = f"Node {node_short_name} "
-            
-            if 'hopsAway' in node:
-                if node['hopsAway'] > 0:
-                    log_string += f" - HopsAway: {node['hopsAway']}"
-                    admin_message += f" - HopsAway: {node['hopsAway']}"
-                    if should_trace_node(node_num):
-                        log_string += " - Tracing node"
-                        admin_message += " - Tracing node"
-                        send_message(interface, admin_message, private_channel_number, "^all")
-                        interface.sendTraceRoute(node_num, 5, public_channel_number)
-            else:
-                log_string += " - HopsAway not detected"
-                admin_message += " - HopsAway not detected"
-                if should_trace_node(node_num):
-                    log_string += " - Tracing node"
-                    admin_message += " - Tracing node"
-                    send_message(interface, admin_message, private_channel_number, "^all")
-                    interface.sendTraceRoute(node_num, 5, public_channel_number)
 
             logging.info(log_string)
 
@@ -381,9 +374,7 @@ def check_node_health(interface, node):
     Args:
         interface: The interface to interact with the mesh network.
         node (dict): The node data.
-    """
-
-    should_try_trace_node = False   
+    """  
     
     #logging.info(f"Checking health of node {node['user']['shortName']}")
     if "deviceMetrics" not in node:
@@ -395,58 +386,7 @@ def check_node_health(interface, node):
         battery_level = node["deviceMetrics"]["batteryLevel"]
         if battery_level < 20:
             logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
-            send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")
-
-
-    if "lastHeard" in node:
-        
-        if node["lastHeard"] == None or node["lastHeard"] == 0:
-            logging.info(f"Node {node['user']['shortName']} has never been heard from")
-            logging.info(f"Node: {node}")
-            # Notify admin of node that has never been heard from
-            admin_message = f"Node {node['user']['shortName']} has never been heard from"
-            send_message(interface, admin_message, private_channel_number, "^all")
-            should_try_trace_node = True
-        else:
-            logging.info(f"Checking last heard of node {node['user']['shortName']} - {node['lastHeard']}")
-            last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
-            time_since_last_heard_string = time_since_last_heard(last_heard_time)
-
-            # If the node has been offline for more than 24 hours and reconnects, Notify Admin
-            if last_heard_time < datetime.now(timezone.utc) - timedelta(days=1):
-                logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
-                admin_message = f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}"
-                send_message(interface, admin_message, private_channel_number, "^all")
-                should_try_trace_node = True
-    else:
-        logging.info(f"Node {node['user']['shortName']} does not have last heard time")
-        # Notify admin of node that does not have last heard time
-        admin_message = f"Node {node['user']['shortName']} does not have last heard time"
-        send_message(interface, admin_message, private_channel_number, "^all")
-        should_try_trace_node = False
-    
-    if "hopsAway" in node:
-        logging.info(f"Checking hop away of node {node['user']['shortName']}")
-        hops_away = node["hopsAway"]
-
-        if hops_away > 0 and should_trace_node(node['num']):
-            message = f"Node {node['user']['shortName']} is {hops_away} hops away and should be traced."
-            logging.info(message)
-            should_try_trace_node = True
-            
-    if should_try_trace_node:
-        logging.info(f"Tracing node {node['num']} - {node['user']['shortName']}")
-        # Check if the node has been traced recently
-        
-        
-        if should_trace_node(node['num']):
-            message = f"Node {node['user']['shortName']} is being traced."
-            logging.info(message)
-            send_message(interface, message, private_channel_number, "^all")
-            interface.sendTraceRoute(node['num'], 5, public_channel_number)
-        else:
-            logging.info(f"Skipping Traceroute for {node['user']['shortName']}, last traced at {last_trace_time[node['num']]}")
-              
+            send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")             
                 
 
 def lookup_node(interface, node_generic_identifier):
@@ -678,13 +618,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         admin_message = f"Tracing {node_short_name}"
         if node:
-            '''
-            if should_trace_node(node['num']):
-                admin_message = f"Tracing {node_short_name}"
-            else:
-                last_trace_time = last_trace_time[node['num']]
-                admin_message = f"Tracing {node_short_name} - Last traced at {last_trace_time}"
-            '''
+
             send_message(interface, admin_message, private_channel_number, "^all")
             sitrep.log_message_sent("node-traced")
             interface.sendTraceRoute(node['num'], 5, public_channel_number)
