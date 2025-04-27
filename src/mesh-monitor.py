@@ -373,6 +373,9 @@ def check_node_health(interface, node):
         interface: The interface to interact with the mesh network.
         node (dict): The node data.
     """
+
+    should_trace_node = False   
+    
     #logging.info(f"Checking health of node {node['user']['shortName']}")
     if "deviceMetrics" not in node:
         logging.info(f"Node {node['user']['shortName']} does not have device metrics")
@@ -384,13 +387,16 @@ def check_node_health(interface, node):
         if battery_level < 20:
             logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
             send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")
-        
+
+
     if "lastHeard" in node:
-        if node["lastHeard"] == None:
+        
+        if node["lastHeard"] == None or node["lastHeard"] == 0:
             logging.info(f"Node {node['user']['shortName']} has never been heard from")
             # Notify admin of node that has never been heard from
             admin_message = f"Node {node['user']['shortName']} has never been heard from"
             send_message(interface, admin_message, private_channel_number, "^all")
+            should_trace_node = True
         else:
             logging.info(f"Checking last heard of node {node['user']['shortName']} - {node['lastHeard']}")
             last_heard_time = datetime.fromtimestamp(int(node['lastHeard']), tz=timezone.utc)
@@ -401,23 +407,33 @@ def check_node_health(interface, node):
                 logging.info(f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}")
                 admin_message = f"Node {node['user']['shortName']} has reconnected to the mesh after {time_since_last_heard_string}"
                 send_message(interface, admin_message, private_channel_number, "^all")
+                should_trace_node = True
     else:
         logging.info(f"Node {node['user']['shortName']} does not have last heard time")
         # Notify admin of node that does not have last heard time
         admin_message = f"Node {node['user']['shortName']} does not have last heard time"
         send_message(interface, admin_message, private_channel_number, "^all")
+        should_trace_node = False
     
     if "hopsAway" in node:
         #logging.info(f"Checking hop away of node {node['user']['shortName']}")
         hops_away = node["hopsAway"]
-        '''
+
         if hops_away > 0 and should_trace_node(node['num']):
-            message = f"Node {node['user']['shortName']} is {hops_away} hops away."
+            message = f"Node {node['user']['shortName']} is {hops_away} hops away and should be traced."
             logging.info(message)
-            interface.sendTraceRoute(node['num'], 5, public_channel_number)  # Send trace to node, 5 hops, public channel
+            should_trace_node = True
+            
+    if should_trace_node:
+        logging.info(f"Tracing node {node['user']['shortName']}")
+        # Check if the node has been traced recently
+        if should_trace_node(node['num']):
+            message = f"Node {node['user']['shortName']} is being traced."
+            logging.info(message)
+            send_message(interface, message, private_channel_number, "^all")
+            interface.sendTraceRoute(node['num'], 5, public_channel_number)
         else:
             logging.info(f"Skipping Traceroute for {node['user']['shortName']}, last traced at {last_trace_time[node['num']]}")
-        '''        
                 
                 
 
