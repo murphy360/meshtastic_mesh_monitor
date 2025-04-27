@@ -402,6 +402,7 @@ def check_node_health(interface, node):
         
         if node["lastHeard"] == None or node["lastHeard"] == 0:
             logging.info(f"Node {node['user']['shortName']} has never been heard from")
+            logging.info(f"Node: {node['user']}")
             # Notify admin of node that has never been heard from
             admin_message = f"Node {node['user']['shortName']} has never been heard from"
             send_message(interface, admin_message, private_channel_number, "^all")
