@@ -435,6 +435,8 @@ def check_node_health(interface, node):
     if should_trace_node:
         logging.info(f"Tracing node {node['num']} - {node['user']['shortName']}")
         # Check if the node has been traced recently
+        '''
+        
         if should_trace_node(node['num']):
             message = f"Node {node['user']['shortName']} is being traced."
             logging.info(message)
@@ -442,7 +444,7 @@ def check_node_health(interface, node):
             interface.sendTraceRoute(node['num'], 5, public_channel_number)
         else:
             logging.info(f"Skipping Traceroute for {node['user']['shortName']}, last traced at {last_trace_time[node['num']]}")
-                
+        '''        
                 
 
 def lookup_node(interface, node_generic_identifier):
