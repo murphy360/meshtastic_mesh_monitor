@@ -139,6 +139,7 @@ def should_trace_node(node, interface):
     Returns:
         bool: True if the node should be traced, False otherwise.
     """
+    global last_trace_time, trace_interval
     node_num = node['num']
     now = datetime.now(timezone.utc)
     should_trace_node = False
