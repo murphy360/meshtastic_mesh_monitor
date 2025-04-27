@@ -139,8 +139,6 @@ def should_trace_node(node, interface):
     Returns:
         bool: True if the node should be traced, False otherwise.
     """
-    
-    logging.info(f"Checking if node {node['user']['shortName']} should be traced")
     node_num = node['num']
     now = datetime.now(timezone.utc)
     should_trace_node = False
@@ -162,9 +160,9 @@ def should_trace_node(node, interface):
 
     # If the node should be traced, Trace it
     if should_trace_node:
-        send_trace_route(interface, node_num, public_channel_number)
-        admin_message = f"Node {node['user']['shortName']} is being traced..."
-        send_message(interface, admin_message, private_channel_number, "^all")
+        logging.info(f"Node {node['user']['shortName']} should be traced")
+    else: 
+        logging.info(f"Node {node['user']['shortName']} does not need to be traced at this time")
     
     return should_trace_node
 
@@ -211,17 +209,20 @@ def onReceive(packet, interface):
                             
             if new_node:
                 log_string += " - New node detected!"
-                private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to Ping and any Direct Messages!"
+                private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
                 send_message(interface, private_message, public_channel_number, node_num)
 
                 # Notify admin of new node
                 admin_message = f"New node detected: {node_short_name}"
                 send_message(interface, admin_message, private_channel_number, "^all")
+                
                 # TODO Request node position
                 
             
             # Check if the node is of interest should be traced and send traceroute packet if so
-            should_trace_node(node, interface)
+            if should_trace_node(node, interface):
+                send_trace_route(interface, node_num, public_channel_number)
+                
             
             admin_message = f"Node {node_short_name} "
 
@@ -327,6 +328,10 @@ def onReceive(packet, interface):
                 for node in route_back:
                     message_string += f"{node['user']['shortName']} ->"
                 
+                # Strip trailing arrow
+                if message_string.endswith(" ->"):
+                    message_string = message_string[:-3]
+
                 route_full = route_to + route_back
                 sitrep.add_trace(route_full)
                 
@@ -666,16 +671,17 @@ def send_trace_route(interface, node_num, channel):
     try:
         # Min time between traces is 30 seconds
         global last_trace_sent_time
-        global last_trace_time
-        
+
         now = datetime.now(timezone.utc)
         if now - last_trace_sent_time < timedelta(seconds=30):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
             return
         interface.sendTraceRoute(node_num, 5, channel)
-        last_trace_time[node_num] = now  # Update last trace time for the node
         last_trace_sent_time = now  # Update last trace sent time
         logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
+        
+        admin_message = f"Node {lookup_short_name(interface, node_num)} has been traced"
+        send_message(interface, admin_message, private_channel_number, "^all")
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
         return
