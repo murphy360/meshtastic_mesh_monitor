@@ -32,6 +32,7 @@ last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
+last_trace_sent_time = datetime.now(timezone.utc)  # Track last time a trace was sent
 
 logging.info("Starting Mesh Monitor")
 
@@ -663,7 +664,17 @@ def send_trace_route(interface, node_num, channel):
     """
     logging.info(f"Sending traceroute request to node {node_num} on channel {channel}")
     try:
+        # Min time between traces is 30 seconds
+        global last_trace_sent_time
+        global last_trace_time
+        
+        now = datetime.now(timezone.utc)
+        if now - last_trace_sent_time < timedelta(seconds=30):
+            logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
+            return
         interface.sendTraceRoute(node_num, 5, channel)
+        last_trace_time[node_num] = now  # Update last trace time for the node
+        last_trace_sent_time = now  # Update last trace sent time
         logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
