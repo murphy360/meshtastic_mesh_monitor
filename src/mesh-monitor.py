@@ -147,24 +147,24 @@ def should_trace_node(node, interface):
     default_time = datetime.min
     logging.info(f"Default time: {default_time}")
    
+    # Check if the node has hopsAway attribute. If not, we should trace it.
     if "hopsAway" not in node:
         logging.info(f"Node {node['user']['shortName']} does not have hopsAway attribute, should trace")
         should_trace_node = True
     
-    if node_num not in last_trace_time:
+    # Check if we have ever traced this node. We should trace it if we have never traced it before.
+    if node_num not in last_trace_time or last_trace_time[node_num] == default_time:
         log_string += " - This node has never been traced"
         should_trace_node = True
 
-    if last_trace_time[node_num] == default_time:
-        log_string += " - This node has never been traced"
-        should_trace_node = True
-
+    # Check if the node has been traced within the trace interval. Trace it if it has been longer than the interval.
     if now - last_trace_time[node_num] > trace_interval:
         log_string += "- Time to trace this node:\nLast Traced: {last_trace_time[node_num]}\nNow: {now}\nTrace Interval: {trace_interval}"
         should_trace_node = True
 
+    # If the node should be traced, Trace it
     if should_trace_node:
-        last_trace_time[node_num] = now
+        #last_trace_time[node_num] = now
         admin_message = f"Node {node['user']['shortName']} is being traced. Setting last trace time to {now}"
         send_message(interface, admin_message, private_channel_number, "^all")
         interface.sendTraceRoute(node['num'], 5, public_channel_number)
@@ -295,11 +295,15 @@ def onReceive(packet, interface):
                     originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
                     traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
                     
-                    if 'routeBack' in trace:
+                    if 'routeBack' in trace: # If routeBack is present, then the trace was initiated by the local node and this is a reply
+                        # set last_trace_time for the traced node
+                        last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
+                        logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
                         for hop in trace['routeBack']:
                             node = interface.nodesByNum[hop]
                             route_back.append(node)
                     route_back.append(originator_node) # Add the originator node to the route back (local node)
+
                 else: # If no route back in trace, then the trace was not initiated by the local node
                     logging.info(f"I've been traced by {node_short_name}")
 
