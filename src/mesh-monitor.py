@@ -433,7 +433,7 @@ def check_node_health(interface, node):
             should_trace_node = True
             
     if should_trace_node:
-        logging.info(f"Tracing node {node['user']['shortName']}")
+        logging.info(f"Tracing node {node['num']} - {node['user']['shortName']}")
         # Check if the node has been traced recently
         if should_trace_node(node['num']):
             message = f"Node {node['user']['shortName']} is being traced."
