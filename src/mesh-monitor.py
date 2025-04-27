@@ -154,12 +154,12 @@ def should_trace_node(node, interface):
     
     # Check if we have ever traced this node. We should trace it if we have never traced it before.
     if node_num not in last_trace_time or last_trace_time[node_num] == default_time:
-        log_string += " - This node has never been traced"
+        logging.info(f"Node {node['user']['shortName']} has never been traced")
         should_trace_node = True
 
     # Check if the node has been traced within the trace interval. Trace it if it has been longer than the interval.
     if now - last_trace_time[node_num] > trace_interval:
-        log_string += "- Time to trace this node:\nLast Traced: {last_trace_time[node_num]}\nNow: {now}\nTrace Interval: {trace_interval}"
+        logging.info(f"Node {node['user']['shortName']} has not been traced within the interval, should trace")
         should_trace_node = True
 
     # If the node should be traced, Trace it
