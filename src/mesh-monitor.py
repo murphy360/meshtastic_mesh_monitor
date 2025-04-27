@@ -288,15 +288,17 @@ def onReceive(packet, interface):
                 message_string = ""
                 originator_node = interface.nodesByNum[packet['from']]
                 traced_node = interface.nodesByNum[packet['to']]
+                global last_trace_time
                 
-                if 'snrBack' in trace:
+                if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
                     originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
                     traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
-                    
-                    if 'routeBack' in trace: # If routeBack is present, then the trace was initiated by the local node and this is a reply
-                        # set last_trace_time for the traced node
-                        last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
-                        logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
+                    # set last_trace_time for the traced node
+                    last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
+                    logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
+
+                    if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
+
                         for hop in trace['routeBack']:
                             node = interface.nodesByNum[hop]
                             route_back.append(node)
