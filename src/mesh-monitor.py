@@ -102,6 +102,7 @@ def onDisconnect(interface):
             **************************************************************\n\n ")
     if initial_connect:
         logging.info("Initial connect")
+
     if interface is not None:
         logging.info("Closing interface")
         interface.close()
@@ -142,30 +143,31 @@ def should_trace_node(node, interface):
     global last_trace_time, trace_interval
     node_num = node['num']
     now = datetime.now(timezone.utc)
-    should_trace_node = False
+
+
+    # Check if we have ever traced this node. We should trace it if we have never traced it before.
+    if node_num not in last_trace_time:
+        logging.info(f"Node {node['user']['shortName']} has never been traced, should trace")
+        return True
    
+    # Check if the node has been traced within the trace interval. If it has been traced recently, we should not trace it.
+    if not now - last_trace_time[node_num] <= trace_interval:
+        logging.info(f"Node {node['user']['shortName']} has been traced within the interval, should not trace")
+        return False
+
     # Check if the node has hopsAway attribute. If not, we should trace it.
     if "hopsAway" not in node:
         logging.info(f"Node {node['user']['shortName']} does not have hopsAway attribute, should trace")
-        should_trace_node = True
+        return True
     
-    # Check if we have ever traced this node. We should trace it if we have never traced it before.
-    if node_num not in last_trace_time:
-        logging.info(f"Node {node['user']['shortName']} has never been traced")
-        should_trace_node = True
-
-    # Check if the node has been traced within the trace interval. Trace it if it has been longer than the interval.
-    elif now - last_trace_time[node_num] > trace_interval:
-        logging.info(f"Node {node['user']['shortName']} has not been traced within the interval, should trace")
-        should_trace_node = True
-
-    # If the node should be traced, Trace it
-    if should_trace_node:
-        logging.info(f"Node {node['user']['shortName']} should be traced")
-    else: 
-        logging.info(f"Node {node['user']['shortName']} does not need to be traced at this time")
+    if node["hopsAway"] > 1:
+        logging.info(f"Node {node['user']['shortName']} has hopsAway > 1 and has not been traced within the interval, should trace")
+        return True
     
-    return should_trace_node
+    logging.info(f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here")
+    admin_message = f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here"
+    send_message(interface, admin_message, private_channel_number, "^all")
+    return True
 
 def onReceive(packet, interface):
     """
