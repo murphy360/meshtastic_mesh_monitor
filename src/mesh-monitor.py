@@ -163,6 +163,9 @@ def should_trace_node(node, interface):
     if node["hopsAway"] > 1:
         logging.info(f"Node {node['user']['shortName']} has hopsAway > 1 and has not been traced within the interval, should trace")
         return True
+    else:
+        logging.info(f"Node {node['user']['shortName']} has hopsAway <= 1, should not trace")
+        return False
     
     logging.info(f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here")
     admin_message = f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here"
