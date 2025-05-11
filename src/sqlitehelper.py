@@ -130,6 +130,7 @@ class SQLiteHelper:
         else:
             new = True
             created_at = now.strftime("%Y-%m-%d %H:%M:%S")
+            updated_at = now.strftime("%Y-%m-%d %H:%M:%S")
             nodeOfInterest = False
             aircraft = False
             log_string = f"Adding New Node {node_id} - {shortname} - {longname} - {macaddr} - {hwModel} - {lastHeard} - {battery} - {voltage} - {channelUtilization} - {airUtilTx} - {uptimeSeconds} - {created_at}"
