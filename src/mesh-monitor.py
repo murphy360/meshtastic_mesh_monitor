@@ -413,13 +413,20 @@ def lookup_node(interface, node_generic_identifier):
     Returns:
         dict: The node data if found, None otherwise.
     """
+    nodes = []
     node_generic_identifier = node_generic_identifier.lower()
     for n in interface.nodes.values():
         node_short_name = n["user"]["shortName"].lower()
         node_long_name = n["user"]["longName"].lower()
         if node_generic_identifier in [node_short_name, node_long_name]:
-            return n
-    return None
+            logging.info(f"Node found: {n['user']['shortName']} - {n['num']}")
+            nodes.append(n)
+
+    if len(nodes) > 0:
+        logging.info(f"Found {len(nodes)} nodes matching {node_generic_identifier}")
+        return nodes[0]
+    else:
+        return None
 
 def lookup_short_name(interface, node_num):
     """
