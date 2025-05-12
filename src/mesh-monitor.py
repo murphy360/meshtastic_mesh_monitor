@@ -735,7 +735,7 @@ pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
-pub.susbscribe(onLog, "meshtastic.log.line")
+pub.subscribe(onLog, "meshtastic.log.line")
 
 
 while True:
