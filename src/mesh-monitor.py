@@ -109,6 +109,9 @@ def onDisconnect(interface):
     connect_to_radio()
     '''
 
+def onLog(log_line, interface):
+    logging.info(f"Log line: {log_line}")
+
 def onNodeUpdate(node, interface):
     """
     Handle the event when a node is updated.
@@ -732,6 +735,7 @@ pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
+pub.susbscribe(onLog, "meshtastic.log.line")
 
 
 while True:
