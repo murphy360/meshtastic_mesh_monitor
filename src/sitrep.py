@@ -457,7 +457,7 @@ class SITREP:
         self.nodes_connected = 0
         response_string = ""
         for node in interface.nodes.values():
-            log_message = f"Node ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
+            log_message = f"\nNode ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
             if self.localNode.nodeNum == node["num"]:
                 log_message += " - Local Node, skipping"
                 continue
@@ -483,9 +483,9 @@ class SITREP:
                     log_message += f"\nHops Away: {hops_away}"
                     response_string += " " + node['user']['shortName']
                 else:
-                    log_message += f" - Node is more than {hop_threshold} hops away ({hops_away})"
+                    log_message += f"\nHops Away: {hops_away} - Not in range"
             else:
-                log_message += " - Node doesn't have hopsAway data"
+                log_message += "\nHops Away Not in Node Data"
                 
             logging.info(log_message)
             self.nodes_connected += 1
