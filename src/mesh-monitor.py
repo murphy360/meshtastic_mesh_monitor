@@ -100,6 +100,8 @@ def onDisconnect(interface):
                 Disconnected from {serial_port}\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
+    interface.close()
+    interface = None
     ''' if initial_connect:
         logging.info("Initial connect")
 
