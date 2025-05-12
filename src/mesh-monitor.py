@@ -18,7 +18,6 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 localNode = ""
 sitrep = ""
 location = ""
-global connect_timeout
 connect_timeout = 60 # seconds
 host = 'meshtastic.local'
 short_name = 'Monitor'  # Overwritten in onConnection
