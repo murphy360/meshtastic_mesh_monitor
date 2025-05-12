@@ -742,7 +742,7 @@ while True:
             logging.info("Interface is None, connecting to radio")
             interface = meshtastic.serial_interface.SerialInterface(serial_port)
         else: 
-            logging.info(f"Interface Connection Status: {interface.isConnected}")
+
 
             # Send a routine sitrep every 24 hours at 00:00 UTC        
             sitrep.send_sitrep_if_new_day(interface)
@@ -750,11 +750,15 @@ while True:
             # Used by meshtastic_mesh_visualizer to display nodes on a map
             sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
 
-            logging.info(f"Connected to Radio {interface.myInfo.my_node_num}, Sleeping for {connect_timeout} seconds\n\n{interface.myInfo}")
-        
+            logging.info(f"\n\n \
+            **************************************************************\n    \
+            **************************************************************\n\n  \
+                    Interface Connection Status: {interface.isConnected}\n      \
+            **************************************************************\n    \
+            **************************************************************\n\n ")
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
-        
+    
     time.sleep(connect_timeout)
 interface.close()
