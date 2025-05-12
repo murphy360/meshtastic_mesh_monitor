@@ -68,7 +68,7 @@ class SQLiteHelper:
     
         if "lastHeard" in node:
             lastHeard = node["lastHeard"] 
-            logging.info(f"Node {num} last heard: {lastHeard}") 
+            #logging.info(f"Node {num} last heard: {lastHeard}") 
         else:
             lastHeard = ""
 
@@ -79,14 +79,14 @@ class SQLiteHelper:
         airUtilTx = ""
         uptimeSeconds = ""
         if "deviceMetrics" in node:
-            logging.info(f"Node {num} has device metrics data")
+            #logging.info(f"Node {num} has device metrics data")
             if "batteryLevel" in node["deviceMetrics"]:
-                #logging.info(f"Node {num} has battery level data")
+                #logging.info(f"Node {num} battery: {battery}")
                 battery = node["deviceMetrics"]["batteryLevel"]
             else:
                 logging.info(f"Node {num} does not have battery level data")
                 battery = ""
-            logging.info(f"Node {num} battery: {battery}")
+            
             if "voltage" in node["deviceMetrics"]:
                 #logging.info(f"Node {num} has voltage data")
                 voltage = node["deviceMetrics"]["voltage"]
