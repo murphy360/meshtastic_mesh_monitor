@@ -748,6 +748,8 @@ while True:
             interface = meshtastic.serial_interface.SerialInterface(serial_port)
         else: 
 
+            node_info = interface.getMyNodeInfo()
+            
 
             # Send a routine sitrep every 24 hours at 00:00 UTC        
             sitrep.send_sitrep_if_new_day(interface)
@@ -759,6 +761,9 @@ while True:
             **************************************************************\n    \
             **************************************************************\n\n  \
                     Interface Connection Status: {interface.isConnected}\n      \
+                Interface Serial Port: {serial_port}\n      \
+                Interface Node Number: {node_info['num']}\n      \
+                Interface Node Short Name: {node_info['user']['shortName']}\n      \
             **************************************************************\n    \
             **************************************************************\n\n ")
 
