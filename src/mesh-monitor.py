@@ -735,19 +735,13 @@ pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
 while True:
     try:
-        interface = meshtastic.serial_interface.SerialInterface(serial_port)
-        logging.info(f"Interface Connection Status: {interface.isConnected}")
+        
+        
         if interface is None:
             logging.info("Interface is None, connecting to radio")
-            continue
-
-        else:
-            interface.sendHeartbeat()
-
-            if not interface.isConnected:  
-                logging.info(f"Interface is not connected")
-                admin_message = f"Interface is not connected"
-                send_message(interface, admin_message, private_channel_number, "^all")
+            interface = meshtastic.serial_interface.SerialInterface(serial_port)
+        else: 
+            logging.info(f"Interface Connection Status: {interface.isConnected}")
 
             # Send a routine sitrep every 24 hours at 00:00 UTC        
             sitrep.send_sitrep_if_new_day(interface)
