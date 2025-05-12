@@ -762,5 +762,4 @@ while True:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
         
     time.sleep(connect_timeout)
-    interface.close()
 interface.close()
