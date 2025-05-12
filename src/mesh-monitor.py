@@ -289,6 +289,17 @@ def onReceive(packet, interface):
                 admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
                 send_message(interface, admin_message, private_channel_number, "^all")
                 return
+            
+            elif portnum == 'WAYPOINT_APP':
+                logging.info(f"Waypoint_APP: {packet}")
+                waypoint = packet['decoded']['waypoint']
+                if 'latitude' in waypoint and 'longitude' in waypoint:
+                    latitude = waypoint['latitude']
+                    longitude = waypoint['longitude']
+                    location = find_my_location(interface, localNode.nodeNum)
+                    message = f"Waypoint received from {node_short_name} at {latitude}, {longitude}"
+                    send_message(interface, message, private_channel_number, "^all")
+                return
 
             elif portnum == 'TRACEROUTE_APP':
                 logging.info(f"Traceroute: {packet['decoded']['traceroute']}")
@@ -372,6 +383,7 @@ def onReceive(packet, interface):
             elif 'portnum' in packet['decoded']:
                 packet_type = packet['decoded']['portnum']
                 logging.info(f"Unhandled Packet received from {node_short_name} - {packet_type}")
+                logging.info(f"Packet: {packet}")
                 admin_message = f"Unhandled Packet received from {node_short_name} - {packet_type}"
                 send_message(interface, admin_message, private_channel_number, "^all")
                 return
@@ -760,7 +772,7 @@ while True:
             logging.info(f"\n\n \
             **************************************************************\n    \
             **************************************************************\n\n  \
-                    Interface Connection Status: {interface.isConnected}\n      \
+                Interface Connection Status: {interface.isConnected}\n      \
                 Interface Serial Port: {serial_port}\n      \
                 Interface Node Number: {node_info['num']}\n      \
                 Interface Node Short Name: {node_info['user']['shortName']}\n      \
