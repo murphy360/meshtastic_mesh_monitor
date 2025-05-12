@@ -755,10 +755,11 @@ while True:
             sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
 
             logging.info(f"Connected to Radio {interface.myInfo.my_node_num}, Sleeping for {connect_timeout} seconds\n\n{interface.myInfo}")
-        interface.close()
+        
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
         
     time.sleep(connect_timeout)
+    interface.close()
 interface.close()
