@@ -735,7 +735,7 @@ pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
 while True:
     try:
-        interface = meshtastic.serial_interface.SerialInterface()
+        interface = meshtastic.serial_interface.SerialInterface(serial_port)
         if interface is None:
             logging.info("Interface is None, connecting to radio")
             continue
