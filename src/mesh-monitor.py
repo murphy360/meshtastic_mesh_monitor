@@ -32,7 +32,7 @@ last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
-last_trace_sent_time = datetime.now(timezone.utc)  # Track last time a trace was sent
+last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
 
 logging.info("Starting Mesh Monitor")
 
@@ -100,13 +100,14 @@ def onDisconnect(interface):
                 Disconnected from {serial_port}\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
-    if initial_connect:
+    ''' if initial_connect:
         logging.info("Initial connect")
 
     if interface is not None:
         logging.info("Closing interface")
         interface.close()
     connect_to_radio()
+    '''
 
 def onNodeUpdate(node, interface):
     """
@@ -684,13 +685,12 @@ def send_trace_route(interface, node_num, channel):
     """
     logging.info(f"Sending traceroute request to node {node_num} on channel {channel}")
     try:
-        # Min time between traces is 30 seconds
-        global last_trace_sent_time
-
         now = datetime.now(timezone.utc)
+
         if now - last_trace_sent_time < timedelta(seconds=30):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
             return
+        
         interface.sendTraceRoute(node_num, 5, channel)
         last_trace_sent_time = now  # Update last trace sent time
         logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
@@ -735,9 +735,10 @@ pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
 while True:
     try:
+        interface = meshtastic.serial_interface.SerialInterface()
         if interface is None:
             logging.info("Interface is None, connecting to radio")
-            interface = connect_to_radio()
+            continue
 
         else:
             interface.sendHeartbeat()
@@ -754,6 +755,7 @@ while True:
             sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
 
             logging.info(f"Connected to Radio {interface.myInfo.my_node_num}, Sleeping for {connect_timeout} seconds\n\n{interface.myInfo}")
+        interface.close()
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
