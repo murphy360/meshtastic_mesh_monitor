@@ -18,7 +18,8 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 localNode = ""
 sitrep = ""
 location = ""
-connect_timeout = 10
+global connect_timeout
+connect_timeout = 60 # seconds
 host = 'meshtastic.local'
 short_name = 'Monitor'  # Overwritten in onConnection
 long_name = 'Mesh Monitor'  # Overwritten in onConnection
@@ -726,7 +727,6 @@ def send_message(interface, message, channel, to_id):
 
 # Main loop
 logging.info("Starting Main Loop")
-connect_timeout = 30 # seconds
 
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onConnection, "meshtastic.connection.established")
