@@ -141,7 +141,7 @@ def should_trace_node(node, interface):
     Returns:
         bool: True if the node should be traced, False otherwise.
     """
-    global last_trace_time, trace_interval
+    global last_trace_time, trace_interval 
     node_num = node['num']
     now = datetime.now(timezone.utc)
 
@@ -683,6 +683,7 @@ def send_trace_route(interface, node_num, channel):
         node_num (int): The number of the node to trace.
         channel (int): The channel to send the traceroute request to.
     """
+    global last_trace_sent_time
     logging.info(f"Sending traceroute request to node {node_num} on channel {channel}")
     try:
         now = datetime.now(timezone.utc)
