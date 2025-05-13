@@ -180,6 +180,36 @@ def should_trace_node(node, interface):
     send_message(interface, admin_message, private_channel_number, "^all")
     return True
 
+def onReceiveText(packet, interface):
+    """
+    Handle the event when a text packet is received from another Meshtastic device.
+
+    Args:
+        packet (dict): The packet received from the Meshtastic device.
+        interface: The interface object that is connected to the Meshtastic device.
+    """
+    
+    logging.info(f"Received Text packet: {packet}")
+
+    if 'text' in packet:
+        text = packet['text']
+        logging.info(f"Text: {text}")
+
+def onReceiveUser(packet, interface):
+    """
+    Handle the event when a user packet is received from another Meshtastic device.
+
+    Args:
+        packet (dict): The packet received from the Meshtastic device.
+        interface: The interface object that is connected to the Meshtastic device.
+    """
+    
+    logging.info(f"Received User packet: {packet}")
+
+    if 'user' in packet:
+        user = packet['user']
+        logging.info(f"User: {user}")
+
 def onReceivePosition(packet, interface):
     """
     Handle the event when a position packet is received from another Meshtastic device.
@@ -793,6 +823,8 @@ def send_message(interface, message, channel, to_id):
 logging.info("Starting Main Loop")
 
 pub.subscribe(onReceive, 'meshtastic.receive')
+pub.subscribe(onReceiveUser, 'meshtastic.receive.user')
+pub.subscribe(onReceiveDataText, 'meshtastic.receive.data.text')
 pub.subscribe(onReceiveDataWaypoint, 'meshtastic.receive.data.8')
 pub.subscribe(onReceivePosition, 'meshtastic.recieve.position')
 pub.subscribe(onConnection, "meshtastic.connection.established")
@@ -826,7 +858,7 @@ while True:
                 Interface Serial Port: {serial_port}\n      \
                 Interface Node Number: {node_info['num']}\n      \
                 Interface Node Short Name: {node_info['user']['shortName']}\n      \
-                Meshtastic Version: {meshtastic.the_version}\n      \
+                #Meshtastic Version: {meshtastic.the_version}\n      \
             **************************************************************\n    \
             **************************************************************\n\n ")
 
