@@ -110,6 +110,9 @@ def onDisconnect(interface):
     connect_to_radio()
     '''
 
+def onReceiveDataWaypoint(packet, interface):
+    logging.info(f"Received Waypoint packet: {packet}")
+
 def onLog(log_line, interface):
     logging.info(f"Log line: {log_line}")
 
@@ -176,6 +179,21 @@ def should_trace_node(node, interface):
     admin_message = f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here"
     send_message(interface, admin_message, private_channel_number, "^all")
     return True
+
+def onReceivePosition(packet, interface):
+    """
+    Handle the event when a position packet is received from another Meshtastic device.
+
+    Args:
+        packet (dict): The packet received from the Meshtastic device.
+        interface: The interface object that is connected to the Meshtastic device.
+    """
+    
+    logging.info(f"Received Position packet: {packet}")
+
+    if 'position' in packet:
+        position = packet['position']
+        logging.info(f"Position: {position}")
 
 def onReceive(packet, interface):
     """
@@ -775,6 +793,8 @@ def send_message(interface, message, channel, to_id):
 logging.info("Starting Main Loop")
 
 pub.subscribe(onReceive, 'meshtastic.receive')
+pub.subscribe(onReceiveDataWaypoint, 'meshtastic.receive.data.waypoint')
+pub.subscribe(onReceivePosition, 'meshtastic.recieve.position')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
