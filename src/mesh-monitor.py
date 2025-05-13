@@ -845,6 +845,8 @@ while True:
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
-        interface.close()
+        if interface is not None:
+            interface.close()
+            interface = None
     isConnected(interface)
     time.sleep(connect_timeout)
