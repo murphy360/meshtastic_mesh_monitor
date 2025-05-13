@@ -826,7 +826,7 @@ while True:
                 Interface Serial Port: {serial_port}\n      \
                 Interface Node Number: {node_info['num']}\n      \
                 Interface Node Short Name: {node_info['user']['shortName']}\n      \
-                Meshtastic Version: {meshtastic.__version__}\n      \
+                Meshtastic Version: {meshtastic.the_version}\n      \
             **************************************************************\n    \
             **************************************************************\n\n ")
 
