@@ -110,15 +110,6 @@ def onDisconnect(interface):
     connect_to_radio()
     '''
 
-def onReceiveDataText(packet, interface):
-    logging.info(f"Received Data Text packet: {packet}")
-
-def onReceiveDataWaypoint(packet, interface):
-    logging.info(f"Received Waypoint packet: {packet}")
-
-def onLog(string, log_line, interface):
-    logging.info(f"Log line: {log_line}")
-
 def onNodeUpdate(node, interface):
     """
     Handle the event when a node is updated.
@@ -184,49 +175,16 @@ def should_trace_node(node, interface):
     return True
 
 def onReceiveText(packet, interface):
-    """
-    Handle the event when a text packet is received from another Meshtastic device.
-
-    Args:
-        packet (dict): The packet received from the Meshtastic device.
-        interface: The interface object that is connected to the Meshtastic device.
-    """
-    
-    logging.info(f"Received Text packet: {packet}")
-
-    if 'text' in packet:
-        text = packet['text']
-        logging.info(f"Text: {text}")
-
-def onReceiveUser(packet, interface):
-    """
-    Handle the event when a user packet is received from another Meshtastic device.
-
-    Args:
-        packet (dict): The packet received from the Meshtastic device.
-        interface: The interface object that is connected to the Meshtastic device.
-    """
-    
-    logging.info(f"Received User packet: {packet}")
-
-    if 'user' in packet:
-        user = packet['user']
-        logging.info(f"User: {user}")
+    logging.info(f"Received text packet: {packet}")
 
 def onReceivePosition(packet, interface):
-    """
-    Handle the event when a position packet is received from another Meshtastic device.
+    logging.info(f"Received position packet: {packet}")
 
-    Args:
-        packet (dict): The packet received from the Meshtastic device.
-        interface: The interface object that is connected to the Meshtastic device.
-    """
-    
-    logging.info(f"Received Position packet: {packet}")
+def onReceiveData(packet, interface):
+    logging.info(f"Received data packet: {packet}")
 
-    if 'position' in packet:
-        position = packet['position']
-        logging.info(f"Position: {position}")
+def onReceiveUser(packet, interface):
+    logging.info(f"Received user packet: {packet}")
 
 def onReceive(packet, interface):
     """
@@ -837,16 +795,14 @@ async def isConnected(interface):
 # Main loop
 logging.info("Starting Main Loop")
 
-pub.subscribe(onReceive, 'meshtastic.receive')
-pub.subscribe(onReceiveUser, 'meshtastic.receive.user')
-pub.subscribe(onReceiveDataText, 'meshtastic.receive.data.TEXT_MESSAGE_APP')
-pub.subscribe(onReceiveDataWaypoint, 'meshtastic.receive.data.8')
-pub.subscribe(onReceivePosition, 'meshtastic.recieve.position')
+pub.subscribe(onReceive, "meshtastic.receive")
+pub.subscribe(onReceiveUser, "meshtastic.receive.user")
+pub.subscribe(onReceiveText, "meshtastic.receive.text")
+pub.subscribe(onReceivePosition, "meshtastic.receive.position")
+pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
-#pub.subscribe(onLog, "meshtastic.log.line")
-
 
 while True:
     try:
