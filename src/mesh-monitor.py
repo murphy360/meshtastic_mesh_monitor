@@ -183,7 +183,9 @@ def onReceiveText(packet, interface):
         portnum = packet['decoded']['portnum']
         payload = packet['decoded']['payload']
         bitfield = packet['decoded']['bitfield']
-        logging.info(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}")
+        message_bytes = packet['decoded']['payload']
+        message_string = message_bytes.decode('utf-8')
+        logging.info(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
     else:
         logging.info(f"Packet does not contain decoded data")
         return
@@ -196,10 +198,10 @@ def onReceiveText(packet, interface):
         elif 'channel' in packet: # Message sent to a channel
             logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
             channelId = int(packet['channel'])
-            reply_to_message(interface, payload, channelId, "^all", from_node_num)
+            reply_to_message(interface, message_string, channelId, "^all", from_node_num)
         elif packet['toId'] == "^all": # Message sent to all nodes
             logging.info(f"Message broadcast to all nodes from {packet['from']}")
-            reply_to_message(interface, payload, 0, "^all", from_node_num)
+            reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
     logging.info(f"Received position packet: {packet}")
@@ -275,6 +277,9 @@ def onReceive(packet, interface):
             if portnum == 'TEXT_MESSAGE_APP':
                 logging.info("Moved to onReceiveText")
                 
+
+                
+
             elif portnum == 'POSITION_APP':
                 if 'latitude' in packet:
                     latitude = packet['latitude']
