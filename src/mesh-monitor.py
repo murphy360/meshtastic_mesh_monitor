@@ -113,7 +113,7 @@ def onDisconnect(interface):
 def onReceiveDataWaypoint(packet, interface):
     logging.info(f"Received Waypoint packet: {packet}")
 
-def onLog(log_line, interface):
+def onLog(log_line):
     logging.info(f"Log line: {log_line}")
 
 def onNodeUpdate(node, interface):
