@@ -827,7 +827,7 @@ logging.info("Starting Main Loop")
 
 pub.subscribe(onReceive, 'meshtastic.receive')
 pub.subscribe(onReceiveUser, 'meshtastic.receive.user')
-pub.subscribe(onReceiveDataText, 'meshtastic.receive.data.text')
+pub.subscribe(onReceiveDataText, 'meshtastic.receive.data.TEXT_MESSAGE_APP')
 pub.subscribe(onReceiveDataWaypoint, 'meshtastic.receive.data.8')
 pub.subscribe(onReceivePosition, 'meshtastic.recieve.position')
 pub.subscribe(onConnection, "meshtastic.connection.established")
