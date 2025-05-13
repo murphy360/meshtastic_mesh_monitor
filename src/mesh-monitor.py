@@ -820,7 +820,18 @@ def send_message(interface, message, channel, to_id):
         node_name = lookup_short_name(interface, to_id)
     logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
+async def isConnected(interface):
+    """
+    Check if the interface is connected.
 
+    Args:
+        interface: The interface to check the connection status.
+
+    Returns:
+        bool: True if connected, False otherwise.
+    """
+    isConnected = await interface.isConnected
+    logging.info(f"Interface is connected: {isConnected}")
 
 # Main loop
 logging.info("Starting Main Loop")
@@ -867,4 +878,5 @@ while True:
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
         interface.close()
+    isConnected(interface)
     time.sleep(connect_timeout)
