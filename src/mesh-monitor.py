@@ -110,6 +110,9 @@ def onDisconnect(interface):
     connect_to_radio()
     '''
 
+def onReceiveDataText(packet, interface):
+    logging.info(f"Received Data Text packet: {packet}")
+
 def onReceiveDataWaypoint(packet, interface):
     logging.info(f"Received Waypoint packet: {packet}")
 
