@@ -175,7 +175,31 @@ def should_trace_node(node, interface):
     return True
 
 def onReceiveText(packet, interface):
-    logging.info(f"Received text packet: {packet}")
+    logging.info(f"onReceiveText")
+    localNode = interface.getNode('^local')
+    from_node_num = packet['from']
+
+    if 'decoded' in packet:
+        portnum = packet['decoded']['portnum']
+        payload = packet['decoded']['payload']
+        bitfield = packet['decoded']['bitfield']
+        logging.info(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}")
+    else:
+        logging.info(f"Packet does not contain decoded data")
+        return
+
+    if 'toId' in packet:
+        to_id = packet['to']
+        if to_id == localNode.nodeNum: # Message sent directly to local node
+            logging.info(f"Message sent directly to local node from {packet['from']}")
+            send_message(interface, "Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
+        elif 'channel' in packet: # Message sent to a channel
+            logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
+            channelId = int(packet['channel'])
+            reply_to_message(interface, payload, channelId, "^all", from_node_num)
+        elif packet['toId'] == "^all": # Message sent to all nodes
+            logging.info(f"Message broadcast to all nodes from {packet['from']}")
+            reply_to_message(interface, payload, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
     logging.info(f"Received position packet: {packet}")
@@ -249,26 +273,8 @@ def onReceive(packet, interface):
             logging.info(log_string)
 
             if portnum == 'TEXT_MESSAGE_APP':
-                message_bytes = packet['decoded']['payload']
-                message_string = message_bytes.decode('utf-8')
+                logging.info("Moved to onReceiveText")
                 
-
-                if 'toId' in packet:
-                    to_id = packet['to']
-                    if to_id == localNode.nodeNum:
-                        logging.info(f"Message sent directly to local node from {packet['from']}")
-                        send_message(interface, "Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
-                        return
-                    elif 'channel' in packet:
-                        logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
-                        channelId = int(packet['channel'])
-                        reply_to_message(interface, message_string, channelId, "^all", node_num)
-                        return
-                    elif packet['toId'] == "^all":
-                        logging.info(f"Message broadcast to all nodes from {packet['from']}")
-                        reply_to_message(interface, message_string, 0, "^all", node_num)
-                        return
-
             elif portnum == 'POSITION_APP':
                 if 'latitude' in packet:
                     latitude = packet['latitude']
