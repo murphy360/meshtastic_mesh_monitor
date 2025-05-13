@@ -826,11 +826,11 @@ while True:
                 Interface Serial Port: {serial_port}\n      \
                 Interface Node Number: {node_info['num']}\n      \
                 Interface Node Short Name: {node_info['user']['shortName']}\n      \
+                Meshtastic Version: {meshtastic.__version__}\n      \
             **************************************************************\n    \
             **************************************************************\n\n ")
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
-    
+        interface.close()
     time.sleep(connect_timeout)
-interface.close()
