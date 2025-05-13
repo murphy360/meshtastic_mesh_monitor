@@ -821,6 +821,7 @@ def send_message(interface, message, channel, to_id):
     logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
 async def isConnected(interface):
+    logging.info(f"Checking connection status for interface")
     """
     Check if the interface is connected.
 
