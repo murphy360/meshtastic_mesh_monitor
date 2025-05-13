@@ -291,6 +291,34 @@ def onReceive(packet, interface):
                 return
             
             elif portnum == 'WAYPOINT_APP':
+
+                '''
+                {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': {
+                'portnum': 'WAYPOINT_APP', 
+                'payload': b'\x08\x80\xbc\x9bC\x15wC\xa3\x18\x1d\xd6\x8do\xcf \x012\x04test', 
+                'bitfield': 0, 
+                'waypoint': 
+                {
+                'id': 140959232, 
+                'latitudeI': 413352823, 
+                'longitudeI': -814772778, 
+                'expire': 1, 
+                'name': 'test', 
+                'raw': id: 140959232
+                latitude_i: 413352823
+                longitude_i: -814772778
+                expire: 1
+                name: "test"
+                }
+                }, 'id': 140959241, 'rxSnr': 6.0, 'hopLimit': 3, 'rxRssi': -41, 'hopStart': 3, 'relayNode': 240, 'raw': from: 2058949616
+                    to: 4294967295
+                    channel: 1
+                    decoded {
+                    portnum: WAYPOINT_APP
+                    payload: "\010\200\274\233C\025wC\243\030\035\326\215o\317 \0012\004test"
+                    bitfield: 0
+                }
+                '''
                 logging.info(f"Waypoint_APP: {packet}")
                 waypoint = packet['decoded']['waypoint']
                 if 'latitude' in waypoint and 'longitude' in waypoint:
@@ -702,21 +730,23 @@ def send_trace_route(interface, node_num, channel):
     global last_trace_sent_time
     logging.info(f"Sending traceroute request to node {node_num} on channel {channel}")
     try:
+        logging.info(f"inside send_trace_route")
         now = datetime.now(timezone.utc)
+        logging.info(f"Current time: {now}, Last trace sent time: {last_trace_sent_time}")
 
         if now - last_trace_sent_time < timedelta(seconds=30):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
-            return
-        
-        interface.sendTraceRoute(node_num, 5, channel)
-        last_trace_sent_time = now  # Update last trace sent time
-        logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
-        
-        admin_message = f"Node {lookup_short_name(interface, node_num)} has been traced"
-        send_message(interface, admin_message, private_channel_number, "^all")
+        else:
+            logging.info(f"Traceroute request to node {node_num} allowed")
+            interface.sendTraceRoute(node_num, 5, channel)
+            logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
+            last_trace_sent_time = now  # Update last trace sent time
+            logging.info(f"Updated last trace sent time: {last_trace_sent_time}")
+            admin_message = f"Node {lookup_short_name(interface, node_num)} has been traced"
+            send_message(interface, admin_message, private_channel_number, "^all")
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
-        return
+    logging.info(f"leaving send_trace_route")
 
 def send_message(interface, message, channel, to_id):
     """
