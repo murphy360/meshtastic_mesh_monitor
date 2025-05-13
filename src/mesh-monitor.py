@@ -793,12 +793,12 @@ def send_message(interface, message, channel, to_id):
 logging.info("Starting Main Loop")
 
 pub.subscribe(onReceive, 'meshtastic.receive')
-pub.subscribe(onReceiveDataWaypoint, 'meshtastic.receive.data.waypoint')
+pub.subscribe(onReceiveDataWaypoint, 'meshtastic.receive.data.8')
 pub.subscribe(onReceivePosition, 'meshtastic.recieve.position')
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
-#pub.subscribe(onLog, "meshtastic.log.line")
+pub.subscribe(onLog, "meshtastic.log.line")
 
 
 while True:
