@@ -222,6 +222,57 @@ def onReceiveNeighborInfo(packet, interface):
 
     logging.info(f"[FUNCTION] onReceiveNeighborInfo from {node_short_name} - {from_node_num}")
 
+def onReceiveTraceroute(packet, interface):
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveTraceroute from {node_short_name} - {from_node_num}")
+
+def onReceiveWaypoint(packet, interface):
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveWaypoint from {node_short_name} - {from_node_num}")
+    '''
+    {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': {
+    'portnum': 'WAYPOINT_APP', 
+    'payload': b'\x08\x80\xbc\x9bC\x15wC\xa3\x18\x1d\xd6\x8do\xcf \x012\x04test', 
+    'bitfield': 0, 
+    'waypoint': 
+    {
+    'id': 140959232, 
+    'latitudeI': 413352823, 
+    'longitudeI': -814772778, 
+    'expire': 1, 
+    'name': 'test', 
+    'raw': id: 140959232
+    latitude_i: 413352823
+    longitude_i: -814772778
+    expire: 1
+    name: "test"
+    }
+    }, 'id': 140959241, 'rxSnr': 6.0, 'hopLimit': 3, 'rxRssi': -41, 'hopStart': 3, 'relayNode': 240, 'raw': from: 2058949616
+        to: 4294967295
+        channel: 1
+        decoded {
+        portnum: WAYPOINT_APP
+        payload: "\010\200\274\233C\025wC\243\030\035\326\215o\317 \0012\004test"
+        bitfield: 0
+    }
+    '''
+    logging.info(f"Waypoint_APP: {packet}")
+    waypoint = packet['decoded']['waypoint']
+    if 'latitude' in waypoint and 'longitude' in waypoint:
+        latitude = waypoint['latitude']
+        longitude = waypoint['longitude']
+        my_location = find_my_location(interface, localNode.nodeNum)
+        # TODO Check if the waypoint is within a certain distance of the local node
+        message = f"Waypoint received from {node_short_name} at {latitude}, {longitude}"
+        send_message(interface, message, private_channel_number, "^all")
+    return
+
 def onReceive(packet, interface):
     """
     Handle the event when a packet is received from another Meshtastic device.
@@ -301,43 +352,8 @@ def onReceive(packet, interface):
                 return
             
             elif portnum == 'WAYPOINT_APP':
-
-                '''
-                {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': {
-                'portnum': 'WAYPOINT_APP', 
-                'payload': b'\x08\x80\xbc\x9bC\x15wC\xa3\x18\x1d\xd6\x8do\xcf \x012\x04test', 
-                'bitfield': 0, 
-                'waypoint': 
-                {
-                'id': 140959232, 
-                'latitudeI': 413352823, 
-                'longitudeI': -814772778, 
-                'expire': 1, 
-                'name': 'test', 
-                'raw': id: 140959232
-                latitude_i: 413352823
-                longitude_i: -814772778
-                expire: 1
-                name: "test"
-                }
-                }, 'id': 140959241, 'rxSnr': 6.0, 'hopLimit': 3, 'rxRssi': -41, 'hopStart': 3, 'relayNode': 240, 'raw': from: 2058949616
-                    to: 4294967295
-                    channel: 1
-                    decoded {
-                    portnum: WAYPOINT_APP
-                    payload: "\010\200\274\233C\025wC\243\030\035\326\215o\317 \0012\004test"
-                    bitfield: 0
-                }
-                '''
-                logging.info(f"Waypoint_APP: {packet}")
-                waypoint = packet['decoded']['waypoint']
-                if 'latitude' in waypoint and 'longitude' in waypoint:
-                    latitude = waypoint['latitude']
-                    longitude = waypoint['longitude']
-                    location = find_my_location(interface, localNode.nodeNum)
-                    message = f"Waypoint received from {node_short_name} at {latitude}, {longitude}"
-                    send_message(interface, message, private_channel_number, "^all")
-                return
+                logging.info("Waypoint packet received. Logic moved to onReceiveWaypoint")
+                
 
             elif portnum == 'TRACEROUTE_APP':
                 logging.info(f"Traceroute: {packet['decoded']['traceroute']}")
@@ -864,6 +880,8 @@ pub.subscribe(onReceiveText, "meshtastic.receive.text")
 pub.subscribe(onReceivePosition, "meshtastic.receive.position")
 pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
 pub.subscribe(onReceiveNeighborInfo, "meshtastic.receive.neighborinfo")
+pub.subscribe(onReceiveTraceRoute, "meshtastic.receive.traceroute")
+pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
