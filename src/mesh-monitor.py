@@ -930,7 +930,7 @@ def send_message(interface, message, channel, to_id):
 # Main loop
 logging.info("Starting Main Loop")
 
-#pub.subscribe(onReceive, "meshtastic.receive")
+pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onReceiveUser, "meshtastic.receive.user")
 pub.subscribe(onReceiveText, "meshtastic.receive.text")
 pub.subscribe(onReceivePosition, "meshtastic.receive.position")
