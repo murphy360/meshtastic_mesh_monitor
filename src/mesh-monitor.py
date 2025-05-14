@@ -399,7 +399,11 @@ def onReceiveWaypoint(packet, interface):
     longitude = waypoint['longitudeI']
     expire = waypoint['expire']
     name = waypoint['name']
-    logging.info(f"Waypoint ID: {id}, Latitude: {latitude}, Longitude: {longitude}, Expire: {expire}, Name: {name}")
+    if 'description' in waypoint:
+        description = waypoint['description']
+    else:
+        description = "No description"
+    logging.info(f"Waypoint ID: {id}, Latitude: {latitude}, Longitude: {longitude}, Expire: {expire}, Name: {name}, Description: {description}")
 
     if expire == 1:
         logging.info(f"Waypoint {name} is expired")
@@ -408,7 +412,7 @@ def onReceiveWaypoint(packet, interface):
         # expire is in epoch time, so convert to datetime
         expire_time = datetime.fromtimestamp(expire, tz=timezone.utc)
         logging.info(f"Waypoint {name} expires at {expire_time}")
-        send_message(interface, f"Waypoint {name} expires at {expire_time}", private_channel_number, "^all")
+        send_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", private_channel_number, "^all")
 
 def onReceiveNodeInfo(packet, interface):
     from_node_num = packet['from']
