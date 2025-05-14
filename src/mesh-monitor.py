@@ -136,6 +136,11 @@ def onReceiveText(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num}")
 
@@ -169,6 +174,11 @@ def onReceivePosition(packet, interface):
     node_num = packet['from']
     node_short_name = lookup_short_name(interface, node_num)
     node = interface.nodesByNum[node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceivePosition from {node_short_name} - {node_num}")
 
@@ -198,6 +208,11 @@ def onReceiveData(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
@@ -205,6 +220,11 @@ def onReceiveUser(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
 
@@ -212,6 +232,11 @@ def onReceiveTelemetry(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
 
@@ -219,6 +244,11 @@ def onReceiveNeighborInfo(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveNeighborInfo from {node_short_name} - {from_node_num}\n\n {packet['decoded']['neighbors']}")
     
@@ -231,6 +261,11 @@ def onReceiveTraceRoute(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveTraceroute from {node_short_name} - {from_node_num}")
     
@@ -322,6 +357,11 @@ def onReceiveWaypoint(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveWaypoint from {node_short_name} - {from_node_num}")
     '''
@@ -366,6 +406,11 @@ def onReceiveNodeInfo(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveNodeInfo from {node_short_name} - {from_node_num}")
 
@@ -375,6 +420,11 @@ def onReceiveRouting(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
 
     logging.info(f"[FUNCTION] onReceiveRouting from {node_short_name} - {from_node_num}")
     now = datetime.now(timezone.utc)
