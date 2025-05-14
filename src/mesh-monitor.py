@@ -954,7 +954,7 @@ while True:
             logging.info(f"Connected to {serial_port}")
     except Exception as e:
         logging.error(f"Error connecting to {serial_port}: {e}")
-        time.sleep(connect_timeout)
+        time.sleep(10)
         continue
 
     try:
