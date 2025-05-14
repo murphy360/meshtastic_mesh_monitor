@@ -456,6 +456,7 @@ def onReceiveRangeTest(packet, interface):
         return
 
     logging.info(f"[FUNCTION] onReceiveRangeTest from {node_short_name} - {from_node_num}")
+    logging.info(f"Range Test Packet: {packet}")
 
     return
 
