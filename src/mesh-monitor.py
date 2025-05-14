@@ -242,7 +242,7 @@ def onReceiveTraceRoute(packet, interface):
     message_string = ""
     originator_node = interface.nodesByNum[packet['from']]
     traced_node = interface.nodesByNum[packet['to']]
-    global last_trace_time
+    global last_trace_time, public_channel_number
     
     if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
         originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
@@ -271,7 +271,7 @@ def onReceiveTraceRoute(packet, interface):
             admin_message = f"Traceroute received from {node_short_name}"
             send_message(interface, admin_message, private_channel_number, "^all")
             reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
-            send_message(interface, reply_message, channelId, node_num)
+            send_message(interface, reply_message, public_channel_number, from_node_num)
             db_helper.set_node_of_interest(node, True)
 
     if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
@@ -384,6 +384,7 @@ def onReceiveRouting(packet, interface):
     return
 
 def onReceive(packet, interface):
+    logging.info(f"[FUNCTION] onReceive from {packet['from']}")
     """
     Handle the event when a packet is received from another Meshtastic device.
 
@@ -417,7 +418,7 @@ def onReceive(packet, interface):
             short_name_string_padded = node_short_name.ljust(4)
             if len(node_short_name) == 1:
                 short_name_string_padded = node_short_name + "  "
-            #log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum} on channel {channelId}"
+            log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum} on channel {channelId}"
 
             if node_of_interest:
                 log_string += " - Node of interest detected!"
@@ -476,6 +477,7 @@ def onReceive(packet, interface):
                 return
 
             else:
+                logging.info(f"Unhandled Packet received from {node_short_name} - {portnum}")
                 packet_type = packet['decoded']['portnum']
                 logging.info(f"Unhandled Packet received from {node_short_name} - {packet_type}")
                 logging.info(f"Packet: {packet}")
@@ -886,8 +888,8 @@ pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
 pub.subscribe(onReceiveNeighborInfo, "meshtastic.receive.neighborinfo")
 pub.subscribe(onReceiveTraceRoute, "meshtastic.receive.traceroute")
 pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
-#pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
-#pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
+pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
+pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
