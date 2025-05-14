@@ -204,11 +204,13 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
-    logging.info("onReceivePosition")
+    
 
     node_num = packet['from']
     node_short_name = lookup_short_name(interface, node_num)
     node = interface.nodesByNum[node_num]
+
+    logging.info(f"Received position packet from {node_short_name} - {node_num}")
 
     if 'latitude' in packet:
         latitude = packet['latitude']
@@ -398,6 +400,7 @@ def onReceive(packet, interface):
                         db_helper.set_node_of_interest(node, True)
 
                 if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
+                    logging.info(f"SNR TOWARDS:  {trace['snrTowards']}")
                     for hop in trace['snrTowards']:
                         snr_towards.append(hop)
 
@@ -412,11 +415,14 @@ def onReceive(packet, interface):
                 i = 0
                 for node in route_to:
                     message_string += f"{node['user']['shortName']}"
+                    logging.info(f"Length of snr_towards: {len(snr_towards)}")
                     if i < len(snr_towards):
                         message_string += f" ({snr_towards[i]}dB) -> "
 
+                i = 0
                 for node in route_back:
                     message_string += f"{node['user']['shortName']}"
+                    logging.info(f"Length of snr_back: {len(snr_back)}")
                     if i < len(snr_back):
                         message_string += f" ({snr_back[i]}dB) -> "
                 
