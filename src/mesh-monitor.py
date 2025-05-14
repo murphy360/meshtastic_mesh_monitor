@@ -171,16 +171,16 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
-    node_num = packet['from']
-    node_short_name = lookup_short_name(interface, node_num)
-    node = interface.nodesByNum[node_num]
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceivePosition from {node_short_name} - {node_num}")
+    logging.info(f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}")
 
     if 'latitude' in packet:
         latitude = packet['latitude']
@@ -200,7 +200,7 @@ def onReceivePosition(packet, interface):
             message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
             send_message(interface, message, private_channel_number, "^all")
             message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
-            send_message(interface, message, private_channel_number, node_num)
+            send_message(interface, message, private_channel_number, from_node_num)
             db_helper.set_aircraft(node, True)
     return
 
