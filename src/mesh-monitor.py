@@ -206,11 +206,37 @@ def onReceiveText(packet, interface):
 def onReceivePosition(packet, interface):
     logging.info(f"Received position packet: {packet}")
 
+    node_num = packet['from']
+    node_short_name = lookup_short_name(interface, node_num)
+    node = interface.nodesByNum[node_num]
+
+    if 'latitude' in packet:
+        latitude = packet['latitude']
+                
+    if 'longitude' in packet:
+        longitude = packet['longitude']
+    
+    if 'location_source' in packet:
+        if packet['location_source'] == 'LOC_MANUAL':
+            logging.info(f"{packet['location_source']} Location Source Detected from {node_short_name} not assessing further")
+            return
+
+    if 'altitude' in packet:
+        altitude = packet['altitude']
+        if altitude > 2000:
+            logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
+            message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
+            send_message(interface, message, private_channel_number, "^all")
+            message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
+            send_message(interface, message, private_channel_number, node_num)
+            db_helper.set_aircraft(node, True)
+    return
+
 def onReceiveData(packet, interface):
-    logging.info(f"Received data packet: {packet}")
+    logging.info(f"\n\nReceived data packet: {packet}\n\n")
 
 def onReceiveUser(packet, interface):
-    logging.info(f"Received user packet: {packet}")
+    logging.info(f"\n\nReceived user packet: {packet}\n\n")
 
 def onReceive(packet, interface):
     """
@@ -281,27 +307,7 @@ def onReceive(packet, interface):
                 
 
             elif portnum == 'POSITION_APP':
-                if 'latitude' in packet:
-                    latitude = packet['latitude']
-                
-                if 'longitude' in packet:
-                    longitude = packet['longitude']
-                
-                if 'location_source' in packet:
-                    if packet['location_source'] == 'LOC_MANUAL':
-                        logging.info(f"{packet['location_source']} Location Source Detected from {node_short_name} not assessing further")
-                        return
-
-                if 'altitude' in packet:
-                    altitude = packet['altitude']
-                    if altitude > 2000:
-                        logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
-                        message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
-                        send_message(interface, message, private_channel_number, "^all")
-                        message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
-                        send_message(interface, message, private_channel_number, node_num)
-                        db_helper.set_aircraft(node, True)
-                return
+                logging.info("Position packet received. Logic moved to onReceivePosition")
 
             elif portnum == 'NEIGHBORINFO_APP':
                 logging.info(f"Neighbors: {packet['decoded']['neighbors']}")
