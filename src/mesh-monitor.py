@@ -875,24 +875,10 @@ def send_message(interface, message, channel, to_id):
         node_name = lookup_short_name(interface, to_id)
     logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
-async def isConnected(interface):
-    logging.info(f"Checking connection status for interface")
-    """
-    Check if the interface is connected.
-
-    Args:
-        interface: The interface to check the connection status.
-
-    Returns:
-        bool: True if connected, False otherwise.
-    """
-    isConnected = await interface.isConnected
-    logging.info(f"Interface is connected: {isConnected}")
-
 # Main loop
 logging.info("Starting Main Loop")
 
-pub.subscribe(onReceive, "meshtastic.receive")
+#pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onReceiveUser, "meshtastic.receive.user")
 pub.subscribe(onReceiveText, "meshtastic.receive.text")
 pub.subscribe(onReceivePosition, "meshtastic.receive.position")
@@ -941,5 +927,4 @@ while True:
         if interface is not None:
             interface.close()
             interface = None
-    isConnected(interface)
     time.sleep(connect_timeout)
