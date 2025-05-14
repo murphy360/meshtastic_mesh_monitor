@@ -146,29 +146,30 @@ def should_trace_node(node, interface):
     node_num = node['num']
     now = datetime.now(timezone.utc)
 
-
-    # Check if we have ever traced this node. We should trace it if we have never traced it before.
-    if node_num not in last_trace_time:
-        logging.info(f"Node {node['user']['shortName']} has never been traced, should trace")
-        return True
-   
-    # Check if the node has been traced within the trace interval. If it has been traced recently, we should not trace it.
-    if not now - last_trace_time[node_num] <= trace_interval:
-        logging.info(f"Node {node['user']['shortName']} has been traced within the interval, should not trace")
-        return False
-
     # Check if the node has hopsAway attribute. If not, we should trace it.
     if "hopsAway" not in node:
         logging.info(f"Node {node['user']['shortName']} does not have hopsAway attribute, should trace")
         return True
-    
-    if node["hopsAway"] > 1:
-        logging.info(f"Node {node['user']['shortName']} has hopsAway > 1 and has not been traced within the interval, should trace")
-        return True
-    else:
+    # If node has hopsAway attribute, check if it is greater less than or equal to 1. We should not trace it if it is less than or equal to 1.
+    else: 
+        logging.info(f"Node {node['user']['shortName']} hopsAway: {node['hopsAway']}")
+        
+    if node["hopsAway"] <= 1:
         logging.info(f"Node {node['user']['shortName']} has hopsAway <= 1, should not trace")
         return False
-    
+
+    # Check if we have ever traced this node. If it has hops away > 1 and has not been traced within the interval, we should trace it.
+    if node_num in last_trace_time:
+        logging.info(f"Node {node['user']['shortName']} has been traced before, checking last trace time")
+        # Check if the node has been traced within the trace interval. If it has been traced recently, we should not trace it.
+        if now - last_trace_time[node_num] <= trace_interval:
+            logging.info(f"Node {node['user']['shortName']} has been traced within {trace_interval}, should not trace")
+            return False
+    # If the node has never been traced, we should trace it.
+    else:
+        logging.info(f"Node {node['user']['shortName']} has never been traced, should trace")
+        return True
+
     logging.info(f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here")
     admin_message = f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here"
     send_message(interface, admin_message, private_channel_number, "^all")
