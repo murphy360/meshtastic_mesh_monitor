@@ -228,6 +228,90 @@ def onReceiveTraceRoute(packet, interface):
     node = interface.nodesByNum[from_node_num]
 
     logging.info(f"[FUNCTION] onReceiveTraceroute from {node_short_name} - {from_node_num}")
+    
+    trace = packet['decoded']['traceroute']
+    route_to = []
+    snr_towards = []
+    route_back = []
+    snr_back = []
+    message_string = ""
+    originator_node = interface.nodesByNum[packet['from']]
+    traced_node = interface.nodesByNum[packet['to']]
+    global last_trace_time
+    
+    if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
+        originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
+        traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
+        # set last_trace_time for the traced node
+        last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
+        logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
+
+        logging.info(f"SNR BACK:  {trace['snrBack']}")
+        for hop in trace['snrBack']:
+            snr_back.append(hop)
+
+        if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
+
+            for hop in trace['routeBack']:
+                node = interface.nodesByNum[hop]
+                route_back.append(node)
+        route_back.append(originator_node) # Add the originator node to the route back (local node)
+
+    else: # If no route back in trace, then the trace was not initiated by the local node
+        logging.info(f"I've been traced by {node_short_name}")
+
+        if packet['to'] == localNode.nodeNum:
+            logging.info(f"I've been traced by {node_short_name} - {trace} Replying")
+            # Tell admin what the traceroute is
+            admin_message = f"Traceroute received from {node_short_name}"
+            send_message(interface, admin_message, private_channel_number, "^all")
+            reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
+            send_message(interface, reply_message, channelId, node_num)
+            db_helper.set_node_of_interest(node, True)
+
+    if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
+        logging.info(f"SNR TOWARDS:  {trace['snrTowards']}")
+        for hop in trace['snrTowards']:
+            snr_towards.append(hop)
+
+        route_to.append(originator_node)
+        if 'routeTo' in trace:
+            for hop in trace['routeTo']:
+                node = interface.nodesByNum[hop]
+                route_to.append(node)
+    
+    route_to.append(traced_node)
+    
+    i = 0
+    # Add the node names from route_to message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
+    for node in route_to:
+        message_string += f"{node['user']['shortName']}"
+        logging.info(f"Length of snr_towards: {len(snr_towards)}")
+        if i < len(snr_towards):
+            message_string += f" ({snr_towards[i]}dB) -> "
+            i += 1
+
+    i = 0
+    # Add the node names from route_back message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
+    for node in route_back:
+        logging.info(f"Length of snr_back: {len(snr_back)}")
+        if i < len(snr_back):
+            message_string += f" ({snr_back[i]}dB) -> "
+            i += 1
+        message_string += f"{node['user']['shortName']}"
+        
+    
+    # Strip trailing arrow
+    if message_string.endswith(" ->"):
+        message_string = message_string[:-3]
+
+    route_full = route_to + route_back
+    sitrep.add_trace(route_full)
+    
+    # Tell admin what the traceroute is
+    logging.info(f"Traceroute: {message_string}")
+    send_message(interface, message_string, private_channel_number, "^all")
+    return
 
 def onReceiveWaypoint(packet, interface):
     from_node_num = packet['from']
@@ -356,90 +440,7 @@ def onReceive(packet, interface):
                 
 
             elif portnum == 'TRACEROUTE_APP':
-                logging.info(f"Traceroute: {packet['decoded']['traceroute']}")
-                trace = packet['decoded']['traceroute']
-                route_to = []
-                snr_towards = []
-                route_back = []
-                snr_back = []
-                message_string = ""
-                originator_node = interface.nodesByNum[packet['from']]
-                traced_node = interface.nodesByNum[packet['to']]
-                global last_trace_time
-                
-                if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
-                    originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
-                    traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
-                    # set last_trace_time for the traced node
-                    last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
-                    logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
-
-                    logging.info(f"SNR BACK:  {trace['snrBack']}")
-                    for hop in trace['snrBack']:
-                        snr_back.append(hop)
-
-                    if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
-
-                        for hop in trace['routeBack']:
-                            node = interface.nodesByNum[hop]
-                            route_back.append(node)
-                    route_back.append(originator_node) # Add the originator node to the route back (local node)
-
-                else: # If no route back in trace, then the trace was not initiated by the local node
-                    logging.info(f"I've been traced by {node_short_name}")
-
-                    if packet['to'] == localNode.nodeNum:
-                        logging.info(f"I've been traced by {node_short_name} - {trace} Replying")
-                        # Tell admin what the traceroute is
-                        admin_message = f"Traceroute received from {node_short_name}"
-                        send_message(interface, admin_message, private_channel_number, "^all")
-                        reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
-                        send_message(interface, reply_message, channelId, node_num)
-                        db_helper.set_node_of_interest(node, True)
-
-                if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
-                    logging.info(f"SNR TOWARDS:  {trace['snrTowards']}")
-                    for hop in trace['snrTowards']:
-                        snr_towards.append(hop)
-
-                    route_to.append(originator_node)
-                    if 'routeTo' in trace:
-                        for hop in trace['routeTo']:
-                            node = interface.nodesByNum[hop]
-                            route_to.append(node)
-                
-                route_to.append(traced_node)
-                
-                i = 0
-                # Add the node names from route_to message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
-                for node in route_to:
-                    message_string += f"{node['user']['shortName']}"
-                    logging.info(f"Length of snr_towards: {len(snr_towards)}")
-                    if i < len(snr_towards):
-                        message_string += f" ({snr_towards[i]}dB) -> "
-                        i += 1
-
-                i = 0
-                # Add the node names from route_back message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
-                for node in route_back:
-                    logging.info(f"Length of snr_back: {len(snr_back)}")
-                    if i < len(snr_back):
-                        message_string += f" ({snr_back[i]}dB) -> "
-                        i += 1
-                    message_string += f"{node['user']['shortName']}"
-                    
-                
-                # Strip trailing arrow
-                if message_string.endswith(" ->"):
-                    message_string = message_string[:-3]
-
-                route_full = route_to + route_back
-                sitrep.add_trace(route_full)
-                
-                # Tell admin what the traceroute is
-                logging.info(f"Traceroute: {message_string}")
-                send_message(interface, message_string, private_channel_number, "^all")
-                return
+                logging.info("Traceroute packet received. Logic moved to onReceiveTraceRoute")
             
             elif portnum == 'TELEMETRY_APP':
                 #logging.info(f"Telemetry: {packet['decoded']['telemetry']}")
