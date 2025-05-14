@@ -418,6 +418,7 @@ def onReceive(packet, interface):
                     logging.info(f"Length of snr_towards: {len(snr_towards)}")
                     if i < len(snr_towards):
                         message_string += f" ({snr_towards[i]}dB) -> "
+                        i += 1
 
                 i = 0
                 for node in route_back:
@@ -425,6 +426,7 @@ def onReceive(packet, interface):
                     logging.info(f"Length of snr_back: {len(snr_back)}")
                     if i < len(snr_back):
                         message_string += f" ({snr_back[i]}dB) -> "
+                        i += 1
                 
                 # Strip trailing arrow
                 if message_string.endswith(" ->"):
