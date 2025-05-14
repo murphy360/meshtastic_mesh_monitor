@@ -925,6 +925,7 @@ while True:
     try:
         
         node_info = interface.getMyNodeInfo()
+        interface.sendHeartbeat()
         
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
