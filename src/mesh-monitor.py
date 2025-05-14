@@ -374,6 +374,7 @@ def onReceive(packet, interface):
                     last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
                     logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
 
+                    logging.info(f"SNR BACK:  {trace['snrBack']}")
                     for hop in trace['snrBack']:
                         snr_back.append(hop)
 
@@ -411,12 +412,12 @@ def onReceive(packet, interface):
                 i = 0
                 for node in route_to:
                     message_string += f"{node['user']['shortName']}"
-                    if i < len(snr_towards) - 1:
+                    if i < len(snr_towards):
                         message_string += f" ({snr_towards[i]}dB) -> "
 
                 for node in route_back:
                     message_string += f"{node['user']['shortName']}"
-                    if i < len(snr_back) - 1:
+                    if i < len(snr_back):
                         message_string += f" ({snr_back[i]}dB) -> "
                 
                 # Strip trailing arrow
