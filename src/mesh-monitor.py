@@ -909,10 +909,11 @@ while True:
             logging.info(f"\n\n \
             **************************************************************\n    \
             **************************************************************\n\n  \
-                Interface Connection Status: {interface.isConnected}\n      \
+                Main Loop - Node Info:\n      \
                 Interface Serial Port: {serial_port}\n      \
                 Interface Node Number: {node_info['num']}\n      \
                 Interface Node Short Name: {node_info['user']['shortName']}\n      \
+                Connection Timeout: {connect_timeout}\n      \
             **************************************************************\n    \
             **************************************************************\n\n ")
 
