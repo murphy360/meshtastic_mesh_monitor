@@ -220,7 +220,12 @@ def onReceiveNeighborInfo(packet, interface):
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
 
-    logging.info(f"[FUNCTION] onReceiveNeighborInfo from {node_short_name} - {from_node_num}")
+    logging.info(f"[FUNCTION] onReceiveNeighborInfo from {node_short_name} - {from_node_num}\n\n {packet['decoded']['neighbors']}")
+    
+    # Alert admin if a node is reporting neighbors
+    admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
+    send_message(interface, admin_message, private_channel_number, "^all")
+    return
 
 def onReceiveTraceRoute(packet, interface):
     from_node_num = packet['from']
@@ -357,6 +362,27 @@ def onReceiveWaypoint(packet, interface):
         send_message(interface, message, private_channel_number, "^all")
     return
 
+def onReceiveNodeInfo(packet, interface):
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveNodeInfo from {node_short_name} - {from_node_num}")
+
+    return
+
+def onReceiveRouting(packet, interface):
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveRouting from {node_short_name} - {from_node_num}")
+    now = datetime.now(timezone.utc)
+    now_string = now.strftime("%Y-%m-%d %H:%M:%S")
+    admin_message = f"Routing Packet received from {node_short_name} at {now_string}"
+    send_message(interface, admin_message, private_channel_number, "^all")
+    return
+
 def onReceive(packet, interface):
     """
     Handle the event when a packet is received from another Meshtastic device.
@@ -378,7 +404,6 @@ def onReceive(packet, interface):
         if 'channel' in packet:
             channelId = int(packet['channel'])
     
-
         if node_num == localNode.nodeNum:
             logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
             return
@@ -392,7 +417,7 @@ def onReceive(packet, interface):
             short_name_string_padded = node_short_name.ljust(4)
             if len(node_short_name) == 1:
                 short_name_string_padded = node_short_name + "  "
-            log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum} on channel {channelId}"
+            #log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum} on channel {channelId}"
 
             if node_of_interest:
                 log_string += " - Node of interest detected!"
@@ -420,45 +445,37 @@ def onReceive(packet, interface):
             logging.info(log_string)
 
             if portnum == 'TEXT_MESSAGE_APP':
-                logging.info("Moved to onReceiveText")
+                logging.info("TEXT_MESSAGE_APP packet received. Logic moved to onReceiveText")
+                return
                 
-
-                
-
             elif portnum == 'POSITION_APP':
                 logging.info("Position packet received. Logic moved to onReceivePosition")
+                return
 
             elif portnum == 'NEIGHBORINFO_APP':
-                logging.info(f"Neighbors: {packet['decoded']['neighbors']}")
-                # Alert admin if a node is reporting neighbors
-                admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
-                send_message(interface, admin_message, private_channel_number, "^all")
+                logging.info("NeighborInfo packet received. Logic moved to onReceiveNeighborInfo")
                 return
             
             elif portnum == 'WAYPOINT_APP':
                 logging.info("Waypoint packet received. Logic moved to onReceiveWaypoint")
-                
+                return
 
             elif portnum == 'TRACEROUTE_APP':
                 logging.info("Traceroute packet received. Logic moved to onReceiveTraceRoute")
             
             elif portnum == 'TELEMETRY_APP':
-                #logging.info(f"Telemetry: {packet['decoded']['telemetry']}")
+                logging.info("Telemetry packet received. Logic moved to onReceiveTelemetry")
                 return
             
             elif portnum == 'NODEINFO_APP':
-                logging.info(f"Node Info: {packet['decoded']}")
+                logging.info(f"NodeInfo packet received. Logic moved to onReceiveNodeInfo")
                 return
             
             elif portnum == 'ROUTING_APP':
-                logging.info(f"Routing: {packet['decoded']}")
-                now = datetime.now(timezone.utc)
-                now_string = now.strftime("%Y-%m-%d %H:%M:%S")
-                admin_message = f"Routing Packet received from {node_short_name} at {now_string}"
-                send_message(interface, admin_message, private_channel_number, "^all")
+                logging.info(f"Routing packet received. Logic moved to onReceiveRouting")
                 return
 
-            elif 'portnum' in packet['decoded']:
+            else:
                 packet_type = packet['decoded']['portnum']
                 logging.info(f"Unhandled Packet received from {node_short_name} - {packet_type}")
                 logging.info(f"Packet: {packet}")
@@ -883,6 +900,8 @@ pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
 pub.subscribe(onReceiveNeighborInfo, "meshtastic.receive.neighborinfo")
 pub.subscribe(onReceiveTraceRoute, "meshtastic.receive.traceroute")
 pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
+pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
+pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
