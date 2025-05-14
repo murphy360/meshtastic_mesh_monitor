@@ -434,7 +434,6 @@ def onReceiveRouting(packet, interface):
     return
 
 def onReceive(packet, interface):
-    logging.info(f"[FUNCTION] onReceive from {packet['from']}")
     """
     Handle the event when a packet is received from another Meshtastic device.
 
@@ -442,96 +441,73 @@ def onReceive(packet, interface):
         packet (dict): The packet received from the Meshtastic device.
         interface: The interface object that is connected to the Meshtastic device.
     """
-    
-    try:
-        if localNode == "":
-            logging.warning("Local node not set")
-            return
 
-        node_num = packet['from']
-        node_short_name = lookup_short_name(interface, node_num)
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    global public_channel_number, private_channel_number
+    channelId = public_channel_number
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
+    
+    logging.info(f"[FUNCTION] onReceive from {node_short_name} - {from_node_num}")
+
+    try:
         
-        channelId = 0
         if 'channel' in packet:
             channelId = int(packet['channel'])
     
-        if node_num == localNode.nodeNum:
+        if from_node_num == localNode.nodeNum:
             logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
             return
 
         if 'decoded' in packet:
-            node = interface.nodesByNum[node_num]
-            new_node = db_helper.add_or_update_node(node)
-            node_of_interest = db_helper.is_node_of_interest(node)
             portnum = packet['decoded']['portnum']
             sitrep.log_packet_received(portnum)
+
             short_name_string_padded = node_short_name.ljust(4)
             if len(node_short_name) == 1:
                 short_name_string_padded = node_short_name + "  "
-            log_string = f"Packet received from {short_name_string_padded} - {node_num} - {portnum} on channel {channelId}"
+            log_string = f"Packet received from {short_name_string_padded} - {from_node_num} - {portnum} on channel {channelId}"
 
+            node_of_interest = db_helper.is_node_of_interest(node)
             if node_of_interest:
                 log_string += " - Node of interest detected!"
                 check_node_health(interface, node)
-                            
+
+            new_node = db_helper.add_or_update_node(node)                
             if new_node:
                 log_string += " - New node detected!"
                 private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
-                send_message(interface, private_message, public_channel_number, node_num)
+                send_message(interface, private_message, public_channel_number, from_node_num)
 
                 # Notify admin of new node
                 admin_message = f"New node detected: {node_short_name}"
                 send_message(interface, admin_message, private_channel_number, "^all")
+
+                # TODO Send my position/user info to the new node to get their position. 
                 
-                # TODO Request node position
-                
-            
             # Check if the node is of interest should be traced and send traceroute packet if so
             if should_trace_node(node, interface):
-                send_trace_route(interface, node_num, public_channel_number)
+                send_trace_route(interface, from_node_num, public_channel_number)
                 
-            
             admin_message = f"Node {node_short_name} "
 
             logging.info(log_string)
 
-            if portnum == 'TEXT_MESSAGE_APP':
-                logging.info("TEXT_MESSAGE_APP packet received. Logic moved to onReceiveText")
+            portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
+            if portnum in portnums_handled:
+                # These packets are handled in their own functions
                 return
                 
-            elif portnum == 'POSITION_APP':
-                logging.info("Position packet received. Logic moved to onReceivePosition")
-                return
-
-            elif portnum == 'NEIGHBORINFO_APP':
-                logging.info("NeighborInfo packet received. Logic moved to onReceiveNeighborInfo")
-                return
-            
-            elif portnum == 'WAYPOINT_APP':
-                logging.info("Waypoint packet received. Logic moved to onReceiveWaypoint")
-                return
-
-            elif portnum == 'TRACEROUTE_APP':
-                logging.info("Traceroute packet received. Logic moved to onReceiveTraceRoute")
-            
-            elif portnum == 'TELEMETRY_APP':
-                logging.info("Telemetry packet received. Logic moved to onReceiveTelemetry")
-                return
-            
-            elif portnum == 'NODEINFO_APP':
-                logging.info(f"NodeInfo packet received. Logic moved to onReceiveNodeInfo")
-                return
-            
-            elif portnum == 'ROUTING_APP':
-                logging.info(f"Routing packet received. Logic moved to onReceiveRouting")
-                return
-
             else:
                 logging.info(f"Unhandled Packet received from {node_short_name} - {portnum}")
-                packet_type = packet['decoded']['portnum']
-                logging.info(f"Unhandled Packet received from {node_short_name} - {packet_type}")
                 logging.info(f"Packet: {packet}")
-                admin_message = f"Unhandled Packet received from {node_short_name} - {packet_type}"
+                admin_message = f"Unhandled Packet received from {node_short_name} - {portnum}"
                 send_message(interface, admin_message, private_channel_number, "^all")
                 return
         else:
