@@ -153,9 +153,9 @@ def should_trace_node(node, interface):
     # If node has hopsAway attribute, check if it is greater less than or equal to 1. We should not trace it if it is less than or equal to 1.
     else: 
         logging.info(f"Node {node['user']['shortName']} hopsAway: {node['hopsAway']}")
-        
-    if node["hopsAway"] <= 1:
-        logging.info(f"Node {node['user']['shortName']} has hopsAway <= 1, should not trace")
+
+    if node["hopsAway"] < 1:
+        logging.info(f"Node {node['user']['shortName']} has hopsAway < 1, should not trace")
         return False
 
     # Check if we have ever traced this node. If it has hops away > 1 and has not been traced within the interval, we should trace it.
