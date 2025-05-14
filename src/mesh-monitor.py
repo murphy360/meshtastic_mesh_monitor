@@ -413,6 +413,7 @@ def onReceive(packet, interface):
                 route_to.append(traced_node)
                 
                 i = 0
+                # Add the node names from route_to message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
                 for node in route_to:
                     message_string += f"{node['user']['shortName']}"
                     logging.info(f"Length of snr_towards: {len(snr_towards)}")
@@ -421,12 +422,14 @@ def onReceive(packet, interface):
                         i += 1
 
                 i = 0
+                # Add the node names from route_back message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
                 for node in route_back:
-                    message_string += f"{node['user']['shortName']}"
                     logging.info(f"Length of snr_back: {len(snr_back)}")
                     if i < len(snr_back):
                         message_string += f" ({snr_back[i]}dB) -> "
                         i += 1
+                    message_string += f"{node['user']['shortName']}"
+                    
                 
                 # Strip trailing arrow
                 if message_string.endswith(" ->"):
