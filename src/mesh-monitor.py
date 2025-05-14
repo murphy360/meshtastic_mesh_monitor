@@ -435,11 +435,17 @@ def onReceiveRouting(packet, interface):
 
 def onReceive(packet, interface):
     """
-    Handle the event when a packet is received from another Meshtastic device.
+    Handles incoming packets not specifically handled by other functions.
+
+    This function is called when a packet is received from the Meshtastic device.
+    It processes the packet and performs actions based on its content.
 
     Args:
-        packet (dict): The packet received from the Meshtastic device.
-        interface: The interface object that is connected to the Meshtastic device.
+        packet (dict): The received packet data.
+        interface: The interface object representing the connection to the Meshtastic device.
+
+    Returns:
+        None
     """
 
     from_node_num = packet['from']
@@ -454,7 +460,7 @@ def onReceive(packet, interface):
         # Ignore packets from local node
         return
     
-    logging.info(f"[FUNCTION] onReceive from {node_short_name} - {from_node_num}")
+    #logging.info(f"[FUNCTION] onReceive from {node_short_name} - {from_node_num}")
 
     try:
         
@@ -464,47 +470,35 @@ def onReceive(packet, interface):
         if from_node_num == localNode.nodeNum:
             logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
             return
+        
+        new_node = db_helper.add_or_update_node(node)                
+        if new_node:
+            logging.info(f"New node detected: {node_short_name} - {from_node_num}")
+            private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
+            send_message(interface, private_message, public_channel_number, from_node_num)
+
+            # Notify admin of new node
+            admin_message = f"New node detected: {node_short_name}"
+            send_message(interface, admin_message, private_channel_number, "^all")
+
+            # TODO Send my position/user info to the new node to get their position. 
+
+        # Check if the node is a node of interest
+        node_of_interest = db_helper.is_node_of_interest(node)
+        if node_of_interest:
+            logging.info(f"Node of interest: {node_short_name} - {from_node_num}")
+            check_node_health(interface, node)
+
+        # Check if the node should be traced and send traceroute packet if so
+        if should_trace_node(node, interface):
+            send_trace_route(interface, from_node_num, public_channel_number)
 
         if 'decoded' in packet:
+            portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
             portnum = packet['decoded']['portnum']
             sitrep.log_packet_received(portnum)
 
-            short_name_string_padded = node_short_name.ljust(4)
-            if len(node_short_name) == 1:
-                short_name_string_padded = node_short_name + "  "
-            log_string = f"Packet received from {short_name_string_padded} - {from_node_num} - {portnum} on channel {channelId}"
-
-            node_of_interest = db_helper.is_node_of_interest(node)
-            if node_of_interest:
-                log_string += " - Node of interest detected!"
-                check_node_health(interface, node)
-
-            new_node = db_helper.add_or_update_node(node)                
-            if new_node:
-                log_string += " - New node detected!"
-                private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
-                send_message(interface, private_message, public_channel_number, from_node_num)
-
-                # Notify admin of new node
-                admin_message = f"New node detected: {node_short_name}"
-                send_message(interface, admin_message, private_channel_number, "^all")
-
-                # TODO Send my position/user info to the new node to get their position. 
-                
-            # Check if the node is of interest should be traced and send traceroute packet if so
-            if should_trace_node(node, interface):
-                send_trace_route(interface, from_node_num, public_channel_number)
-                
-            admin_message = f"Node {node_short_name} "
-
-            logging.info(log_string)
-
-            portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
-            if portnum in portnums_handled:
-                # These packets are handled in their own functions
-                return
-                
-            else:
+            if portnum not in portnums_handled:
                 logging.info(f"Unhandled Packet received from {node_short_name} - {portnum}")
                 logging.info(f"Packet: {packet}")
                 admin_message = f"Unhandled Packet received from {node_short_name} - {portnum}"
@@ -513,6 +507,8 @@ def onReceive(packet, interface):
         else:
             logging.info(f"Packet received from {node_short_name} - Encrypted")
             sitrep.log_packet_received("Encrypted")
+            admin_message = f"Encrypted Packet received from {node_short_name}"
+            send_message(interface, admin_message, private_channel_number, "^all")
             return
 
     except KeyError as e:
