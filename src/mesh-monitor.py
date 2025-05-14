@@ -944,8 +944,19 @@ pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
-interface = meshtastic.serial_interface.SerialInterface(serial_port)
+
 while True:
+
+    try:
+        if interface is None:
+            logging.info(f"Connecting to {serial_port} with timeout {connect_timeout}")
+            interface = meshtastic.serial_interface.SerialInterface(serial_port, connect_timeout=connect_timeout)
+            logging.info(f"Connected to {serial_port}")
+    except Exception as e:
+        logging.error(f"Error connecting to {serial_port}: {e}")
+        time.sleep(connect_timeout)
+        continue
+
     try:
         
         node_info = interface.getMyNodeInfo()
