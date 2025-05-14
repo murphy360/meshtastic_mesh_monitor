@@ -133,9 +133,13 @@ def onNodeUpdate(node, interface):
     db_helper.add_or_update_node(node)
 
 def onReceiveText(packet, interface):
-    logging.info(f"onReceiveText")
-    localNode = interface.getNode('^local')
     from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num}")
+
+    localNode = interface.getNode('^local')
 
     if 'decoded' in packet:
         portnum = packet['decoded']['portnum']
@@ -166,7 +170,7 @@ def onReceivePosition(packet, interface):
     node_short_name = lookup_short_name(interface, node_num)
     node = interface.nodesByNum[node_num]
 
-    logging.info(f"Received position packet from {node_short_name} - {node_num}")
+    logging.info(f"[FUNCTION] onReceivePosition from {node_short_name} - {node_num}")
 
     if 'latitude' in packet:
         latitude = packet['latitude']
@@ -191,10 +195,32 @@ def onReceivePosition(packet, interface):
     return
 
 def onReceiveData(packet, interface):
-    logging.info(f"\n\nReceived data packet: {packet}\n\n")
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
 def onReceiveUser(packet, interface):
-    logging.info(f"\n\nReceived user packet: {packet}\n\n")
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
+
+def onReceiveTelemetry(packet, interface):
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
+
+def onReceiveNeighborInfo(packet, interface):
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+
+    logging.info(f"[FUNCTION] onReceiveNeighborInfo from {node_short_name} - {from_node_num}")
 
 def onReceive(packet, interface):
     """
@@ -836,6 +862,8 @@ pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onReceiveUser, "meshtastic.receive.user")
 pub.subscribe(onReceiveText, "meshtastic.receive.text")
 pub.subscribe(onReceivePosition, "meshtastic.receive.position")
+pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
+pub.subscribe(onReceiveNeighborInfo, "meshtastic.receive.neighborinfo")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
