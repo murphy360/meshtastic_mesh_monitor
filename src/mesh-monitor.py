@@ -204,7 +204,7 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
-    logging.info(f"Received position packet: {packet}")
+    logging.info("onReceivePosition")
 
     node_num = packet['from']
     node_short_name = lookup_short_name(interface, node_num)
@@ -359,7 +359,9 @@ def onReceive(packet, interface):
                 logging.info(f"Traceroute: {packet['decoded']['traceroute']}")
                 trace = packet['decoded']['traceroute']
                 route_to = []
+                snr_towards = []
                 route_back = []
+                snr_back = []
                 message_string = ""
                 originator_node = interface.nodesByNum[packet['from']]
                 traced_node = interface.nodesByNum[packet['to']]
@@ -371,6 +373,9 @@ def onReceive(packet, interface):
                     # set last_trace_time for the traced node
                     last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
                     logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
+
+                    for hop in trace['snrBack']:
+                        snr_back.append(hop)
 
                     if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
 
@@ -392,6 +397,9 @@ def onReceive(packet, interface):
                         db_helper.set_node_of_interest(node, True)
 
                 if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
+                    for hop in trace['snrTowards']:
+                        snr_towards.append(hop)
+
                     route_to.append(originator_node)
                     if 'routeTo' in trace:
                         for hop in trace['routeTo']:
@@ -400,11 +408,16 @@ def onReceive(packet, interface):
                 
                 route_to.append(traced_node)
                 
+                i = 0
                 for node in route_to:
-                    message_string += f"{node['user']['shortName']} -> "
+                    message_string += f"{node['user']['shortName']}"
+                    if i < len(snr_towards) - 1:
+                        message_string += f" ({snr_towards[i]}dB) -> "
 
                 for node in route_back:
-                    message_string += f"{node['user']['shortName']} ->"
+                    message_string += f"{node['user']['shortName']}"
+                    if i < len(snr_back) - 1:
+                        message_string += f" ({snr_back[i]}dB) -> "
                 
                 # Strip trailing arrow
                 if message_string.endswith(" ->"):
