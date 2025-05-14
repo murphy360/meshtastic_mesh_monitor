@@ -487,12 +487,14 @@ class SITREP:
             else:
                 log_message += "\nHops Away Not in Node Data"
                 
-            logging.info(log_message)
+            #logging.info(log_message)
             self.nodes_connected += 1
                 
         if self.nodes_connected <= 20:
+            logging.info(f"Nodes Connected: {self.nodes_connected} - {response_string}")
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
+            logging.info(f"Nodes Connected: {self.nodes_connected}")
             response_string = str(self.nodes_connected)
         return response_string
 
