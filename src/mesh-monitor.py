@@ -393,14 +393,22 @@ def onReceiveWaypoint(packet, interface):
     '''
     logging.info(f"Waypoint_APP: {packet}")
     waypoint = packet['decoded']['waypoint']
-    if 'latitude' in waypoint and 'longitude' in waypoint:
-        latitude = waypoint['latitude']
-        longitude = waypoint['longitude']
-        my_location = find_my_location(interface, localNode.nodeNum)
-        # TODO Check if the waypoint is within a certain distance of the local node
-        message = f"Waypoint received from {node_short_name} at {latitude}, {longitude}"
-        send_message(interface, message, private_channel_number, "^all")
-    return
+    logging.info(f"Waypoint: {waypoint}")
+    id = waypoint['id']
+    latitude = waypoint['latitudeI']
+    longitude = waypoint['longitudeI']
+    expire = waypoint['expire']
+    name = waypoint['name']
+    logging.info(f"Waypoint ID: {id}, Latitude: {latitude}, Longitude: {longitude}, Expire: {expire}, Name: {name}")
+
+    if expire == 1:
+        logging.info(f"Waypoint {name} is expired")
+        send_message(interface, f"Waypoint {name} is expired", private_channel_number, "^all")
+    else:
+        # expire is in epoch time, so convert to datetime
+        expire_time = datetime.fromtimestamp(expire, tz=timezone.utc)
+        logging.info(f"Waypoint {name} expires at {expire_time}")
+        send_message(interface, f"Waypoint {name} expires at {expire_time}", private_channel_number, "^all")
 
 def onReceiveNodeInfo(packet, interface):
     from_node_num = packet['from']
