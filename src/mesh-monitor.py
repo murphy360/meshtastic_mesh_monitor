@@ -446,17 +446,45 @@ def onReceiveRouting(packet, interface):
     return
 
 def onReceiveRangeTest(packet, interface):
+    '''
+    {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': 
+        {
+            'portnum': 'RANGE_TEST_APP', 
+            'payload': b'seq 29', 
+            'bitfield': 0, 
+            'text': 'seq 29'
+        }, 
+    'id': 1410720800, 
+    'rxSnr': 5.75, 
+    'rxRssi': -66, 
+    'raw': 
+        from: 2058949616
+        to: 4294967295
+        channel: 1
+    decoded 
+    {
+        portnum: RANGE_TEST_APP
+        payload: "seq 29"
+        bitfield: 0
+    }
+        id: 1410720800
+        rx_snr: 5.75
+        rx_rssi: -66, 
+        'fromId': '!7ab913f0', 
+        'toId': '^all'
+    }
+    '''
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
+    sequence = packet['decoded']['text'].split(" ")[1]
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveRangeTest from {node_short_name} - {from_node_num}")
-    logging.info(f"Range Test Packet: {packet}")
+    logging.info(f"[FUNCTION] onReceiveRangeTest from {node_short_name} - {from_node_num} - Sequence: {sequence}")
 
     return
 
