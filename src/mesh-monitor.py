@@ -950,7 +950,7 @@ while True:
     try:
         if interface is None:
             logging.info(f"Connecting to {serial_port} with timeout {connect_timeout}")
-            interface = meshtastic.serial_interface.SerialInterface(serial_port, connect_timeout=connect_timeout)
+            interface = meshtastic.serial_interface.SerialInterface(serial_port)
             logging.info(f"Connected to {serial_port}")
     except Exception as e:
         logging.error(f"Error connecting to {serial_port}: {e}")
