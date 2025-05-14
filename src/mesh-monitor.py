@@ -222,7 +222,7 @@ def onReceiveNeighborInfo(packet, interface):
 
     logging.info(f"[FUNCTION] onReceiveNeighborInfo from {node_short_name} - {from_node_num}")
 
-def onReceiveTraceroute(packet, interface):
+def onReceiveTraceRoute(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
