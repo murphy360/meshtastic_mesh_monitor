@@ -445,6 +445,20 @@ def onReceiveRouting(packet, interface):
     send_message(interface, admin_message, private_channel_number, "^all")
     return
 
+def onReceiveRangeTest(packet, interface):
+    from_node_num = packet['from']
+    node_short_name = lookup_short_name(interface, from_node_num)
+    node = interface.nodesByNum[from_node_num]
+    localNode = interface.getNode('^local')
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
+
+    logging.info(f"[FUNCTION] onReceiveRangeTest from {node_short_name} - {from_node_num}")
+
+    return
+
 def onReceive(packet, interface):
     """
     Handles incoming packets not specifically handled by other functions.
@@ -923,6 +937,7 @@ pub.subscribe(onReceiveTraceRoute, "meshtastic.receive.traceroute")
 pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
 pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
 pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
+pub.subscribe(onReceiveRangeTest, "meshtastic.receive.rangetest")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
