@@ -866,8 +866,7 @@ def send_trace_route(interface, node_num, channel):
     try:
         logging.info(f"inside send_trace_route")
         now = datetime.now(timezone.utc)
-        logging.info(f"Current time: {now}, Last trace sent time: {last_trace_sent_time}")
-
+        #logging.info(f"Current time: {now}, Last trace sent time: {last_trace_sent_time}")
         if now - last_trace_sent_time < timedelta(seconds=30):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
         else:
@@ -921,38 +920,38 @@ pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
+interface = meshtastic.serial_interface.SerialInterface(serial_port)
 while True:
     try:
         
+        node_info = interface.getMyNodeInfo()
         
-        if interface is None:
-            logging.info("Interface is None, connecting to radio")
-            interface = meshtastic.serial_interface.SerialInterface(serial_port)
-        else: 
+        # Send a routine sitrep every 24 hours at 00:00 UTC        
+        sitrep.send_sitrep_if_new_day(interface)
 
-            node_info = interface.getMyNodeInfo()
-            
+        # Used by meshtastic_mesh_visualizer to display nodes on a map
+        sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
 
-            # Send a routine sitrep every 24 hours at 00:00 UTC        
-            sitrep.send_sitrep_if_new_day(interface)
-
-            # Used by meshtastic_mesh_visualizer to display nodes on a map
-            sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
-
-            logging.info(f"\n\n \
-            **************************************************************\n    \
-            **************************************************************\n\n  \
-                Main Loop - Node Info:\n      \
-                Interface Serial Port: {serial_port}\n      \
-                Interface Node Number: {node_info['num']}\n      \
-                Interface Node Short Name: {node_info['user']['shortName']}\n      \
-                Connection Timeout: {connect_timeout}\n      \
-            **************************************************************\n    \
-            **************************************************************\n\n ")
+        logging.info(f"\n\n \
+        **************************************************************\n    \
+        **************************************************************\n\n  \
+            Main Loop - Node Info:\n      \
+            Interface Serial Port: {serial_port}\n      \
+            Interface Node Number: {node_info['num']}\n      \
+            Interface Node Short Name: {node_info['user']['shortName']}\n      \
+            Connection Timeout: {connect_timeout}\n      \
+        **************************************************************\n    \
+        **************************************************************\n\n ")
 
     except Exception as e:
         logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
+        
         if interface is not None:
             interface.close()
             interface = None
+        else: 
+            interface.close()
+        
+        interface = meshtastic.serial_interface.SerialInterface(serial_port)
+            
     time.sleep(connect_timeout)
