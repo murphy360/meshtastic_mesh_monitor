@@ -951,8 +951,8 @@ pub.subscribe(onReceiveTraceRoute, "meshtastic.receive.traceroute")
 pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
 pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
 pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
-pub.subscribe(onReceiveRangeTest, "meshtastic.receive.data.66")  # RANGE_TEST_APP portnum is 66
-pub.subscribe(onReceiveRangeTest, "meshtastic.receive.range")
+pub.subscribe(onReceiveRangeTest, "meshtastic.receive.data.RANGE_TEST_APP")  # RANGE_TEST_APP portnum is 66
+pub.subscribe(onReceiveRangeTest, "meshtastic.receive.RANGE_TEST_APP")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
