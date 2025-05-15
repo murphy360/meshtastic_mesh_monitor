@@ -946,24 +946,13 @@ pub.subscribe(onDisconnect, "meshtastic.connection.lost")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 
 
+interface = meshtastic.serial_interface.SerialInterface(serial_port)
 while True:
 
     try:
-        if interface is None:
-            logging.info(f"Connecting to {serial_port}")
-            interface = meshtastic.serial_interface.SerialInterface(serial_port)
-            logging.info(f"Connected to {serial_port}")
-    except Exception as e:
-        logging.error(f"Error connecting to {serial_port}: {e}")
-        
-        time.sleep(10)
-        continue
-
-    try:
-        
         node_info = interface.getMyNodeInfo()
         interface.sendHeartbeat()
-        
+    
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
 
