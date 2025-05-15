@@ -549,7 +549,12 @@ def onLog(line, interface):
     Args:
         line (str): The log message.
     """
-    logging.info(f"Log: {line}")
+    #logging.info(f"Log: {line}")
+    # write to file
+    with open('/data/mesh_monitor.log', 'a') as f:
+        f.write(f"{line}\n")
+
+
 
 def should_trace_node(node, interface):
     """
