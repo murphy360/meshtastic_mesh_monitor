@@ -22,7 +22,6 @@ connect_timeout = 60 # seconds
 host = 'meshtastic.local'
 short_name = 'Monitor'  # Overwritten in onConnection
 long_name = 'Mesh Monitor'  # Overwritten in onConnection
-interface = None
 db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
@@ -35,24 +34,6 @@ serial_port = '/dev/ttyUSB0'
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
 
 logging.info("Starting Mesh Monitor")
-
-def connect_to_radio():
-    """
-    Connect to the Meshtastic radio device.
-
-    Returns:
-        interface: The interface object representing the connection, or None if the connection fails.
-    """
-    
-    try:
-        logging.info(f"Connecting to radio on {serial_port}")
-        interface = meshtastic.serial_interface.SerialInterface(serial_port)
-        
-    except Exception as e:
-        logging.error(f"Error connecting to interface on {serial_port}: {e}")
-        return None
-
-    return interface
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
@@ -100,15 +81,6 @@ def onDisconnect(interface):
                 Disconnected from {serial_port}\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
-    
-    ''' if initial_connect:
-        logging.info("Initial connect")
-
-    if interface is not None:
-        logging.info("Closing interface")
-        interface.close()
-    connect_to_radio()
-    '''
 
 def onNodeUpdate(node, interface):
     """
@@ -983,6 +955,7 @@ while True:
             logging.info(f"Connected to {serial_port}")
     except Exception as e:
         logging.error(f"Error connecting to {serial_port}: {e}")
+        
         time.sleep(10)
         continue
 
