@@ -967,6 +967,7 @@ pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
 pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
 pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
 pub.subscribe(onReceiveRangeTest, "meshtastic.receive.rangetest")
+pub.subscribe(onReceiveRangeTest, "meshtastic.receive.range")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
@@ -977,7 +978,7 @@ while True:
 
     try:
         if interface is None:
-            logging.info(f"Connecting to {serial_port} with timeout {connect_timeout}")
+            logging.info(f"Connecting to {serial_port}")
             interface = meshtastic.serial_interface.SerialInterface(serial_port)
             logging.info(f"Connected to {serial_port}")
     except Exception as e:
