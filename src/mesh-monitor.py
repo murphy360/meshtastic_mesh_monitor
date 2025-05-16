@@ -46,13 +46,15 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info("Connection established")
     global localNode, location, short_name, long_name, sitrep, initial_connect
     localNode = interface.getNode('^local')
+    node_info = interface.getMyNodeInfo()
     short_name = lookup_short_name(interface, localNode.nodeNum)
     long_name = lookup_long_name(interface, localNode.nodeNum)
     location = find_my_location(interface, localNode.nodeNum)
     logging.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
-                    Connected to {long_name} on {interface} \n\n \
+                    Connected to {long_name} on {short_name} \n\n \
+                    {localNode.showInfo()}\n \
                 **************************************************************\n \
                 **************************************************************\n\n ")
 
