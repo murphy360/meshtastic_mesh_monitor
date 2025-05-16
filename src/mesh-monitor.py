@@ -35,17 +35,6 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 
 logging.info("Starting Mesh Monitor")
 
-def onConnectionAny(interface, topic=pub.AUTO_TOPIC):
-    """
-    Handle the event when a connection to any Meshtastic device is established.
-
-    Args:
-        interface: The interface object representing the connection.
-        topic: The topic of the connection (default: pub.AUTO_TOPIC).
-    """
-    logging.info(f"Connected to {interface} on topic {topic}")
-    #pub.sendMessage('onConnection', interface=interface, topic=topic)
-
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
     Handle the event when a connection to the Meshtastic device is established.
@@ -967,7 +956,6 @@ pub.subscribe(onReceiveRangeTest, "meshtastic.receive.rangetestapp")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
 pub.subscribe(onDisconnect, "meshtastic.connection.lost")
-pub.subscribe(onConnectionAny, "meshtastic.connection")
 pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 pub.subscribe(onLog, "meshtastic.log")
 
