@@ -42,6 +42,38 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     Args:
         interface: The interface object representing the connection.
         topic: The topic of the connection (default: pub.AUTO_TOPIC).
+
+ {
+ 'num': 667704512, 
+ 'user': {
+ 'id': '!27cc5cc0', 
+ 'longName': "Don't Panic Mesh Monitor", 
+ 'shortName': 'DPMM', 
+ 'macaddr': 'PIQnzFzA', 
+ 'hwModel': 'T_DECK', 
+ 'publicKey': 'QIx3ZIxRAdAt1Z0zWiP+89X4rlXtR9tvLrH2ZAMcehI='
+ }, 
+ 'position': {
+ 'latitudeI': 413318362, 'longitudeI': -814774529, 'altitude': 340, 
+ 'locationSource': 'LOC_MANUAL', 'groundSpeed': 0, 'groundTrack': 0, 'precisionBits': 32, 
+ 'raw': 
+latitude_i: 413318362
+longitude_i: -814774529
+altitude: 340
+location_source: LOC_MANUAL
+ground_speed: 0
+ground_track: 0
+precision_bits: 32
+, 'latitude': 41.3318362, 'longitude': -81.4774529}, 
+'snr': 5.75, 
+'deviceMetrics': {
+'batteryLevel': 101, 
+'voltage': 5.102, 
+'channelUtilization': 3.9433334, 
+'airUtilTx': 0.09419444, 
+'uptimeSeconds': 186}, 
+'isFavorite': True}
+
     """
     logging.info("Connection established")
     global localNode, location, short_name, long_name, sitrep, initial_connect
@@ -53,8 +85,13 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
-                    Connected to {long_name} ({short_name}) \n\n \
+                    Connection established with radio {node_info['user']['hwModel']} \n \
+                    Node Number: {node_info['num']}) \n\n \
                     {node_info}\n \
+                    User ID: {node_info['user']['id']}\n \
+                    User Long Name: {node_info['user']['longName']}\n \
+                    User Short Name: {node_info['user']['shortName']}\n \
+                    Public Key: {node_info['user']['publicKey']}\n \
                 **************************************************************\n \
                 **************************************************************\n\n ")
 
