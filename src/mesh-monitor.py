@@ -53,8 +53,8 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
-                    Connected to {long_name} on {short_name} \n\n \
-                    {localNode.showInfo()}\n \
+                    Connected to {long_name} ({short_name}) \n\n \
+                    {node_info}\n \
                 **************************************************************\n \
                 **************************************************************\n\n ")
 
