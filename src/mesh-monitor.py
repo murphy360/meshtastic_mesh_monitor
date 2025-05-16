@@ -87,7 +87,6 @@ precision_bits: 32
                 **************************************************************\n\n \
                     Connection established with radio {node_info['user']['hwModel']} \n \
                     Node Number: {node_info['num']}) \n\n \
-                    {node_info}\n \
                     User ID: {node_info['user']['id']}\n \
                     User Long Name: {node_info['user']['longName']}\n \
                     User Short Name: {node_info['user']['shortName']}\n \
@@ -1033,5 +1032,6 @@ while True:
             interface.close()
         
         interface = meshtastic.serial_interface.SerialInterface(serial_port)
+        meshtastic_version = interface.get_active_version()
             
     time.sleep(connect_timeout)
