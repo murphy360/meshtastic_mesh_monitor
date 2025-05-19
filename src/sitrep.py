@@ -52,7 +52,7 @@ class SITREP:
         self.lines = []
         self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {sitrep_time_string} SITREP is as follows:"
         self.lines.append(self.reportHeader)
-        self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 15, 1)) # 15 Minutes, 1 hop 
+        self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 60, 1)) # 60 Minutes, 1 hop 
         self.lines.append(self.line1)
         self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2, interface)
         self.lines.append(self.line2)
@@ -270,7 +270,7 @@ class SITREP:
             self.packets_received[packet_type] += 1
         else:
             self.packets_received[packet_type] = 1
-        logging.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
+        #logging.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
         return
 
     def is_packet_from_node_of_interest(self, interface, packet):
@@ -457,9 +457,9 @@ class SITREP:
         self.nodes_connected = 0
         response_string = ""
         for node in interface.nodes.values():
-            log_message = f"Node ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
+            log_message = f"\nNode ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
             if self.localNode.nodeNum == node["num"]:
-                log_message += " - Local Node"
+                log_message += " - Local Node, skipping"
                 continue
 
             if "lastHeard" in node:
@@ -472,32 +472,29 @@ class SITREP:
                         log_message += f"\nLast Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
                     else:
                         log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
-                        continue
                 else:
                     log_message += " - Node doesn't have lastHeard data"
-                    continue
             else:
                 log_message += " - Node doesn't have lastHeard data"
-                continue
-            
+                
             if "hopsAway" in node:
                 hops_away = node["hopsAway"]
                 if hops_away <= hop_threshold:
                     log_message += f"\nHops Away: {hops_away}"
                     response_string += " " + node['user']['shortName']
                 else:
-                    log_message += f" - Node is more than {hop_threshold} hops away ({hops_away})"
-                    continue
+                    log_message += f"\nHops Away: {hops_away} - Not in range"
             else:
-                log_message += " - Node doesn't have hopsAway data"
-                continue
-            
-            logging.info(log_message)
+                log_message += "\nHops Away Not in Node Data"
+                
+            #logging.info(log_message)
             self.nodes_connected += 1
                 
         if self.nodes_connected <= 20:
+            logging.info(f"Nodes Connected: {self.nodes_connected} - {response_string}")
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
+            logging.info(f"Nodes Connected: {self.nodes_connected}")
             response_string = str(self.nodes_connected)
         return response_string
 

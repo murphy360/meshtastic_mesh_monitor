@@ -12,6 +12,7 @@ class SQLiteHelper:
         self.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
         self.create_table("packet_database", "key INTEGER PRIMARY KEY, packet_type TEXT, created_at TEXT, updated_at TEXT, from_node TEXT, to_node TEXT, decoded TEXT, channel TEXT")
         self.create_table("position_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node_id TEXT, latitudeI TEXT, longitudeI TEXT, altitude TEXT, time TEXT, latitude TEXT, longitude TEXT")
+        # TODO Create traceroute table. 
 
     def connect(self):
         """
@@ -67,7 +68,7 @@ class SQLiteHelper:
     
         if "lastHeard" in node:
             lastHeard = node["lastHeard"] 
-            logging.info(f"Node {num} last heard: {lastHeard}") 
+            #logging.info(f"Node {num} last heard: {lastHeard}") 
         else:
             lastHeard = ""
 
@@ -78,55 +79,67 @@ class SQLiteHelper:
         airUtilTx = ""
         uptimeSeconds = ""
         if "deviceMetrics" in node:
-            logging.info(f"Node {num} has device metrics data")
+            #logging.info(f"Node {num} has device metrics data")
             if "batteryLevel" in node["deviceMetrics"]:
-                logging.info(f"Node {num} has battery level data")
+                #logging.info(f"Node {num} battery: {battery}")
                 battery = node["deviceMetrics"]["batteryLevel"]
             else:
                 logging.info(f"Node {num} does not have battery level data")
                 battery = ""
-            logging.info(f"Node {num} battery: {battery}")
+            
             if "voltage" in node["deviceMetrics"]:
+                #logging.info(f"Node {num} has voltage data")
                 voltage = node["deviceMetrics"]["voltage"]
             else:
+                logging.info(f"Node {num} does not have voltage data")
                 voltage = ""
             if "channelUtilization" in node["deviceMetrics"]:
                 channelUtilization = node["deviceMetrics"]["channelUtilization"]
             else:
+                logging.info(f"Node {num} does not have channel utilization data")
                 channelUtilization = ""
             if "airUtilTx" in node["deviceMetrics"]:
+                # logging.info(f"Node {num} has air utilization TX data")
                 airUtilTx = node["deviceMetrics"]["airUtilTx"]
             else:
+                logging.info(f"Node {num} does not have air utilization TX data")
                 airUtilTx = ""
             if "uptimeSeconds" in node["deviceMetrics"]:
+                # logging.info(f"Node {num} has uptime seconds data")
                 uptimeSeconds = node["deviceMetrics"]["uptimeSeconds"]
             else:
+                logging.info(f"Node {num} does not have uptime seconds data")
                 uptimeSeconds = ""
-        nodeOfInterest = False
-        aircraft = False
-        now = datetime.datetime.now()
-        created_at = now.strftime("%Y-%m-%d %H:%M:%S")
-        updated_at = now.strftime("%Y-%m-%d %H:%M:%S")
 
         # Check if the node already exists in the database
         query = "SELECT * FROM node_database WHERE id = ?"
         cursor = self.conn.execute(query, (node_id,))
         result = cursor.fetchone()
+        now = datetime.datetime.now()
+        log_string = ""
 
-        log_string = f"node {node_id} - {shortname} - {longname} - {macaddr} - {hwModel} - {lastHeard} - {battery} - {voltage} - {channelUtilization} - {airUtilTx} - {uptimeSeconds} - {created_at} - {updated_at}"
-        if result:
+        # Node exists, update it
+        if result: 
             new = False
-            logging.info(f"Updating {log_string}")
+            updated_at = now.strftime("%Y-%m-%d %H:%M:%S")
+            log_string = f"Updating Existing Node {node_id} - {shortname} - {longname} - {macaddr} - {hwModel} - {lastHeard} - {battery} - {voltage} - {channelUtilization} - {airUtilTx} - {uptimeSeconds} - {updated_at}"
             query = "UPDATE node_database SET shortname = ?, longname = ?, macaddr = ?, hwModel = ?, lastHeard = ?, batteryLevel = ?, voltage = ?, channelUtilization = ?, airUtilTx = ?, uptimeSeconds = ?, updated_at = ? WHERE id = ?"
             self.conn.execute(query, (shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, updated_at, node_id))
+        
+        # Node does not exist, insert it
         else:
             new = True
-            logging.info(f"Adding {log_string}")
+            created_at = now.strftime("%Y-%m-%d %H:%M:%S")
+            updated_at = now.strftime("%Y-%m-%d %H:%M:%S")
+            nodeOfInterest = False
+            aircraft = False
+            log_string = f"Adding New Node {node_id} - {shortname} - {longname} - {macaddr} - {hwModel} - {lastHeard} - {battery} - {voltage} - {channelUtilization} - {airUtilTx} - {uptimeSeconds} - {created_at}"
             query = "INSERT INTO node_database (num, id, shortname, longname, macaddr, hwModel, lastHeard, batteryLevel, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             self.conn.execute(query, (num, node_id, shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at))
         self.conn.commit()
+        #logging.info(log_string)
         return new
-    
+   
     def remove_node(self, node):
         """
         Remove a node from the database.
