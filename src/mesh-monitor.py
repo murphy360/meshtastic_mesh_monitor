@@ -86,7 +86,7 @@ precision_bits: 32
                 **************************************************************\n \
                 **************************************************************\n\n \
                     Connection established with radio {node_info['user']['hwModel']} \n \
-                    Node Number: {node_info['num']}) \n\n \
+                    Node Number: {node_info['num']}) \n \
                     User ID: {node_info['user']['id']}\n \
                     User Long Name: {node_info['user']['longName']}\n \
                     User Short Name: {node_info['user']['shortName']}\n \
@@ -147,12 +147,13 @@ def onReceiveText(packet, interface):
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
+    channelId = packet['channel']
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num}")
+    logging.info(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num} - Channel: {channelId}")
 
     localNode = interface.getNode('^local')
 
@@ -999,6 +1000,8 @@ pub.subscribe(onLog, "meshtastic.log")
 
 
 interface = meshtastic.serial_interface.SerialInterface(serial_port)
+
+
 while True:
 
     try:
