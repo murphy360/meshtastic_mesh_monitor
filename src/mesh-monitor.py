@@ -10,6 +10,7 @@ from sitrep import SITREP
 import logging
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
+from google import genai
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -172,7 +173,8 @@ def onReceiveText(packet, interface):
         to_id = packet['to']
         if to_id == localNode.nodeNum: # Message sent directly to local node
             logging.info(f"Message sent directly to local node from {packet['from']}")
-            send_message(interface, "Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
+            reply_to_direct_message(interface, message_string, channelId, packet['from'])
+            #send_message(interface, "Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
         elif 'channel' in packet: # Message sent to a channel
             logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
             channelId = int(packet['channel'])
@@ -810,6 +812,15 @@ def find_my_location(interface, node_num):
         logging.error(f"Error with geolookup: {e}")
         return "Unknown"
     return "Unknown"
+
+def reply_to_direct_message(interface, message, channel, from_id):
+    client = genai.Client(api_key="AIzaSyAcfyNoIFZ8A0YWtxTiJebxJwBgRWwpdDw")
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=f"Reply to this message: {message}"
+    )
+    logging.info(f"Generated response: {response}")
+    send_message(interface, response, channel, from_id)
 
 def reply_to_message(interface, message, channel, to_id, from_id):
     """
