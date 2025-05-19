@@ -515,7 +515,7 @@ def onReceive(packet, interface):
     Returns:
         None
     """
-
+    logging.info(f"Received packet: {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -651,7 +651,7 @@ def check_node_health(interface, node):
         return
 
     if "batteryLevel" in node["deviceMetrics"]:
-        #logging.info(f"Checking battery level of node {node['user']['shortName']}")
+        logging.info(f"Checking battery level of node {node['user']['shortName']}")
         battery_level = node["deviceMetrics"]["batteryLevel"]
         if battery_level < 20:
             logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
