@@ -2,3 +2,4 @@ meshtastic
 geopy
 folium
 flask
+google-genai
