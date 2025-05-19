@@ -645,7 +645,7 @@ def check_node_health(interface, node):
         node (dict): The node data.
     """  
     
-    #logging.info(f"Checking health of node {node['user']['shortName']}")
+    logging.info(f"Checking health of node {node['user']['shortName']}")
     if "deviceMetrics" not in node:
         logging.info(f"Node {node['user']['shortName']} does not have device metrics")
         return
@@ -814,6 +814,7 @@ def find_my_location(interface, node_num):
     return "Unknown"
 
 def reply_to_direct_message(interface, message, channel, from_id):
+    logging.info(f"Replying to direct message: {message}")
     client = genai.Client(api_key="AIzaSyAcfyNoIFZ8A0YWtxTiJebxJwBgRWwpdDw")
     response = client.models.generate_content(
         model="gemini-2.0-flash",
