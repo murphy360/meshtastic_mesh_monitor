@@ -999,10 +999,17 @@ pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 pub.subscribe(onLog, "meshtastic.log")
 
 
-interface = meshtastic.serial_interface.SerialInterface(serial_port)
-
-
 while True:
+
+    try:
+        if interface is None:
+            logging.info(f"Connecting to Meshtastic device on {serial_port} with timeout {connect_timeout} seconds")
+            interface = meshtastic.serial_interface.SerialInterface(serial_port)
+            logging.info(f"Connected to Meshtastic device - Version: {meshtastic_version}")
+    except Exception as e:
+        logging.error(f"Error connecting to Meshtastic device: {e} - Retrying in {connect_timeout} seconds")
+        time.sleep(connect_timeout)
+        continue
 
     try:
         node_info = interface.getMyNodeInfo()
@@ -1031,10 +1038,6 @@ while True:
         if interface is not None:
             interface.close()
             interface = None
-        else: 
-            interface.close()
-        
-        interface = meshtastic.serial_interface.SerialInterface(serial_port)
-        meshtastic_version = interface.get_active_version()
+        continue        
             
     time.sleep(connect_timeout)
