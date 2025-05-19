@@ -148,7 +148,9 @@ def onReceiveText(packet, interface):
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
-    channelId = packet['channel']
+    channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
+    if 'channel' in packet:
+        channelId = packet['channel']
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
