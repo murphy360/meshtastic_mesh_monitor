@@ -37,8 +37,7 @@ serial_port = '/dev/ttyUSB0'
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
 # Read environment variables set in docker-compose
 gemini_api_key = os.getenv('GEMINI_API_KEY')
-logging.info(f"Gemini API Key: {gemini_api_key}")
-gemini_client = genai.Client(api_key=gemini_api_key)
+
 
 
 logging.info("Starting Mesh Monitor")
@@ -824,7 +823,8 @@ def find_my_location(interface, node_num):
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
-    global gemini_client
+    logging.info(f"Gemini API Key: {gemini_api_key}")
+    gemini_client = genai.Client(api_key=gemini_api_key)
     response = gemini_client.models.generate_content(
         model="gemini-2.0-flash",
         contents=f"Reply to this message: {message}"
