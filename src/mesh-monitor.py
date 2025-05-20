@@ -1038,6 +1038,8 @@ while True:
             logging.info(f"Connected to Meshtastic device on {serial_port}")
     except Exception as e:
         logging.error(f"Error connecting to Meshtastic device: {e}")
+        interface.close()
+        interface = None
         #time.sleep(connect_timeout)
         continue
 
