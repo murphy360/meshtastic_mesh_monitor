@@ -426,12 +426,12 @@ def onReceiveWaypoint(packet, interface):
 
     if expire == 1:
         logging.info(f"Waypoint {name} is expired")
-        send_message(interface, f"Waypoint {name} is expired", private_channel_number, "^all")
+        send_llm_message(interface, f"Waypoint {name} is expired", private_channel_number, "^all")
     else:
         # expire is in epoch time, so convert to datetime
         expire_time = datetime.fromtimestamp(expire, tz=timezone.utc)
         logging.info(f"Waypoint {name} expires at {expire_time}")
-        send_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", private_channel_number, "^all")
+        send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", private_channel_number, "^all")
 
 def onReceiveNodeInfo(packet, interface):
     from_node_num = packet['from']
@@ -549,11 +549,11 @@ def onReceive(packet, interface):
         if new_node:
             logging.info(f"New node detected: {node_short_name} - {from_node_num}")
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
-            send_message(interface, private_message, public_channel_number, from_node_num)
+            send_llm_message(interface, private_message, public_channel_number, from_node_num)
 
             # Notify admin of new node
-            admin_message = f"New node detected: {node_short_name}"
-            send_message(interface, admin_message, private_channel_number, "^all")
+            admin_message = f"New node detected: {node_short_name} - {node['user']['longName']}"
+            send_llm_message(interface, admin_message, private_channel_number, "^all")
 
             # TODO Send my position/user info to the new node to get their position. 
 
