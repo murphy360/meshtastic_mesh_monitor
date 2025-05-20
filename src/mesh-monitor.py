@@ -829,7 +829,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
         model="gemini-2.0-flash",
         config=types.GenerateContentConfig(
             system_instruction="You are an AI assistant tasked to monitor a mesh network. You are instructed to act like a seasoned Amateur Radio Operator and retired US Navy Sailor although you don't say so directoy. Reply to the message in a friendly and informative manner.",
-            max_output_tokens=75,),
+            max_output_tokens=75),
         contents=f"Reply to this message: {message}"
     )
 
@@ -1075,3 +1075,5 @@ while True:
         continue        
             
     time.sleep(connect_timeout)
+interface.close()
+logging.info("Exiting Main Loop")
