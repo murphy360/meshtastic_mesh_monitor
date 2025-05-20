@@ -38,8 +38,6 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 # Read environment variables set in docker-compose
 gemini_api_key = os.getenv('GEMINI_API_KEY')
 
-
-
 logging.info("Starting Mesh Monitor")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
@@ -536,7 +534,7 @@ def onReceive(packet, interface):
         # Ignore packets from local node
         return
     
-    #logging.info(f"[FUNCTION] onReceive from {node_short_name} - {from_node_num}")
+    logging.info(f"[FUNCTION] onReceive from {node_short_name} - {from_node_num}")
 
     try:
         

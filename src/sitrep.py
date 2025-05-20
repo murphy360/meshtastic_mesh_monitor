@@ -270,7 +270,7 @@ class SITREP:
             self.packets_received[packet_type] += 1
         else:
             self.packets_received[packet_type] = 1
-        #logging.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
+        logging.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
         return
 
     def is_packet_from_node_of_interest(self, interface, packet):
