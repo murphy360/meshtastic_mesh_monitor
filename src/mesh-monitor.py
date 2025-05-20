@@ -621,10 +621,6 @@ def should_trace_node(node, interface):
 
 
 
-    # Check if the node has shortName and longName attributes. If not, we should not trace it. TODO Fix this workaround
-    if "shortName" == "0cb2":
-        # print node
-        logging.info(f"{node}")
 
     # Check if the node has hopsAway attribute. If not, we should trace it.
     if "hopsAway" not in node:
@@ -994,6 +990,8 @@ def send_trace_route(interface, node_num, channel):
             send_message(interface, admin_message, private_channel_number, "^all")
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
+        admin_message = f"Error sending traceroute request to node {node_num}: {e}"
+        send_message(interface, admin_message, private_channel_number, "^all")
     logging.info(f"leaving send_trace_route")
 
 def send_message(interface, message, channel, to_id):
