@@ -930,7 +930,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             sitrep.log_message_sent("node-traced")
-            hop_limit = 2
+            hop_limit = 1
             if "hopsAway" in node:
                 hop_limit = int(node["hopsAway"])
             if hop_limit < 1:
