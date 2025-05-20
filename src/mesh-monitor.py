@@ -619,13 +619,6 @@ def should_trace_node(node, interface):
     node_num = node['num']
     now = datetime.now(timezone.utc)
 
-    # if the node is 0cb2 don't trace it
-    logging.info(f"NodeNum: {node_num}")
-    if "shortName" not in node['user']:
-        logging.info(f"Node {node_num} does not have shortName, should not trace")
-        admin_message = f"Node {node_num} does not have shortName, should not trace"
-        send_message(interface, admin_message, private_channel_number, "^all")
-        return False
 
 
     # Check if the node has hopsAway attribute. If not, we should trace it.
@@ -1048,7 +1041,7 @@ while True:
 
     try:
         if interface is None:
-            logging.info(f"Connecting to Meshtastic device on {serial_port} with timeout {connect_timeout} seconds")
+            logging.info(f"Connecting to Meshtastic device on {serial_port}")
             interface = meshtastic.serial_interface.SerialInterface(serial_port)
             logging.info(f"Connected to Meshtastic device on {serial_port}")
     except Exception as e:
