@@ -567,7 +567,10 @@ def onReceive(packet, interface):
 
         # Check if the node should be traced and send traceroute packet if so
         if should_trace_node(node, interface):
-            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number))
+            hop_limit = 2
+            if "hopsAway" in node:
+                hop_limit = node["hopsAway"]
+            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number, hop_limit))
 
         if 'decoded' in packet:
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
@@ -930,7 +933,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
 
             send_message(interface, admin_message, private_channel_number, "^all")
             sitrep.log_message_sent("node-traced")
-            asyncio.run(send_trace_route(interface, node['num'], public_channel_number))
+            hop_limit = 2
+            if "hopsAway" in node:
+                hop_limit = node["hopsAway"]
+            asyncio.run(send_trace_route(interface, node['num'], public_channel_number, hop_limit))
         else:
             send_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -962,7 +968,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info(f"Message not recognized: {message}. Not replying.")
         return
 
-async def send_trace_route(interface, node_num, channel):
+async def send_trace_route(interface, node_num, channel, hop_limit=3):
     """
     Send a traceroute request to a specified node.
 
@@ -981,7 +987,7 @@ async def send_trace_route(interface, node_num, channel):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
         else:
             logging.info(f"Traceroute request to node {node_num} allowed")
-            interface.sendTraceRoute(node_num, 5, channel)
+            interface.sendTraceRoute(node_num,hop_limit, channel)
             logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Updated last trace sent time: {last_trace_sent_time}")
