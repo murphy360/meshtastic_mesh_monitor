@@ -1,4 +1,5 @@
 from asyncio import sleep
+import os
 import time
 import geopy
 from geopy import distance
@@ -33,7 +34,10 @@ last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
-client = genai.Client(api_key="AIzaSyAcfyNoIFZ8A0YWtxTiJebxJwBgRWwpdDw")
+# Read environment variables set in docker-compose
+gemini_api_key = os.getenv('GEMINI_API_KEY')
+logging.info(f"Gemini API Key: {gemini_api_key}")
+client = genai.Client(api_key=gemini_api_key)
 
 
 logging.info("Starting Mesh Monitor")
