@@ -12,6 +12,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from google import genai
+from google.genai import types # type: ignore
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -37,7 +38,7 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 # Read environment variables set in docker-compose
 gemini_api_key = os.getenv('GEMINI_API_KEY')
 logging.info(f"Gemini API Key: {gemini_api_key}")
-client = genai.Client(api_key=gemini_api_key)
+gemini_client = genai.Client(api_key=gemini_api_key)
 
 
 logging.info("Starting Mesh Monitor")
@@ -824,8 +825,11 @@ def find_my_location(interface, node_num):
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
 
-    response = client.models.generate_content(
+    response = gemini_client.models.generate_content(
         model="gemini-2.0-flash",
+        config=types.GenerateContentConfig(
+            system_instruction="You are an AI assistant tasked to monitor a mesh network. You are instructed to act like a seasoned Amateur Radio Operator and retired US Navy Sailor although you don't say so directoy. Reply to the message in a friendly and informative manner.",
+            max_output_tokens=75,),
         contents=f"Reply to this message: {message}"
     )
 
