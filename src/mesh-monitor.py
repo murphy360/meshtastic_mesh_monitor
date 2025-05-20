@@ -1037,8 +1037,8 @@ while True:
             interface = meshtastic.serial_interface.SerialInterface(serial_port)
             logging.info(f"Connected to Meshtastic device on {serial_port}")
     except Exception as e:
-        logging.error(f"Error connecting to Meshtastic device: {e} - Retrying in {connect_timeout} seconds")
-        time.sleep(connect_timeout)
+        logging.error(f"Error connecting to Meshtastic device: {e}")
+        #time.sleep(connect_timeout)
         continue
 
     try:
