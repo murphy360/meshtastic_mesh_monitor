@@ -619,7 +619,12 @@ def should_trace_node(node, interface):
     node_num = node['num']
     now = datetime.now(timezone.utc)
 
-
+    # if the node is 0cb2 don't trace it
+    if node[node_num]['user']['shortName'] == "0cb2":
+        logging.info(f"Node {node['user']['shortName']} is 0cb2, should not trace")
+        # print the node
+        logging.info(f"{node}")
+        return False
 
 
     # Check if the node has hopsAway attribute. If not, we should trace it.
