@@ -933,6 +933,8 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             hop_limit = 2
             if "hopsAway" in node:
                 hop_limit = int(node["hopsAway"])
+            if hop_limit < 1:
+                hop_limit = 1
             asyncio.run(send_trace_route(interface, node['num'], public_channel_number, hop_limit))
         else:
             send_message(interface, f"Node {node_short_name} not found", channel, to_id)
