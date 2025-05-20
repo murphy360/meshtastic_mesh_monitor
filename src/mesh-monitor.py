@@ -928,10 +928,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info("Tracing node")
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
-        admin_message = f"Tracing {node_short_name}"
         if node:
-
-            send_message(interface, admin_message, private_channel_number, "^all")
             sitrep.log_message_sent("node-traced")
             hop_limit = 2
             if "hopsAway" in node:
@@ -978,21 +975,19 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
         channel (int): The channel to send the traceroute request to.
     """
     global last_trace_sent_time
-    logging.info(f"Sending traceroute request to node {node_num} on channel {channel}")
+    logging.info(f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit}")
     try:
-        logging.info(f"inside send_trace_route")
         now = datetime.now(timezone.utc)
-        #logging.info(f"Current time: {now}, Last trace sent time: {last_trace_sent_time}")
         if now - last_trace_sent_time < timedelta(seconds=30):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
         else:
-            logging.info(f"Traceroute request to node {node_num} allowed")
-            interface.sendTraceRoute(node_num,hop_limit, channel)
-            logging.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
             last_trace_sent_time = now  # Update last trace sent time
-            logging.info(f"Updated last trace sent time: {last_trace_sent_time}")
-            admin_message = f"Node {lookup_short_name(interface, node_num)} has been traced with a hop limit of {hop_limit}"
+            logging.info(f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
+            admin_message = f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit}"
             send_message(interface, admin_message, private_channel_number, "^all")
+            interface.sendTraceRoute(node_num,hop_limit, channel)
+            logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
+            
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
         admin_message = f"Error sending traceroute request to node {node_num}: {e}"
