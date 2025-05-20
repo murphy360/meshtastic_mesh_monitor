@@ -620,10 +620,11 @@ def should_trace_node(node, interface):
     now = datetime.now(timezone.utc)
 
     # if the node is 0cb2 don't trace it
-    if node[node_num]['user']['shortName'] == "0cb2":
-        logging.info(f"Node {node['user']['shortName']} is 0cb2, should not trace")
-        # print the node
-        logging.info(f"{node}")
+    logging.info(f"NodeNum: {node_num}")
+    if "shortName" not in node['user']:
+        logging.info(f"Node {node_num} does not have shortName, should not trace")
+        admin_message = f"Node {node_num} does not have shortName, should not trace"
+        send_message(interface, admin_message, private_channel_number, "^all")
         return False
 
 
