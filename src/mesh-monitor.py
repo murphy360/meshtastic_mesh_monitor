@@ -824,7 +824,7 @@ def find_my_location(interface, node_num):
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
-
+    global gemini_client
     response = gemini_client.models.generate_content(
         model="gemini-2.0-flash",
         contents=f"Reply to this message: {message}"
