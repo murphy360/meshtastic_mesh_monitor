@@ -988,10 +988,10 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
         else:
             logging.info(f"Traceroute request to node {node_num} allowed")
             interface.sendTraceRoute(node_num,hop_limit, channel)
-            logging.info(f"Traceroute request sent to node {node_num} on channel {channel}")
+            logging.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Updated last trace sent time: {last_trace_sent_time}")
-            admin_message = f"Node {lookup_short_name(interface, node_num)} has been traced"
+            admin_message = f"Node {lookup_short_name(interface, node_num)} has been traced with a hop limit of {hop_limit}"
             send_message(interface, admin_message, private_channel_number, "^all")
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
