@@ -565,10 +565,14 @@ def onReceive(packet, interface):
 
         # Check if the node should be traced and send traceroute packet if so
         if should_trace_node(node, interface):
-            hop_limit = 2
+            hop_limit = 1
             if "hopsAway" in node:
-                hop_limit = node["hopsAway"]
-            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number, hop_limit))
+                hop_limit = int(node["hopsAway"])
+
+            if hop_limit < 1:
+                hop_limit = 1
+            
+            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number, str(hop_limit)))
 
         if 'decoded' in packet:
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
