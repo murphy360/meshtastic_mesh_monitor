@@ -33,6 +33,8 @@ last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
+client = genai.Client(api_key="AIzaSyAcfyNoIFZ8A0YWtxTiJebxJwBgRWwpdDw")
+
 
 logging.info("Starting Mesh Monitor")
 
@@ -817,7 +819,7 @@ def find_my_location(interface, node_num):
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
-    client = genai.Client(api_key="AIzaSyAcfyNoIFZ8A0YWtxTiJebxJwBgRWwpdDw")
+
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=f"Reply to this message: {message}"
