@@ -619,12 +619,12 @@ def should_trace_node(node, interface):
     node_num = node['num']
     now = datetime.now(timezone.utc)
 
+
+
     # Check if the node has shortName and longName attributes. If not, we should not trace it. TODO Fix this workaround
-    if "shortName" not in node["user"] or "longName" not in node["user"]:
-        logging.info(f"Node does not have shortName or longName attribute, should not trace")
-        admin_message = f"Node {node_num} does not have shortName or longName attribute, should not trace"
-        send_message(interface, admin_message, private_channel_number, "^all")
-        return False
+    if "shortName" == "0cb2":
+        # print node
+        logging.info(f"{node}")
 
     # Check if the node has hopsAway attribute. If not, we should trace it.
     if "hopsAway" not in node:
