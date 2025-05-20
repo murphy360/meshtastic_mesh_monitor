@@ -1,4 +1,4 @@
-from asyncio import sleep
+import asyncio
 import os
 import time
 import geopy
@@ -567,7 +567,7 @@ def onReceive(packet, interface):
 
         # Check if the node should be traced and send traceroute packet if so
         if should_trace_node(node, interface):
-            send_trace_route(interface, from_node_num, public_channel_number)
+            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number))
 
         if 'decoded' in packet:
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
@@ -930,7 +930,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
 
             send_message(interface, admin_message, private_channel_number, "^all")
             sitrep.log_message_sent("node-traced")
-            send_trace_route(interface, node['num'], public_channel_number)
+            asyncio.run(send_trace_route(interface, node['num'], public_channel_number))
         else:
             send_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -962,7 +962,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info(f"Message not recognized: {message}. Not replying.")
         return
 
-def send_trace_route(interface, node_num, channel):
+async def send_trace_route(interface, node_num, channel):
     """
     Send a traceroute request to a specified node.
 
