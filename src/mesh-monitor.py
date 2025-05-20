@@ -564,7 +564,7 @@ def onReceive(packet, interface):
             check_node_health(interface, node)
 
         # Check if the node should be traced and send traceroute packet if so
-        if should_trace_node(node, interface):
+        if should_trace_node(node, interface): #TODO Consider moving this into the onReceiveText function
             hop_limit = 1
             if "hopsAway" in node:
                 logging.info(f"Node {node['user']['shortName']} has hopsAway attribute, checking hopsAway - {node['hopsAway']}")
