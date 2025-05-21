@@ -854,10 +854,10 @@ def reply_to_direct_message(interface, message, channel, from_id):
     global private_chats
     node = interface.nodesByNum[from_id]
     short_name = node['user']['shortName']
-    if private_chats[short_name]:
-        logging.info(f"Private chat with {short_name} already exists, not creating a new one")
-    else:
-        logging.info(f"Creating private chat with {short_name}")
+    logging.info(f"Short name: {short_name}")
+
+    # check if the private chat already exists
+    if short_name not in private_chats:
         private_chats[short_name] = gemini_client.chats.create(
             model='gemini-2.0-flash-001',
             config=types.GenerateContentConfig(
@@ -867,6 +867,8 @@ def reply_to_direct_message(interface, message, channel, from_id):
 
     response = public_chat.send_message(message)
     response_text = response.text
+    if not response_text:
+        response_text = "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while! Try sending ping on LongFast."
     logging.info(f"Response: {response_text}")
     send_message(interface, response_text, channel, from_id)
     
