@@ -853,7 +853,9 @@ def find_my_location(interface, node_num):
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
-    response_text = "This is an auto-responder. It will reply to ping and any direct messages!"
+    node = interface.nodesByNum[from_id]
+    short_name = node['user']['shortName']
+    response_text = f"This is an auto-responder replying to {message} from {short_name}. It will reply to ping and any direct messages!"
     send_llm_message(interface, response_text, channel, from_id)
     
 def reply_to_message(interface, message, channel, to_id, from_id):
