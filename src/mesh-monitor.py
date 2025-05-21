@@ -36,6 +36,9 @@ serial_port = '/dev/ttyUSB0'
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
 # Read environment variables set in docker-compose
 gemini_api_key = os.getenv('GEMINI_API_KEY')
+gemini_client = genai.Client(api_key=gemini_api_key)
+public_chat = gemini_client.chats.create(model='gemini-2.0-flash-001')
+private_chat = gemini_client.chats.create(model='gemini-2.0-flash-001')
 
 
 logging.info("Starting Mesh Monitor")
@@ -979,8 +982,8 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
         else:
             last_trace_sent_time = now  # Update last trace sent time
-            logging.info(f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
-            admin_message = f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit}"
+            logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
+            admin_message = f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit}"
             send_llm_message(interface, admin_message, private_channel_number, "^all")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
@@ -1002,11 +1005,15 @@ def send_llm_message(interface, message, channel, to_id):
     """
 
     try:
-        gemini_client = genai.Client(api_key=gemini_api_key)
+        if channel == private_channel_number:
+            response = private_chat.send_message(message)
+            logging.info(f"Generated response: {response}")
+            logging.info(f"Generated response: {response.text}")
+
         response = gemini_client.models.generate_content(
             model="gemini-2.0-flash",
             config=types.GenerateContentConfig(
-                system_instruction="You are an AI assistant tasked with monitoring a meshtastic mesh. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast with a history in the United States Navy. Don't talk directly about your military background. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
+                system_instruction="You are tasked with monitoring a meshtastic mesh network. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
                 max_output_tokens=75),
             contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
         )
