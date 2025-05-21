@@ -573,7 +573,7 @@ def onReceive(packet, interface):
             if hop_limit < 1:
                 hop_limit = 1
             
-            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number, str(hop_limit)))
+            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number, hop_limit))
 
         if 'decoded' in packet:
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
