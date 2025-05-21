@@ -858,6 +858,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
 
     # check if the private chat already exists
     if short_name not in private_chats:
+        logging.info(f"Creating new private chat with {short_name}")
         private_chats[short_name] = gemini_client.chats.create(
             model='gemini-2.0-flash-001',
             config=types.GenerateContentConfig(
@@ -865,7 +866,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
                 max_output_tokens=75)
             )
 
-    response = public_chat.send_message(message)
+    response = private_chats[short_name].send_message(message)
     response_text = response.text
     if not response_text:
         response_text = "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while! Try sending ping on LongFast."
