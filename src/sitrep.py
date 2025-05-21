@@ -415,13 +415,14 @@ class SITREP:
                     "connections": []
                 }
                 
+                # Add connections to the node data
                 if node_data["hopsAway"] == 0:
                     node_data["connections"].append(self.shortName)
                     mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
                     
                 mesh_data["nodes"].append(node_data)
 
-                # Add extra connections
+                # Add extra connections (if any) to the node data
                 if node["user"]["shortName"] in self.extra_connections:
                     for connection in self.extra_connections[node["user"]["shortName"]]:
                         node_data["connections"].append(connection)
