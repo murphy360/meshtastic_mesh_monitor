@@ -1072,17 +1072,28 @@ def send_message(interface, message, channel, to_id):
         channel (int): The channel to send the message to.
         to_id (str): The ID of the recipient.
     """
-    logging.info(f"Sending message: {message} to channel {channel} and node {to_id}")
-    
-    try:
-        interface.sendText(message, channelIndex=channel, destinationId=to_id)
-    except Exception as e:
-        logging.error(f"Error sending message: {e}")
-        return
-    node_name = to_id
-    if to_id != "^all":
-        node_name = lookup_short_name(interface, to_id)
-    logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
+    # Split every message into chunks of no more than 450 characters
+    if len(message) > 450:
+        message_chunks = [message[i:i + 450] for i in range(0, len(message), 450)]
+        for chunk in message_chunks:
+            logging.info(f"Sending chunk: {chunk}")
+            try:
+                interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
+            except Exception as e:
+                logging.error(f"Error sending chunk: {e}")
+                return
+    else:
+        logging.info(f"Sending message: {message} to channel {channel} and node {to_id}")
+        
+        try:
+            interface.sendText(message, channelIndex=channel, destinationId=to_id)
+        except Exception as e:
+            logging.error(f"Error sending message: {e}")
+            return
+        node_name = to_id
+        if to_id != "^all":
+            node_name = lookup_short_name(interface, to_id)
+        logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
 # Main loop
 logging.info("Starting Main Loop")
