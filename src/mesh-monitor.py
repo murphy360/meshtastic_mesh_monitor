@@ -866,9 +866,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         distance = find_distance_between_nodes(interface, from_node['num'], localNode.nodeNum)
         if distance != "Unknown":
             distance = round(distance, 2)
-            send_llm_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
         elif location != "Unknown":
-            send_llm_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} this is {local_node_short_name}, Pong from {location}", channel, to_id)
         else:
             send_llm_message(interface, "Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
@@ -1006,9 +1006,9 @@ def send_llm_message(interface, message, channel, to_id):
         response = gemini_client.models.generate_content(
             model="gemini-2.0-flash",
             config=types.GenerateContentConfig(
-                system_instruction="You are an AI assistant tasked with monitoring a meshtastic mesh. You are a knowledgeable and professional radio enthusiast with a history in the United States Navy. Don't talk directly about your military background. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
+                system_instruction="You are an AI assistant tasked with monitoring a meshtastic mesh. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast with a history in the United States Navy. Don't talk directly about your military background. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
                 max_output_tokens=75),
-            contents=f"Please review prepare this message for transmission. Do not include any other text or information. The message is: {message}",
+            contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
         )
 
         response_text = response.candidates[0].content.parts[0].text.strip()
