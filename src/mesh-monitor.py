@@ -872,11 +872,11 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         distance = find_distance_between_nodes(interface, from_node['num'], localNode.nodeNum)
         if distance != "Unknown":
             distance = round(distance, 2)
-            send_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
         elif location != "Unknown":
-            send_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} de {local_node_short_name}, Pong from {location}", channel, to_id)
         else:
-            send_message(interface, "Pong", channel, to_id)
+            send_llm_message(interface, "Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
         return
 
@@ -889,14 +889,14 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     elif "set node of interest" in message or "setnoi" in message:
         logging.info("Setting node of interest")
         node_short_name = message.split(" ")[-1].lower()
-        send_message(interface, f"Setting {node_short_name} as a node of interest", channel, to_id)
+        send_llm_message(interface, f"Setting {node_short_name} as a node of interest", channel, to_id)
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.set_node_of_interest(node, True)
-            send_message(interface, f"{node_short_name} is now a node of interest", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} is now a node of interest", channel, to_id)
             sitrep.log_message_sent("node-of-interest-set")
         else:
-            send_message(interface, f"Node {node_short_name} not found. Please use the short name", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found. Please use the short name", channel, to_id)
         return
 
     elif "remove node of interest" in message or "removenoi" in message:
@@ -905,10 +905,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.set_node_of_interest(node, False)
-            send_message(interface, f"{node_short_name} is no longer a node of interest", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} is no longer a node of interest", channel, to_id)
             sitrep.log_message_sent("node-of-interest-unset")
         else:
-            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
     
     elif "remove node" in message or "removenode" in message:
@@ -917,10 +917,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.remove_node(node)
-            send_message(interface, f"{node_short_name} has been removed", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} has been removed", channel, to_id)
             sitrep.log_message_sent("node-removed")
         else:
-            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
     
     # Trace Node
@@ -937,7 +937,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 hop_limit = 1
             asyncio.run(send_trace_route(interface, node['num'], public_channel_number, hop_limit))
         else:
-            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
 
     elif "set aircraft" in message or "setaircraft" in message:
@@ -946,10 +946,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.set_aircraft(node, True)
-            send_message(interface, f"{node_short_name} is now an aircraft", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} is now tracked as an aircraft", channel, to_id)
             sitrep.log_message_sent("aircraft-set")
         else:
-            send_message(interface, f"Node {node_short_name} not found", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
 
     elif "remove aircraft" in message or "removeaircraft" in message:
@@ -958,7 +958,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             db_helper.set_aircraft(node, False)
-            send_message(interface, f"{node_short_name} is no longer tracked as an aircraft", channel, to_id)
+            send_llm_message(interface, f"{node_short_name} is no longer tracked as an aircraft", channel, to_id)
             sitrep.log_message_sent("aircraft-unset")
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
@@ -987,7 +987,7 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
             admin_message = f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit}"
-            send_message(interface, admin_message, private_channel_number, "^all")
+            send_llm_message(interface, admin_message, private_channel_number, "^all")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
             
