@@ -325,7 +325,7 @@ def onReceiveTraceRoute(packet, interface):
             admin_message = f"Traceroute received from {node_short_name}"
             send_message(interface, admin_message, private_channel_number, "^all")
             reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
-            send_message(interface, reply_message, public_channel_number, from_node_num)
+            send_llm_message(interface, reply_message, public_channel_number, from_node_num)
             db_helper.set_node_of_interest(node, True)
 
     if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
