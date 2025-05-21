@@ -28,7 +28,7 @@ db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelpe
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 public_channel_number = 0
-private_channel_number = 1
+admin_channel_number = 1
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
@@ -44,12 +44,14 @@ public_chat = gemini_client.chats.create(
         max_output_tokens=75)
     )
 
-private_chat = gemini_client.chats.create(
+admin_chat = gemini_client.chats.create(
     model='gemini-2.0-flash-001',
     config=types.GenerateContentConfig(
         system_instruction="You are tasked with monitoring a meshtastic mesh network and are currently working directly with the boss as head Administrator. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should only include the finalized message after you have modified the original.",      
         max_output_tokens=75)
     )
+
+private_chats = {} # Dictionary to store private chats.
 
 logging.info("Starting Mesh Monitor")
 
@@ -120,9 +122,9 @@ precision_bits: 32
 
     if initial_connect:
         initial_connect = False
-        send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", private_channel_number, "^all")
+        send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", admin_channel_number, "^all")
     else:
-        send_llm_message(interface, f"Reconnected to the Mesh", private_channel_number, "^all")
+        send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
 
 def onDisconnect(interface):
     """
@@ -160,10 +162,6 @@ def onNodeUpdate(node, interface):
                 Node {node['user']['shortName']} updated.\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
-    
-    if not initial_connect:
-        admin_message = f"Node {node['user']['shortName']} updated"
-        send_llm_message(interface, admin_message, private_channel_number, "^all")
 
     db_helper.add_or_update_node(node)
 
@@ -237,9 +235,9 @@ def onReceivePosition(packet, interface):
         if altitude > 900:
             logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
             message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
-            send_message(interface, message, private_channel_number, "^all")
+            send_message(interface, message, admin_channel_number, "^all")
             message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
-            send_message(interface, message, private_channel_number, from_node_num)
+            send_message(interface, message, admin_channel_number, from_node_num)
             db_helper.set_aircraft(node, True)
     return
 
@@ -293,7 +291,7 @@ def onReceiveNeighborInfo(packet, interface):
     
     # Alert admin if a node is reporting neighbors
     admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
-    send_message(interface, admin_message, private_channel_number, "^all")
+    send_message(interface, admin_message, admin_channel_number, "^all")
     return
 
 def onReceiveTraceRoute(packet, interface):
@@ -343,7 +341,7 @@ def onReceiveTraceRoute(packet, interface):
             logging.info(f"I've been traced by {node_short_name} - {trace} Replying")
             # Tell admin what the traceroute is
             admin_message = f"Traceroute received from {node_short_name}"
-            send_message(interface, admin_message, private_channel_number, "^all")
+            send_message(interface, admin_message, admin_channel_number, "^all")
             reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
             send_llm_message(interface, reply_message, public_channel_number, from_node_num)
             db_helper.set_node_of_interest(node, True)
@@ -389,7 +387,7 @@ def onReceiveTraceRoute(packet, interface):
     
     # Tell admin what the traceroute is
     logging.info(f"Traceroute: {message_string}")
-    send_message(interface, message_string, private_channel_number, "^all")
+    send_message(interface, message_string, admin_channel_number, "^all")
     return
 
 def onReceiveWaypoint(packet, interface):
@@ -446,12 +444,12 @@ def onReceiveWaypoint(packet, interface):
 
     if expire == 1:
         logging.info(f"Waypoint {name} is expired")
-        send_llm_message(interface, f"Waypoint {name} is expired", private_channel_number, "^all")
+        send_llm_message(interface, f"Waypoint {name} is expired", admin_channel_number, "^all")
     else:
         # expire is in epoch time, so convert to datetime
         expire_time = datetime.fromtimestamp(expire, tz=timezone.utc)
         logging.info(f"Waypoint {name} expires at {expire_time}")
-        send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", private_channel_number, "^all")
+        send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", admin_channel_number, "^all")
 
 def onReceiveNodeInfo(packet, interface):
     from_node_num = packet['from']
@@ -481,7 +479,7 @@ def onReceiveRouting(packet, interface):
     now = datetime.now(timezone.utc)
     now_string = now.strftime("%Y-%m-%d %H:%M:%S")
     admin_message = f"Routing Packet received from {node_short_name} at {now_string}"
-    send_message(interface, admin_message, private_channel_number, "^all")
+    send_message(interface, admin_message, admin_channel_number, "^all")
     return
 
 def onReceiveRangeTest(packet, interface):
@@ -549,7 +547,7 @@ def onReceive(packet, interface):
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
 
-    global public_channel_number, private_channel_number
+    global public_channel_number, admin_channel_number
     channelId = public_channel_number
 
     if localNode.nodeNum == from_node_num:
@@ -575,7 +573,7 @@ def onReceive(packet, interface):
 
             # Notify admin of new node
             admin_message = f"New node detected: {node_short_name} - {node['user']['longName']}"
-            send_llm_message(interface, admin_message, private_channel_number, "^all")
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
 
             # TODO Send my position/user info to the new node to get their position. 
 
@@ -606,13 +604,13 @@ def onReceive(packet, interface):
                 logging.info(f"Unhandled Packet received from {node_short_name} - {portnum}")
                 logging.info(f"Packet: {packet}")
                 admin_message = f"Unhandled Packet received from {node_short_name} - {portnum}"
-                send_message(interface, admin_message, private_channel_number, "^all")
+                send_message(interface, admin_message, admin_channel_number, "^all")
                 return
         else:
             logging.info(f"Packet received from {node_short_name} - Encrypted")
             sitrep.log_packet_received("Encrypted")
             admin_message = f"Encrypted Packet received from {node_short_name}"
-            send_message(interface, admin_message, private_channel_number, "^all")
+            send_message(interface, admin_message, admin_channel_number, "^all")
             return
 
     except KeyError as e:
@@ -671,7 +669,7 @@ def should_trace_node(node, interface):
 
     logging.info(f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here")
     admin_message = f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here"
-    send_message(interface, admin_message, private_channel_number, "^all")
+    send_message(interface, admin_message, admin_channel_number, "^all")
     return True
 
 def check_node_health(interface, node):
@@ -693,7 +691,7 @@ def check_node_health(interface, node):
         battery_level = node["deviceMetrics"]["batteryLevel"]
         if battery_level < 20:
             logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
-            send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", private_channel_number, "^all")             
+            send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")             
                 
 
 def lookup_node(interface, node_generic_identifier):
@@ -853,10 +851,25 @@ def find_my_location(interface, node_num):
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
+    global private_chats
     node = interface.nodesByNum[from_id]
     short_name = node['user']['shortName']
-    response_text = f"This is an auto-responder replying to {message} from {short_name}. It will reply to ping and any direct messages!"
-    send_llm_message(interface, response_text, channel, from_id)
+    if private_chats[short_name]:
+        logging.info(f"Private chat with {short_name} already exists, not creating a new one")
+    else:
+        logging.info(f"Creating private chat with {short_name}")
+        private_chats[short_name] = gemini_client.chats.create(
+            model='gemini-2.0-flash-001',
+            config=types.GenerateContentConfig(
+                system_instruction=f"You are tasked with monitoring a meshtastic mesh network and are currently talking privately with {short_name}. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That.",      
+                max_output_tokens=75)
+            )
+
+    response = public_chat.send_message(message)
+    response_text = response.text
+    logging.info(f"Response: {response_text}")
+    send_message(interface, response_text, channel, from_id)
+    
     
 def reply_to_message(interface, message, channel, to_id, from_id):
     """
@@ -996,14 +1009,14 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
             admin_message = f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit}"
-            send_llm_message(interface, admin_message, private_channel_number, "^all")
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
             
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
         admin_message = f"Error sending traceroute request to node {node_num}: {e}"
-        send_message(interface, admin_message, private_channel_number, "^all")
+        send_message(interface, admin_message, admin_channel_number, "^all")
     logging.info(f"leaving send_trace_route")
 
 def send_llm_message(interface, message, channel, to_id):
@@ -1018,15 +1031,11 @@ def send_llm_message(interface, message, channel, to_id):
 
     try:
         response_text = None
-        if channel == private_channel_number:
-            response = private_chat.send_message(message)
-            #logging.info(f"Generated response: {response}")
-            logging.info(f"Generated response: {response.text}")
+        if channel == admin_channel_number:
+            response = admin_chat.send_message(message)
             response_text = response.text
         elif channel == public_channel_number:
             response = public_chat.send_message(message)
-            #logging.info(f"Generated response: {response}")
-            logging.info(f"Generated response: {response.text}")
             response_text = response.text
         else:
             response = gemini_client.models.generate_content(
@@ -1119,7 +1128,7 @@ while True:
         # Check if heartbeat counter has reached the threshold
         if heartbeat_counter >= 5:
             logging.warning(f"WARNING: No packets received in {heartbeat_counter} iterations")
-            send_llm_message(interface, f"WARNING: No packets received in {heartbeat_counter} iterations. Radio may be non-responsive.", private_channel_number, "^all")
+            send_llm_message(interface, f"WARNING: No packets received in {heartbeat_counter} iterations. Radio may be non-responsive.", admin_channel_number, "^all")
             heartbeat_counter = 0  # Reset after sending the warning
     
         # Send a routine sitrep every 24 hours at 00:00 UTC        
