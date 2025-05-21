@@ -1011,15 +1011,17 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
         else:
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
-            admin_message = f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit}"
+            admin_message = f"DPMM is tracing {node_num} / {short_name} with hop limit {hop_limit}"
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
             
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
-        admin_message = f"Error sending traceroute request to node {node_num}: {e}"
-        send_message(interface, admin_message, admin_channel_number, "^all")
+        if "Timed out waiting for traceroute" in str(e):
+            admin_message = f"Traceroute request to node {node_num} timed out"
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+        
     logging.info(f"leaving send_trace_route")
 
 def send_llm_message(interface, message, channel, to_id):
