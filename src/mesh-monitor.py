@@ -37,6 +37,7 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 # Read environment variables set in docker-compose
 gemini_api_key = os.getenv('GEMINI_API_KEY')
 
+
 logging.info("Starting Mesh Monitor")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
@@ -527,6 +528,8 @@ def onReceive(packet, interface):
     Returns:
         None
     """
+    global heartbeat_counter 
+    heartbeat_counter = 0
     #logging.info(f"Received packet: {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
@@ -1064,9 +1067,9 @@ pub.subscribe(onNodeUpdate, "meshtastic.node.updated")
 pub.subscribe(onLog, "meshtastic.log")
 
 interface = None
+heartbeat_counter = 0
 
 while True:
-
     try:
         if interface is None:
             logging.info(f"Connecting to Meshtastic device on {serial_port}")
@@ -1078,8 +1081,19 @@ while True:
         continue
 
     try:
+        
         node_info = interface.getMyNodeInfo()
         interface.sendHeartbeat()
+        
+        # Increment heartbeat counter
+        heartbeat_counter += 1
+        
+        
+        # Check if heartbeat counter has reached the threshold
+        if heartbeat_counter >= 5:
+            logging.warning(f"WARNING: No packets received in {heartbeat_counter} iterations")
+            send_llm_message(interface, f"WARNING: No packets received in {heartbeat_counter} iterations. Radio may be non-responsive.", private_channel_number, "^all")
+            heartbeat_counter = 0  # Reset after sending the warning
     
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
@@ -1095,6 +1109,7 @@ while True:
             Interface Node Number: {node_info['num']}\n      \
             Interface Node Short Name: {node_info['user']['shortName']}\n      \
             Connection Timeout: {connect_timeout}\n      \
+            Heartbeat Counter: {heartbeat_counter}\n      \
         **************************************************************\n    \
         **************************************************************\n\n ")
 
