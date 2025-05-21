@@ -234,7 +234,7 @@ def onReceivePosition(packet, interface):
 
     if 'altitude' in packet:
         altitude = packet['altitude']
-        if altitude > 2000:
+        if altitude > 900:
             logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
             message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
             send_message(interface, message, private_channel_number, "^all")
