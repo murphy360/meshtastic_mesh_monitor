@@ -117,12 +117,19 @@ def onDisconnect(interface):
     Args:
         interface: The interface object representing the connection.
     """
+    
     logging.info(f"\n\n \
             **************************************************************\n \
             **************************************************************\n\n \
                 Disconnected from {serial_port}\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
+    try:
+        interface.close()
+    except Exception as e:
+        logging.error(f"Error closing interface: {e}")
+    interface = None
+    
 
 def onNodeUpdate(node, interface):
     """
