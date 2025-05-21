@@ -347,7 +347,7 @@ def onReceiveTraceRoute(packet, interface):
         message_string += f"{node['user']['shortName']}"
         logging.info(f"Length of snr_towards: {len(snr_towards)}")
         if i < len(snr_towards):
-            message_string += f" ({snr_towards[i]}dB) -> "
+            message_string += f" -> ({snr_towards[i]}dB) "
             i += 1
 
     i = 0
@@ -355,7 +355,7 @@ def onReceiveTraceRoute(packet, interface):
     for node in route_back:
         logging.info(f"Length of snr_back: {len(snr_back)}")
         if i < len(snr_back):
-            message_string += f" ({snr_back[i]}dB) -> "
+            message_string += f" -> ({snr_back[i]}dB) "
             i += 1
         message_string += f"{node['user']['shortName']}"
         
