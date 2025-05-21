@@ -37,9 +37,19 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 # Read environment variables set in docker-compose
 gemini_api_key = os.getenv('GEMINI_API_KEY')
 gemini_client = genai.Client(api_key=gemini_api_key)
-public_chat = gemini_client.chats.create(model='gemini-2.0-flash-001')
-private_chat = gemini_client.chats.create(model='gemini-2.0-flash-001')
+public_chat = gemini_client.chats.create(
+    model='gemini-2.0-flash-001',
+    config=types.GenerateContentConfig(
+        system_instruction="You are tasked with monitoring a meshtastic mesh network. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should only include the finalized message after you have modified the original.",      
+        max_output_tokens=75)
+    )
 
+private_chat = gemini_client.chats.create(
+    model='gemini-2.0-flash-001',
+    config=types.GenerateContentConfig(
+        system_instruction="You are tasked with monitoring a meshtastic mesh network and are currently working directly with the boss as head Administrator. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should only include the finalized message after you have modified the original.",      
+        max_output_tokens=75)
+    )
 
 logging.info("Starting Mesh Monitor")
 
@@ -1007,7 +1017,7 @@ def send_llm_message(interface, message, channel, to_id):
     try:
         if channel == private_channel_number:
             response = private_chat.send_message(message)
-            logging.info(f"Generated response: {response}")
+            #logging.info(f"Generated response: {response}")
             logging.info(f"Generated response: {response.text}")
 
         response = gemini_client.models.generate_content(
