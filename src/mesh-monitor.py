@@ -1099,7 +1099,7 @@ while True:
         **************************************************************\n\n ")
 
     except Exception as e:
-        logging.error(f"Error in main loop: {e} - Sleeping for {connect_timeout} seconds")
+        logging.error(f"Error in main loop: {e} - Trying to clean up and reconnect")
         
         if interface is not None:
             interface.close()
