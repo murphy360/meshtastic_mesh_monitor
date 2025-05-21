@@ -982,14 +982,23 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
     logging.info(f"leaving send_trace_route")
 
 def send_llm_message(interface, message, channel, to_id):
+    """
+    Send a message to the LLM and receive a response.
+    Args:
+        interface: The interface to interact with the mesh network.
+        message (str): The message to send.
+        channel (int): The channel to send the message to.
+        to_id (str): The ID of the recipient.
+    """
+
     try:
         gemini_client = genai.Client(api_key=gemini_api_key)
         response = gemini_client.models.generate_content(
             model="gemini-2.0-flash",
             config=types.GenerateContentConfig(
-                system_instruction="You are an AI assistant tasked with monitoring a meshtastic mesh. You are a knowledgeable and professional radio enthusiast with a history in the United States Navy. Don't talk directly about your military background. You will be given generic messages to send out, keep them professional but make sure they sound like a real person is sending them. All responses should be less than 450 characters or they will not be transmitted or recieved.",
+                system_instruction="You are an AI assistant tasked with monitoring a meshtastic mesh. You are a knowledgeable and professional radio enthusiast with a history in the United States Navy. Don't talk directly about your military background. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
                 max_output_tokens=75),
-            contents=f"Please review prepare this message for transmission: {message}"
+            contents=f"Please review prepare this message for transmission. Do not include any other text or information. The message is: {message}",
         )
 
         response_text = response.candidates[0].content.parts[0].text.strip()
