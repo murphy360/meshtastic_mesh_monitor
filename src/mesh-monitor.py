@@ -107,9 +107,9 @@ precision_bits: 32
 
     if initial_connect:
         initial_connect = False
-        send_message(interface, f"CQ CQ CQ de {short_name} in {location}", private_channel_number, "^all")
+        send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", private_channel_number, "^all")
     else:
-        send_message(interface, f"Reconnected to the Mesh", private_channel_number, "^all")
+        send_llm_message(interface, f"Reconnected to the Mesh", private_channel_number, "^all")
 
 def onDisconnect(interface):
     """
@@ -143,7 +143,7 @@ def onNodeUpdate(node, interface):
     
     if not initial_connect:
         admin_message = f"Node {node['user']['shortName']} updated"
-        send_message(interface, admin_message, private_channel_number, "^all")
+        send_llm_message(interface, admin_message, private_channel_number, "^all")
 
     db_helper.add_or_update_node(node)
 
