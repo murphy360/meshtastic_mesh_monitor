@@ -457,7 +457,7 @@ def onReceiveRouting(packet, interface):
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveRouting from {node_short_name} - {from_node_num}")
+    logging.info(f"[FUNCTION] onReceiveRouting from {node_short_name} - {from_node_num} \n {packet}")
     now = datetime.now(timezone.utc)
     now_string = now.strftime("%Y-%m-%d %H:%M:%S")
     admin_message = f"Routing Packet received from {node_short_name} at {now_string}"
