@@ -1017,20 +1017,28 @@ def send_llm_message(interface, message, channel, to_id):
     """
 
     try:
+        response_text = None
         if channel == private_channel_number:
             response = private_chat.send_message(message)
             #logging.info(f"Generated response: {response}")
             logging.info(f"Generated response: {response.text}")
+            response_text = response.text
+        elif channel == public_channel_number:
+            response = public_chat.send_message(message)
+            #logging.info(f"Generated response: {response}")
+            logging.info(f"Generated response: {response.text}")
+            response_text = response.text
+        else:
+            response = gemini_client.models.generate_content(
+                model="gemini-2.0-flash",
+                config=types.GenerateContentConfig(
+                    system_instruction="You are tasked with monitoring a meshtastic mesh network. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
+                    max_output_tokens=75),
+                contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
+            )
 
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
-            config=types.GenerateContentConfig(
-                system_instruction="You are tasked with monitoring a meshtastic mesh network. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
-                max_output_tokens=75),
-            contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
-        )
-
-        response_text = response.candidates[0].content.parts[0].text.strip()
+            response_text = response.candidates[0].content.parts[0].text.strip()
+            
         if response_text:
             message = response_text
             logging.info(f"Generated response: {message}")
