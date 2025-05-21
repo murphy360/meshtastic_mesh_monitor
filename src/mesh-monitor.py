@@ -977,7 +977,8 @@ async def send_trace_route(interface, node_num, channel, hop_limit=3):
         channel (int): The channel to send the traceroute request to.
     """
     global last_trace_sent_time
-    logging.info(f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit}")
+    short_name = lookup_short_name(interface, node_num)
+    logging.info(f"Sending traceroute request to node {node_num} - {short_name} on channel {channel} with hop limit {hop_limit}")
     try:
         now = datetime.now(timezone.utc)
         if now - last_trace_sent_time < timedelta(seconds=30):
