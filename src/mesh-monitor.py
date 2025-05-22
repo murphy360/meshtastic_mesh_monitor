@@ -5,6 +5,7 @@ import geopy
 from geopy import distance
 import meshtastic
 import meshtastic.serial_interface
+from meshtastic.protobuf import mesh_pb2, config_pb2
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
@@ -567,6 +568,7 @@ def onReceive(packet, interface):
         
         new_node = db_helper.add_or_update_node(node)                
         if new_node:
+            send_node_info(interface)
             logging.info(f"New node detected: {node_short_name} - {from_node_num}")
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
@@ -890,6 +892,12 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     from_node = interface.nodesByNum[from_id]
     #logging.info(f"From Node: {from_node}")
 
+    if message == "sendnodeinfo":
+        logging.info("Sending node info")
+        send_node_info(interface)
+        sitrep.log_message_sent("send-node-info")
+        return
+
     if message == "ping":
         node_short_name = lookup_short_name(interface, from_id)
         local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
@@ -1096,6 +1104,33 @@ def send_message(interface, message, channel, to_id):
         if to_id != "^all":
             node_name = lookup_short_name(interface, to_id)
         logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
+
+def send_node_info(interface):
+    """
+    Send node information to a specified node.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        node_num (int): The number of the node to send information to.
+    """
+    user = mesh_pb2.User()
+    me = interface.nodesByNum[interface.localNode.nodeNum]['user']
+    user.id = me['id']
+    user.long_name = me['longName']
+    user.short_name = me['shortName']
+    user.hw_model = mesh_pb2.HardwareModel.Value(me['hwModel'])
+    if user.role:
+        user.role = config_pb2.Config.DeviceConfig.Role.Value(me['role'])
+
+    interface.sendData(
+        user,
+        destinationId=public_channel_number,
+        portNum=meshtastic.portnums_pb2.NODEINFO_APP,
+        wantAck=False,
+        wantResponse=False
+    )
+    logging.info(f"Node info sent to {public_channel_number}")
+
 
 # Main loop
 logging.info("Starting Main Loop")
