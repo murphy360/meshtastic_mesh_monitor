@@ -581,6 +581,7 @@ def onReceive(packet, interface):
             # TODO Send my position/user info to the new node to get their position. 
 
         # Check if the node is a node of interest
+        logging.info(f"Checking if node {node_short_name} is a node of interest")
         node_of_interest = db_helper.is_node_of_interest(node)
         if node_of_interest:
             logging.info(f"Node of interest: {node_short_name} - {from_node_num}")
@@ -599,6 +600,7 @@ def onReceive(packet, interface):
             asyncio.run(send_trace_route(interface, from_node_num, public_channel_number, hop_limit))
 
         if 'decoded' in packet:
+            logging.info(f"Packet received from {node_short_name} - Decoded")
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
             portnum = packet['decoded']['portnum']
             sitrep.log_packet_received(portnum)
