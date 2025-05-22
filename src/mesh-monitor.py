@@ -329,7 +329,7 @@ def onReceiveTraceRoute(packet, interface):
             snr_back.append(hop)
 
         if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
-
+            logging.info(f"ROUTE BACK:  {trace['routeBack']}")
             for hop in trace['routeBack']:
                 node = interface.nodesByNum[hop]
                 route_back.append(node)
@@ -354,6 +354,7 @@ def onReceiveTraceRoute(packet, interface):
 
         route_to.append(originator_node)
         if 'routeTo' in trace:
+            logging.info(f"ROUTE TO:  {trace['routeTo']}")
             for hop in trace['routeTo']:
                 node = interface.nodesByNum[hop]
                 route_to.append(node)
