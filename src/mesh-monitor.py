@@ -967,7 +967,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             sitrep.log_message_sent("node-traced")
             hop_limit = 1
             if "hopsAway" in node:
-                hop_limit = int(node["hopsAway"])
+                hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
                 hop_limit = 1
             asyncio.run(send_trace_route(interface, node['num'], public_channel_number, hop_limit))
@@ -1123,7 +1123,9 @@ def send_node_info(interface):
     me = interface.nodesByNum[interface.localNode.nodeNum]['user']
     logging.info(f"Setting node info for {me['shortName']} - {me['longName']} - {me['id']} \n 'me': {me}")
     #logging.info(f"User: {user}")
-    user.public_key = me['publicKey']
+    user.public_key = mesh_pb2.PublicKey()
+    user.public_key.key = bytes.fromhex(public_key)
+    user.public_key.key_type = mesh_pb2.PublicKey.KeyType.Value("ED25519")
     user.id = me['id']
     user.long_name = me['longName']
     user.short_name = me['shortName']
