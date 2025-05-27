@@ -1131,7 +1131,7 @@ def send_node_info(interface):
     if user.role:
         user.role = config_pb2.Config.DeviceConfig.Role.Value(me['role'])
 
-    logging.info(f"User: {user}")
+    logging.info(f"User: {user.public_key} - {user.id} - {user.long_name} - {user.short_name} - {user.hw_model} - {user.role}")
     interface.sendData(
         user,
         destinationId=public_channel_number,
