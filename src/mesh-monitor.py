@@ -1121,6 +1121,8 @@ def send_node_info(interface):
     
     user = mesh_pb2.User()
     me = interface.nodesByNum[interface.localNode.nodeNum]['user']
+    logging.info(f"Setting node info for {me['shortName']} - {me['longName']} - {me['id']} \n {'me': me}")
+    user.public_key = public_key
     user.id = me['id']
     user.long_name = me['longName']
     user.short_name = me['shortName']
