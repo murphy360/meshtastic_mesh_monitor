@@ -1115,7 +1115,8 @@ def send_node_info(interface):
         interface: The interface to interact with the mesh network.
         node_num (int): The number of the node to send information to.
     """
-    public_key = interface.getMyNodeInfo()['publicKey']
+    node_info = interface.getMyNodeInfo()
+    public_key = node_info['user']['publicKey']
     logging.info("Sending node info, Public key is: " + public_key)
     
     user = mesh_pb2.User()
@@ -1134,8 +1135,10 @@ def send_node_info(interface):
         wantAck=False,
         wantResponse=False
     )
-    public_key = interface.getMyNodeInfo()['publicKey']
-    logging.info(f"Node info sent to {public_channel_number} public key: {public_key}")
+    
+    new_node_info = interface.getMyNodeInfo()
+    new_public_key = node_info['user']['publicKey']
+    logging.info(f"Node info sent to {public_channel_number} public key: {new_public_key}")
 
 
 # Main loop
@@ -1201,6 +1204,7 @@ while True:
             Interface Serial Port: {serial_port}\n      \
             Interface Node Number: {node_info['num']}\n      \
             Interface Node Short Name: {node_info['user']['shortName']}\n      \
+            Public Key: {node_info['user']['publicKey']}\n \
             Connection Timeout: {connect_timeout}\n      \
             Heartbeat Counter: {heartbeat_counter}\n      \
         **************************************************************\n    \
