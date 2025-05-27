@@ -650,8 +650,6 @@ def should_trace_node(node, interface):
     node_num = node['num']
     now = datetime.now(timezone.utc)
 
-
-
     # Check if the node has hopsAway attribute. If not, we should trace it.
     if "hopsAway" not in node:
         logging.info(f"Node {node['user']['shortName']} does not have hopsAway attribute, should trace")
@@ -664,18 +662,18 @@ def should_trace_node(node, interface):
 
     # Check if we have ever traced this node. If not, we should trace it.
     if not node_num in last_trace_time:
-        logging.info(f"Node {node['user']['shortName']} has been traced before, checking last trace time")
+        logging.info(f"Node {node['user']['shortName']} has never been traced before, should trace")
         return True
     
     # Check if the node has been traced within the trace interval. If it has been traced recently, we should not trace it.
     if now - last_trace_time[node_num] <= trace_interval:
         #logging.info(f"Node {node['user']['shortName']} has been traced within {trace_interval}, should not trace")
         return False
+    else:
+        # If the node has not been traced within the trace interval, we should trace it.
+        logging.info(f"Node {node['user']['shortName']} has not been traced within {trace_interval}, hopsAway: {node['hopsAway']}, should trace")
+        return True
 
-    logging.info(f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here")
-    admin_message = f"Node {node['user']['shortName']} is being traced because I messed up my logic, should not get here"
-    send_message(interface, admin_message, admin_channel_number, "^all")
-    return True
 
 def check_node_health(interface, node):
     """
