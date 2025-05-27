@@ -320,6 +320,7 @@ def onReceiveTraceRoute(packet, interface):
     if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
         originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
         traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
+        
         # set last_trace_time for the traced node
         last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
         logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
@@ -1114,6 +1115,9 @@ def send_node_info(interface):
         interface: The interface to interact with the mesh network.
         node_num (int): The number of the node to send information to.
     """
+    public_key = interface.getMyNodeInfo()['publicKey']
+    logging.info("Sending node info, Public key is: " + public_key)
+    
     user = mesh_pb2.User()
     me = interface.nodesByNum[interface.localNode.nodeNum]['user']
     user.id = me['id']
@@ -1130,7 +1134,8 @@ def send_node_info(interface):
         wantAck=False,
         wantResponse=False
     )
-    logging.info(f"Node info sent to {public_channel_number}")
+    public_key = interface.getMyNodeInfo()['publicKey']
+    logging.info(f"Node info sent to {public_channel_number} public key: {public_key}")
 
 
 # Main loop
