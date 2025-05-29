@@ -1,4 +1,3 @@
-import asyncio
 import os
 import time
 import geopy
@@ -598,7 +597,7 @@ def onReceive(packet, interface):
             if hop_limit < 1:
                 hop_limit = 1
             
-            asyncio.run(send_trace_route(interface, from_node_num, public_channel_number, hop_limit))
+            send_trace_route(interface, from_node_num, public_channel_number, hop_limit)
 
         if 'decoded' in packet:
             logging.info(f"Packet received from {node_short_name} - Decoded")
@@ -970,7 +969,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
                 hop_limit = 1
-            asyncio.run(send_trace_route(interface, node['num'], public_channel_number, hop_limit))
+            send_trace_route(interface, node['num'], public_channel_number, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -1002,7 +1001,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info(f"Message not recognized: {message}. Not replying.")
         return
 
-async def send_trace_route(interface, node_num, channel, hop_limit=3):
+def send_trace_route(interface, node_num, channel, hop_limit=1):
     """
     Send a traceroute request to a specified node.
 
@@ -1125,7 +1124,6 @@ def send_node_info(interface):
     #logging.info(f"User: {user}")
     user.public_key = mesh_pb2.PublicKey()
     user.public_key.key = bytes.fromhex(public_key)
-    user.public_key.key_type = mesh_pb2.PublicKey.KeyType.Value("ED25519")
     user.id = me['id']
     user.long_name = me['longName']
     user.short_name = me['shortName']
@@ -1190,12 +1188,14 @@ while True:
         # Increment heartbeat counter
         heartbeat_counter += 1
         
-        
         # Check if heartbeat counter has reached the threshold
         if heartbeat_counter >= 5:
             logging.warning(f"WARNING: No packets received in {heartbeat_counter} iterations")
-            send_llm_message(interface, f"WARNING: No packets received in {heartbeat_counter} iterations. Radio may be non-responsive.", admin_channel_number, "^all")
+            send_llm_message(interface, f"WARNING: No packets received by {node_info['user']['shortName']} in {heartbeat_counter} iterations. Radio may be non-responsive. Closing interface and reconnecting.", admin_channel_number, "^all")
+            interface.close()
+            interface = None
             heartbeat_counter = 0  # Reset after sending the warning
+            continue  # Skip the rest of the loop and try to reconnect
     
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
