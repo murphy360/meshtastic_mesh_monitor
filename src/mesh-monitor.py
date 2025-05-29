@@ -33,6 +33,8 @@ last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
+# Log File is a dated file on startup
+log_filename = f"/data/mesh_monitor_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
 # Read environment variables set in docker-compose
 gemini_api_key = os.getenv('GEMINI_API_KEY')
@@ -631,10 +633,8 @@ def onLog(line, interface):
     """
     #logging.info(f"Log: {line}")
     # write to file
-    with open('/data/mesh_monitor.log', 'a') as f:
+    with open(log_filename, 'a') as f:
         f.write(f"{line}\n")
-
-
 
 def should_trace_node(node, interface):
     """
