@@ -334,6 +334,7 @@ def onReceiveTraceRoute(packet, interface):
             logging.info(f"ROUTE BACK:  {trace['routeBack']}")
             for hop in trace['routeBack']:
                 node = interface.nodesByNum[hop]
+                logging.info(f"Adding node {node['user']['shortName']} to route back")
                 route_back.append(node)
         route_back.append(originator_node) # Add the originator node to the route back (local node)
 
@@ -555,21 +556,20 @@ def onReceive(packet, interface):
     channelId = public_channel_number
     notify_admin = False
 
-    if from_node_num == localNode.nodeNum:
-        logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
-        return
 
-    if 'channel' in packet:
-        channelId = int(packet['channel'])
-    
-    log_message = f"Packet received from {node_short_name} - {from_node_num} - Channel: {channelId}"
-    
-    if "hopsAway" in node:
-        log_message += f" - Hops Away: {node['hopsAway']}"
-
-    logging.info(log_message)
 
     try:
+        if from_node_num == localNode.nodeNum:
+            logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
+            return
+
+        if 'channel' in packet:
+            channelId = int(packet['channel'])
+        
+        log_message = f"Packet received from {node_short_name} - {from_node_num} - Channel: {channelId}"
+        
+        if "hopsAway" in node:
+            log_message += f" - Hops Away: {node['hopsAway']}"
         
         # Check if the node is already in the database
         new_node = db_helper.add_or_update_node(node) 
@@ -582,7 +582,7 @@ def onReceive(packet, interface):
             notify_admin = True 
 
         # Check if the node is a node of interest
-        logging.info(f"Checking if node {node_short_name} is a node of interest")
+        #logging.info(f"Checking if node {node_short_name} is a node of interest")
         node_of_interest = db_helper.is_node_of_interest(node)
         if node_of_interest:
             log_message += f" - Node of Interest"
@@ -1002,8 +1002,9 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
     logging.info(f"Sending traceroute request to node {node_num} - {short_name} on channel {channel} with hop limit {hop_limit}")
     try:
         now = datetime.now(timezone.utc)
-        if now - last_trace_sent_time < timedelta(seconds=480):
-            logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
+        time_since_last_trace = now - last_trace_sent_time
+        if time_since_last_trace < timedelta(seconds=480):
+            logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting (480 Seconds). Last trace sent {time_since_last_trace} ago.")
         else:
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
