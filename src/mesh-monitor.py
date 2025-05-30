@@ -589,18 +589,6 @@ def onReceive(packet, interface):
             logging.info(f"Node of interest: {node_short_name} - {from_node_num}")
             check_node_health(interface, node)
 
-        # Check if the node should be traced and send traceroute packet if so
-        if should_trace_node(node, interface): #TODO Consider moving this into the onReceiveText function
-            hop_limit = 1
-            if "hopsAway" in node:
-                logging.info(f"Node {node['user']['shortName']} has hopsAway attribute, checking hopsAway - {node['hopsAway']}")
-                hop_limit = int(node["hopsAway"])
-
-            if hop_limit < 1:
-                hop_limit = 1
-            
-            send_trace_route(interface, from_node_num, public_channel_number, hop_limit)
-
         if 'decoded' in packet:
             logging.info(f"Packet received from {node_short_name} - Decoded")
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
@@ -1015,7 +1003,7 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
     logging.info(f"Sending traceroute request to node {node_num} - {short_name} on channel {channel} with hop limit {hop_limit}")
     try:
         now = datetime.now(timezone.utc)
-        if now - last_trace_sent_time < timedelta(seconds=30):
+        if now - last_trace_sent_time < timedelta(seconds=480):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting")
         else:
             last_trace_sent_time = now  # Update last trace sent time
