@@ -143,7 +143,11 @@ def onDisconnect(interface):
             **************************************************************\n \
             **************************************************************\n\n ")
     try:
-        interface.close()
+        if interface is not None:
+            # Close the interface gracefully
+            logging.info("Closing interface...")
+            interface.close()
+        interface = None
     except Exception as e:
         logging.error(f"Error closing interface: {e}")
     interface = None
