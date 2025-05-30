@@ -570,7 +570,7 @@ def onReceive(packet, interface):
         if 'channel' in packet:
             channelId = int(packet['channel'])
         
-        log_message = f"[FUNCTION] onReceive from {node_short_name} - {from_node_num} - Channel: {channelId}"
+        log_message = f"from {node_short_name} - {from_node_num} - Channel: {channelId}"
         
         if "hopsAway" in node:
             log_message += f" - Hops Away: {node['hopsAway']}"
@@ -593,18 +593,17 @@ def onReceive(packet, interface):
             check_node_health(interface, node)
 
         if 'decoded' in packet:
-            log_message += f" - Packet Decoded"
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
             portnum = packet['decoded']['portnum']
 
-            log_message += f" - Portnum: {portnum}"
+            log_message = f"[FUNCTION] onReceive - Portnum: {portnum}" + log_message
 
             if portnum not in portnums_handled:
-                log_message += f" - Unhandled"
+                log_message += f" - Unhandled Portnum"
                 notify_admin = True
 
             sitrep.log_packet_received(portnum)
-            
+
         else:
             log_message += f" - Encrypted"
             sitrep.log_packet_received("Encrypted")
