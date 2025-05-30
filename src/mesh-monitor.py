@@ -553,61 +553,60 @@ def onReceive(packet, interface):
 
     global public_channel_number, admin_channel_number
     channelId = public_channel_number
+    notify_admin = False
 
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
+    if from_node_num == localNode.nodeNum:
+        logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
         return
+
+    if 'channel' in packet:
+        channelId = int(packet['channel'])
     
-    logging.info(f"[FUNCTION] onReceive from {node_short_name} - {from_node_num}")
+    log_message = f"Packet received from {node_short_name} - {from_node_num} - Channel: {channelId}"
+    
+    if "hopsAway" in node:
+        log_message += f" - Hops Away: {node['hopsAway']}"
+
+    logging.info(log_message)
 
     try:
         
-        if 'channel' in packet:
-            channelId = int(packet['channel'])
-    
-        if from_node_num == localNode.nodeNum:
-            logging.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
-            return
-        
-        new_node = db_helper.add_or_update_node(node)                
+        # Check if the node is already in the database
+        new_node = db_helper.add_or_update_node(node) 
+              
         if new_node:
-            send_node_info(interface)
-            logging.info(f"New node detected: {node_short_name} - {from_node_num}")
+            #send_node_info(interface) TODO Re-enable this when we have a way to send node info correctly. 
+            log_message += f" - New Node Detected"
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
-
-            # Notify admin of new node
-            admin_message = f"New node detected: {node_short_name} - {node['user']['longName']}"
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
-
-            # TODO Send my position/user info to the new node to get their position. 
+            notify_admin = True 
 
         # Check if the node is a node of interest
         logging.info(f"Checking if node {node_short_name} is a node of interest")
         node_of_interest = db_helper.is_node_of_interest(node)
         if node_of_interest:
-            logging.info(f"Node of interest: {node_short_name} - {from_node_num}")
+            log_message += f" - Node of Interest"
             check_node_health(interface, node)
 
         if 'decoded' in packet:
-            logging.info(f"Packet received from {node_short_name} - Decoded")
+            log_message += f" - Packet Decoded"
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
             portnum = packet['decoded']['portnum']
             sitrep.log_packet_received(portnum)
 
             if portnum not in portnums_handled:
-                logging.info(f"Unhandled Packet received from {node_short_name} - {portnum}")
-                logging.info(f"Packet: {packet}")
-                admin_message = f"Unhandled Packet received from {node_short_name} - {portnum}"
-                send_message(interface, admin_message, admin_channel_number, "^all")
-                return
+                log_message += f" - Unhandled Portnum: {portnum}"
+                logging.info(f"Unhandled Portnum: {packet}")
         else:
-            logging.info(f"Packet received from {node_short_name} - Encrypted")
+            log_message += f" - Encrypted"
             sitrep.log_packet_received("Encrypted")
-            admin_message = f"Encrypted Packet received from {node_short_name}"
-            send_message(interface, admin_message, admin_channel_number, "^all")
-            return
 
+        logging.info(log_message)
+
+        if notify_admin:
+            # Notify admin if required
+            send_llm_message(interface, log_message, admin_channel_number, "^all")
+       
     except KeyError as e:
         logging.error(f"Error processing packet from {packet['from']}: {e}")
         logging.error(f"Packet: {packet}")
