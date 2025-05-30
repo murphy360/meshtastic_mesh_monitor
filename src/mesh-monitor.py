@@ -768,10 +768,14 @@ def find_distance_between_nodes(interface, node1, node2):
             if n["num"] == node1:
                 if 'position' not in n:
                     return "Unknown"
+                if 'latitude' not in n["position"] or 'longitude' not in n["position"]:
+                    return "Unknown"
                 node1Lat = n["position"]["latitude"]
                 node1Lon = n["position"]["longitude"]
             if n["num"] == node2:
                 if 'position' not in n:
+                    return "Unknown"
+                if 'latitude' not in n["position"] or 'longitude' not in n["position"]:
                     return "Unknown"
                 node2Lat = n["position"]["latitude"]
                 node2Lon = n["position"]["longitude"]
