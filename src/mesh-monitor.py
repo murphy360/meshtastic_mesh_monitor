@@ -1003,8 +1003,8 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
     try:
         now = datetime.now(timezone.utc)
         time_since_last_trace = now - last_trace_sent_time
-        if time_since_last_trace < timedelta(seconds=480):
-            logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting (480 Seconds). Last trace sent {time_since_last_trace} ago.")
+        if time_since_last_trace < timedelta(seconds=30):
+            logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting (30 Seconds). Last trace sent {time_since_last_trace} ago.")
         else:
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
