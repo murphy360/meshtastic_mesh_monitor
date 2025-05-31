@@ -982,7 +982,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             send_llm_message(interface, log_message, channel, to_id)
             sitrep.log_message_sent("node-removed")
         else:
-            send_llm_message(interface, f"Node {node_short_name} not found. Unable to remove", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found. Unable to remove from my database.", channel, to_id)
 
         return
     
