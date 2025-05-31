@@ -953,6 +953,13 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             local_node = interface.getNode('^local')
             local_node.removeNode(node['num'])
             db_helper.remove_node(node)
+            try:
+                deleted_node = lookup_node(interface, node_short_name)
+                if deleted_node:
+                    logging.info(f"Node {node_short_name} still exists after removal, removing from database")
+            except Exception as e:
+                logging.error(f"Error looking up node {node_short_name} after removal: {e}")
+            
             send_llm_message(interface, f"{node_short_name} has been removed", channel, to_id)
             sitrep.log_message_sent("node-removed")
         else:
