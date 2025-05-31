@@ -951,12 +951,24 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         if node:
             #get local node
             local_node = interface.getNode('^local')
-            local_node.removeNode(node['id'])
+            if 'id' in node:
+                logging.info(f"Removing node {node['id']} from local node")
+                local_node.removeNode(node['id'])
+            if 'num' in node:
+                logging.info(f"Removing node {node['num']} from local node")
+                local_node.removeNode(node['num'])
+            if 'user' in node:
+                if 'id' in node['user']:
+                    logging.info(f"Removing node {node['user']['id']} from local node")
+                    local_node.removeNode(node['user']['id'])
+
             db_helper.remove_node(node)
             try:
                 deleted_node = lookup_node(interface, node_short_name)
                 if deleted_node:
                     logging.info(f"Node {node_short_name} still exists after removal, removing from database")
+                else:
+                    logging.info(f"Node {node_short_name} successfully removed")
             except Exception as e:
                 logging.error(f"Error looking up node {node_short_name} after removal: {e}")
             
