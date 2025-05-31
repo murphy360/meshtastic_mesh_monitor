@@ -948,6 +948,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
+            #get local node
+            local_node = interface.getNode('^local')
+            local_node.removeNode(node['num'])
             db_helper.remove_node(node)
             send_llm_message(interface, f"{node_short_name} has been removed", channel, to_id)
             sitrep.log_message_sent("node-removed")
