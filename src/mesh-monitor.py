@@ -967,7 +967,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         if len(nodes) > 0:
             for node in nodes:
                 logging.info(f"Removing node {node['user']['shortName']} - {node['num']}")
-                log_message += f"Removing node {node['user']['shortName']} - {node['num']}\n"
+                log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
                 db_helper.remove_node(node)
                 local_node.removeNode(node['num'])
                 try:
