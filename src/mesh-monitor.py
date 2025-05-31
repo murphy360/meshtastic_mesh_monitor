@@ -690,26 +690,41 @@ def check_node_health(interface, node):
             logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
             send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")             
                 
-
-def lookup_node(interface, node_generic_identifier):
+def lookup_nodes(interface, node_generic_identifier):
     """
-    Lookup a node by its short name or long name.
-
+    Lookup nodes by their short name, long name, number, or user ID.
     Args:
         interface: The interface to interact with the mesh network.
-        node_generic_identifier (str): The short name or long name of the node.
-
+        node_generic_identifier (str): The short name, long name, number, or user ID of the node.
     Returns:
-        dict: The node data if found, None otherwise.
+        list: A list of nodes that match the identifier.
     """
+
     nodes = []
     node_generic_identifier = node_generic_identifier.lower()
     for n in interface.nodes.values():
         node_short_name = n["user"]["shortName"].lower()
         node_long_name = n["user"]["longName"].lower()
-        if node_generic_identifier in [node_short_name, node_long_name]:
-            logging.info(f"Node found: {n['user']['shortName']} - {n['num']}")
+        node_num = n["num"]
+        node_user_id = n["user"]["id"]
+        
+        if node_generic_identifier in [node_short_name, node_long_name, node_num, node_user_id]:
+            logging.info(f"[FUNCTION] lookup_nodes: Node found: {n['user']['shortName']} - {n['num']}")
             nodes.append(n)
+
+    return nodes
+    
+def lookup_node(interface, node_generic_identifier):
+    """
+    Lookup a node by its short name, long name, number, or user ID.
+    Args:
+        interface: The interface to interact with the mesh network.
+        node_generic_identifier (str): The short name, long name, number, or user ID of the node.       
+    Returns:
+        dict: The first matching node, or None if no nodes match.
+    """
+
+    nodes = lookup_nodes(interface, node_generic_identifier)
 
     if len(nodes) > 0:
         logging.info(f"Found {len(nodes)} nodes matching {node_generic_identifier}")
