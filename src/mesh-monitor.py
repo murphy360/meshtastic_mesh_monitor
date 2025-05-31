@@ -960,37 +960,29 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     
     elif "remove node" in message or "removenode" in message:
         logging.info("Removing node")
+        local_node = interface.getNode('^local')
         node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        logging.info(f"Node to remove: {node}")
-        if node:
-            #get local node
-            local_node = interface.getNode('^local')
-            if 'id' in node:
-                logging.info(f"Removing node {node['id']} from local node")
-                local_node.removeNode(node['id'])
-            if 'num' in node:
-                logging.info(f"Removing node {node['num']} from local node")
+        nodes = lookup_nodes(interface, node_short_name)
+        log_message = ""
+        if len(nodes) > 0:
+            for node in nodes:
+                logging.info(f"Removing node {node['user']['shortName']} - {node['num']}")
+                log_message += f"Removing node {node['user']['shortName']} - {node['num']}\n"
+                db_helper.remove_node(node)
                 local_node.removeNode(node['num'])
-            if 'user' in node:
-                if 'id' in node['user']:
-                    logging.info(f"Removing node {node['user']['id']} from local node")
-                    local_node.removeNode(node['user']['id'])
-
-            db_helper.remove_node(node)
-            try:
-                deleted_node = lookup_node(interface, node_short_name)
-                if deleted_node:
-                    logging.info(f"Node {node_short_name} still exists after removal, removing from database")
-                else:
-                    logging.info(f"Node {node_short_name} successfully removed")
-            except Exception as e:
-                logging.error(f"Error looking up node {node_short_name} after removal: {e}")
+                try:
+                    deleted_node = lookup_node(interface, node_short_name)
+                    if deleted_node:
+                        logging.info(f"Node {node_short_name} still exists after removal.")
+                    else:
+                        logging.info(f"Node {node_short_name} successfully removed")
+                except Exception as e:
+                    logging.error(f"Error looking up node {node_short_name} after removal: {e}")
             
-            send_llm_message(interface, f"{node_short_name} has been removed", channel, to_id)
+            send_llm_message(interface, log_message, channel, to_id)
             sitrep.log_message_sent("node-removed")
         else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found. Unable to remove", channel, to_id)
         return
     
     # Trace Node
