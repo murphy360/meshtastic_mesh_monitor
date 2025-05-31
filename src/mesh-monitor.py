@@ -998,7 +998,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
                 hop_limit = 1
-            send_trace_route(interface, node['num'], public_channel_number, hop_limit)
+            send_trace_route(interface, node['num'], channel, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return
@@ -1032,12 +1032,12 @@ def reply_to_message(interface, message, channel, to_id, from_id):
 
 def send_trace_route(interface, node_num, channel, hop_limit=1):
     """
-    Send a traceroute request to a specified node.
+    Send a traceroute request to a specified node on public channel. Sends response to the channel that the request was received on.
 
     Args:
         interface: The interface to interact with the mesh network.
         node_num (int): The number of the node to trace.
-        channel (int): The channel to send the traceroute request to.
+        channel (int): The channel to send responses to. 
     """
     global last_trace_sent_time
     short_name = lookup_short_name(interface, node_num)
@@ -1054,7 +1054,7 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
             logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
             response_text = f"DPMM is sending a traceroute request to {node_num} / {short_name} with hop limit {hop_limit}. This will take a few seconds to complete or may time out. Please be patient."
             send_llm_message(interface, response_text, channel, "^all")
-            interface.sendTraceRoute(node_num, hop_limit, channel)
+            interface.sendTraceRoute(node_num, hop_limit, public_channel_number)
             logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
             
     except Exception as e:
