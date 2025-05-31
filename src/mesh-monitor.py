@@ -947,6 +947,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info("Removing node")
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
+        logging.info(f"Node to remove: {node}")
         if node:
             #get local node
             local_node = interface.getNode('^local')
