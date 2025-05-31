@@ -1000,7 +1000,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 hop_limit = 1
             send_trace_route(interface, node['num'], public_channel_number, hop_limit)
         else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return
 
     elif "set aircraft" in message or "setaircraft" in message:
@@ -1047,10 +1047,12 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
         time_since_last_trace = now - last_trace_sent_time
         if time_since_last_trace < timedelta(seconds=30):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting (30 Seconds). Last trace sent {time_since_last_trace} ago.")
+            response_text = f"Traceroute request to node {node_num} skipped due to rate limiting (30 Seconds). Last trace sent {time_since_last_trace} ago."
+            send_llm_message(interface, response_text, admin_channel_number, "^all")
         else:
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
-            admin_message = f"DPMM is tracing {node_num} / {short_name} with hop limit {hop_limit}"
+            response_text = f"DPMM is sending a traceroute request to {node_num} / {short_name} with hop limit {hop_limit}. This will take a few seconds to complete or may time out. Please be patient."
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
