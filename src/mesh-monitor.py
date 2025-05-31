@@ -951,7 +951,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         if node:
             #get local node
             local_node = interface.getNode('^local')
-            local_node.removeNode(node['num'])
+            local_node.removeNode(node['user']['id'])
             db_helper.remove_node(node)
             try:
                 deleted_node = lookup_node(interface, node_short_name)
