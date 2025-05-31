@@ -1048,19 +1048,22 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
         if time_since_last_trace < timedelta(seconds=30):
             logging.info(f"Traceroute request to node {node_num} skipped due to rate limiting (30 Seconds). Last trace sent {time_since_last_trace} ago.")
             response_text = f"Traceroute request to node {node_num} skipped due to rate limiting (30 Seconds). Last trace sent {time_since_last_trace} ago."
-            send_llm_message(interface, response_text, admin_channel_number, "^all")
+            send_llm_message(interface, response_text, channel, "^all")
         else:
             last_trace_sent_time = now  # Update last trace sent time
             logging.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
             response_text = f"DPMM is sending a traceroute request to {node_num} / {short_name} with hop limit {hop_limit}. This will take a few seconds to complete or may time out. Please be patient."
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+            send_llm_message(interface, response_text, channel, "^all")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logging.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
             
     except Exception as e:
         logging.error(f"Error sending traceroute request: {e}")
         if "Timed out waiting for traceroute" in str(e):
-            admin_message = f"Traceroute request to node {node_num} timed out"
+            response_text = f"Traceroute request to node {node_num} timed out"
+            send_llm_message(interface, response_text, channel, "^all")
+        else: 
+            admin_message = f"Error sending traceroute request to node {node_num} - {short_name}: {e}"
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
         
     logging.info(f"leaving send_trace_route")
