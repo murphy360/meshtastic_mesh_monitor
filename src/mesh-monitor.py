@@ -905,6 +905,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     message = message.lower()
     logging.info(f"Replying to message: {message}")
     from_node = interface.nodesByNum[from_id]
+    local_node = interface.getNode('^local')
     #logging.info(f"From Node: {from_node}")
 
     if message == "sendnodeinfo":
@@ -961,7 +962,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     
     elif "remove node" in message or "removenode" in message:
         logging.info("Removing node")
-        local_node = interface.getNode('^local')
+        
         node_short_name = message.split(" ")[-1]
         nodes = lookup_nodes(interface, node_short_name)
         log_message = ""
@@ -993,8 +994,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         want_response = False
-        local_node = interface.getNode('^local')
-        device_metrics = local_node.getDeviceMetrics()
+
         if node:
             sitrep.log_message_sent("telemetry-requested")
             try:
