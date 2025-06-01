@@ -4,7 +4,7 @@ import geopy
 from geopy import distance
 import meshtastic
 import meshtastic.serial_interface
-from meshtastic.protobuf import mesh_pb2, config_pb2
+from meshtastic.protobuf import mesh_pb2, config_pb2, telemetry_pb2
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
@@ -992,10 +992,17 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info("Requesting telemetry")
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
-        want_request = True
+        want_response = False
+        local_node = interface.getNode('^local')
+        device_metrics = local_node.getDeviceMetrics()
         if node:
             sitrep.log_message_sent("telemetry-requested")
-            interface.sendTelemetry(node['num'], want_request, public_channel_number)
+            try:
+                interface.sendTelemetry(node['num'], want_response, public_channel_number)
+            except Exception as e:
+                logging.error(f"Error sending telemetry request to node {node_short_name}: {e}")
+                #send_llm_message(interface, f"Error sending telemetry request to node {node_short_name}: {e}", channel, to_id)
+                return
             send_llm_message(interface, f"Telemetry request sent to {node_short_name}", channel, to_id)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send telemetry request.", channel, to_id)
@@ -1013,7 +1020,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
                 hop_limit = 1
-            send_trace_route(interface, node['num'], channel, hop_limit)
+            send_trace_route_proto(interface, node['num'], channel, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return
@@ -1044,6 +1051,28 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     else:
         logging.info(f"Message not recognized: {message}. Not replying.")
         return
+
+def send_trace_route_proto(interface, node_num, channel, hop_limit=1):
+    """
+    Send a traceroute request to a specified node on public channel. Sends response to the channel that the request was received on.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        node_num (int): The number of the node to trace.
+        channel (int): The channel to send responses to. 
+        hop_limit (int): The maximum number of hops to trace.
+    """
+    logging.info(f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit}")
+    r = mesh_pb2.RouteDiscovery()
+    interface.sendData(
+        r,
+        destinationId=node_num,
+        portNum=meshtastic.portnums_pb2.TRACEROUTE_APP,
+        wantResponse=False,
+        hop_limit=hop_limit,
+        channelIndex=channel
+    )
+    
 
 def send_trace_route(interface, node_num, channel, hop_limit=1):
     """
