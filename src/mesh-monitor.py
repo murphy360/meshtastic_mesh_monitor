@@ -998,7 +998,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         if node:
             sitrep.log_message_sent("telemetry-requested")
             try:
+                logging.info(f"Sending telemetry request to node {node_short_name} - {node['num']}")
                 interface.sendTelemetry(node['num'], want_response, public_channel_number, "device_metrics")
+                logging.info(f"Telemetry request sent to node {node_short_name} - {node['num']}")
             except Exception as e:
                 logging.error(f"Error sending telemetry request to node {node_short_name}: {e}")
                 #send_llm_message(interface, f"Error sending telemetry request to node {node_short_name}: {e}", channel, to_id)
