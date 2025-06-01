@@ -998,7 +998,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         if node:
             sitrep.log_message_sent("telemetry-requested")
             try:
-                interface.sendTelemetry(node['num'], want_response, public_channel_number)
+                interface.sendTelemetry(node['num'], want_response, public_channel_number, "device_metrics")
             except Exception as e:
                 logging.error(f"Error sending telemetry request to node {node_short_name}: {e}")
                 #send_llm_message(interface, f"Error sending telemetry request to node {node_short_name}: {e}", channel, to_id)
@@ -1215,9 +1215,7 @@ def send_node_info(interface):
     user = mesh_pb2.User()
     me = interface.nodesByNum[interface.localNode.nodeNum]['user']
     logging.info(f"Setting node info for {me['shortName']} - {me['longName']} - {me['id']} \n 'me': {me}")
-    #logging.info(f"User: {user}")
-    user.public_key = mesh_pb2.PublicKey()
-    user.public_key.key = bytes.fromhex(public_key)
+
     user.id = me['id']
     user.long_name = me['longName']
     user.short_name = me['shortName']
