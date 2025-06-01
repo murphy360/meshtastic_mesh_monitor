@@ -282,7 +282,7 @@ def onReceiveTelemetry(packet, interface):
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num} - {packet}")
+    logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
 
 def onReceiveNeighborInfo(packet, interface):
     from_node_num = packet['from']
