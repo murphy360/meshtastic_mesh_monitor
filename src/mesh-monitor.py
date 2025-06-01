@@ -993,7 +993,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info("Requesting telemetry")
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
-        want_response = False
+        want_response = True
 
         if node:
             sitrep.log_message_sent("telemetry-requested")
