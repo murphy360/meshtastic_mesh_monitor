@@ -986,6 +986,19 @@ def reply_to_message(interface, message, channel, to_id, from_id):
 
         return
     
+    # Request Telemetry from a node
+    elif "request telemetry" in message or "requesttelemetry" in message:
+        logging.info("Requesting telemetry")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            sitrep.log_message_sent("telemetry-requested")
+            interface.sendTelemetryRequest(node['num'], public_channel_number)
+            send_llm_message(interface, f"Telemetry request sent to {node_short_name}", channel, to_id)
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send telemetry request.", channel, to_id)
+        return
+    
     # Trace Node
     elif "trace node" in message or "tracenode" in message:
         logging.info("Tracing node")
@@ -1140,6 +1153,21 @@ def send_message(interface, message, channel, to_id):
         if to_id != "^all":
             node_name = lookup_short_name(interface, to_id)
         logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
+
+def send_telemetry_request(interface, node_num):
+    """
+    Send a telemetry request to a specified node.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        node_num (int): The number of the node to send the request to.
+    """
+    logging.info(f"Sending telemetry request to node {node_num}")
+    try:
+        interface.sendTelemetry(node_num, want_response=True, channel=public_channel_number)
+        logging.info(f"Telemetry request sent to node {node_num}")
+    except Exception as e:
+        logging.error(f"Error sending telemetry request: {e}")
 
 def send_node_info(interface):
     """
