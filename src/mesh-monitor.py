@@ -992,9 +992,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info("Requesting telemetry")
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
+        want_request = True
         if node:
             sitrep.log_message_sent("telemetry-requested")
-            interface.sendTelemetryRequest(node['num'], public_channel_number)
+            interface.sendTelemetry(node['num'], want_request, public_channel_number)
             send_llm_message(interface, f"Telemetry request sent to {node_short_name}", channel, to_id)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send telemetry request.", channel, to_id)
