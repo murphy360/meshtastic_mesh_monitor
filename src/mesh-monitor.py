@@ -277,7 +277,7 @@ def onReceivePosition(packet, interface):
     localNode = interface.getNode('^local')
     is_aircraft = False
 
-    logging.info(f"Position Packet: {packet}")
+    #logging.info(f"Position Packet: {packet}")
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
@@ -315,7 +315,7 @@ def onReceivePosition(packet, interface):
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude} ft"
-        logging.info(altitude > 900)
+        logging.info(altitude > 300)
         if altitude > 900:
             is_aircraft = True
 
