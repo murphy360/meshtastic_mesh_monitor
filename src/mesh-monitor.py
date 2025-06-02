@@ -220,6 +220,8 @@ def onReceivePosition(packet, interface):
     localNode = interface.getNode('^local')
     is_aircraft = False
 
+    logging.info(f"Position Packet: {packet}")
+
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
@@ -254,6 +256,7 @@ def onReceivePosition(packet, interface):
         send_message(interface, admin_message, admin_channel_number, "^all")
     
     logging.info(log_message)
+    
     return
 
 def onReceiveData(packet, interface):
