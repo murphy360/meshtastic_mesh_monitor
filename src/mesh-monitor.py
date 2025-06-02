@@ -218,33 +218,42 @@ def onReceivePosition(packet, interface):
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
+    is_aircraft = False
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-
-    logging.info(f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}")
+    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
 
     if 'latitude' in packet:
         latitude = packet['latitude']
+        log_message += f" - Latitude: {latitude}"
                 
     if 'longitude' in packet:
         longitude = packet['longitude']
+        log_message += f" - Longitude: {longitude}"
     
     if 'location_source' in packet:
+        location_source = packet['location_source']
+        log_message += f" - Location Source: {location_source}"
         if packet['location_source'] == 'LOC_MANUAL':
             logging.info(f"{packet['location_source']} Location Source Detected from {node_short_name} not assessing further")
             return
 
     if 'altitude' in packet:
         altitude = packet['altitude']
+        log_message += f" - Altitude: {altitude} ft"
+        logging.info(altitude > 900)
         if altitude > 900:
-            logging.info(f"Aircraft detected: {node_short_name} at {altitude} ft")
-            message = f"CQ CQ CQ de {short_name}, Aircraft Detected: {node_short_name} Altitude: {altitude} ar"
-            send_message(interface, message, admin_channel_number, "^all")
-            message = f"{node_short_name} de {short_name}, You are detected as an aircraft at {altitude} ft. Please confirm."
-            send_message(interface, message, admin_channel_number, from_node_num)
-            db_helper.set_aircraft(node, True)
+            is_aircraft = True
+
+    if is_aircraft:
+        log_message += f" - Aircraft Detected"
+        # Send a message to the admin channel about the aircraft
+        admin_message = f"Aircraft detected: {node_short_name} at {latitude}, {longitude} with altitude {altitude} ft"
+        send_message(interface, admin_message, admin_channel_number, "^all")
+    
+    logging.info(log_message)
     return
 
 def onReceiveData(packet, interface):
