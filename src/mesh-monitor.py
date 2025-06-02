@@ -214,6 +214,63 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
+    '''
+    {'from': 3518183533, 'to': 4294967295, 'channel': 1, 
+    'decoded': 
+        {'portnum': 'POSITION_APP', 
+        'payload': b'\r\xd5\x06\xa3\x18\x15\x0e p\xcf\x18\xe3\x02%\xa8\x91=h(\x02X}x\x00\x80\x01\x88\xe6\xb8\x10\x98\x01\n\xb8\x01 ', 
+        'bitfield': 0, 
+        'position': 
+        {
+            'latitudeI': 413337301, 
+            'longitudeI': -814735346, 
+            'altitude': 355, 
+            'time': 1748865448, 
+            'locationSource': 'LOC_INTERNAL', 
+            'PDOP': 125, 
+            'groundSpeed': 0, 
+            'groundTrack': 34485000, 
+            'satsInView': 10, 
+            'precisionBits': 32, 
+            'raw': 
+                latitude_i: 413337301
+                longitude_i: -814735346
+                altitude: 355
+                time: 1748865448
+                location_source: LOC_INTERNAL
+                PDOP: 125
+                ground_speed: 0
+                ground_track: 34485000
+                sats_in_view: 10
+                precision_bits: 32, 
+            'latitude': 41.3337301, 
+            'longitude': -81.4735346
+        }
+    }, 
+    'id': 27578439, 
+    'rxSnr': 4.0, 
+    'hopLimit': 2, 
+    'rxRssi': -99, 
+    'hopStart': 3, 
+    'relayNode': 198, 
+    'raw': 
+        from: 3518183533
+        to: 4294967295
+        channel: 1
+    decoded 
+    {
+        portnum: POSITION_APP
+        payload: "\r\325\006\243\030\025\016 p\317\030\343\002%\250\221=h(\002X}x\000\200\001\210\346\270\020\230\001\n\270\001 "
+        bitfield: 0
+    }
+    id: 27578439
+    rx_snr: 4
+    hop_limit: 2
+    rx_rssi: -99
+    hop_start: 3
+    relay_node: 198
+    , 'fromId': '!d1b3386d', 'toId': '^all'}
+    '''
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -227,31 +284,36 @@ def onReceivePosition(packet, interface):
         return
     log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
 
-    if 'position' in packet:
-        position = packet['position']
+    if 'decoded' not in packet:
+        log_message += " - No decoded data"
+        logging.info(log_message)
+        return
+
+    if 'position' in packet['decoded']:
+        position = packet['decoded']['position']
         logging.info(f"Position: {position}")
     else: 
         logging.info(f"Packet does not contain position data")
         return
         
 
-    if 'latitude' in packet:
-        latitude = packet['latitude']
+    if 'latitude' in packet['decoded']['position']:
+        latitude = packet['decoded']['position']['latitude']
         log_message += f" - Latitude: {latitude}"
                 
-    if 'longitude' in packet:
-        longitude = packet['longitude']
+    if 'longitude' in packet['decoded']['position']:
+        longitude = packet['decoded']['position']['longitude']
         log_message += f" - Longitude: {longitude}"
     
-    if 'location_source' in packet:
-        location_source = packet['location_source']
+    if 'location_source' in packet['decoded']['position']:
+        location_source = packet['decoded']['position']['location_source']
         log_message += f" - Location Source: {location_source}"
         if packet['location_source'] == 'LOC_MANUAL':
             logging.info(log_message)
             return
 
-    if 'altitude' in packet:
-        altitude = packet['altitude']
+    if 'altitude' in packet['decoded']['position']:
+        altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude} ft"
         logging.info(altitude > 900)
         if altitude > 900:
