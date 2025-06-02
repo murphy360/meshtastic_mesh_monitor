@@ -378,6 +378,7 @@ class SITREP:
                 longitude = 0
                 altitude = 0
                 last_heard = 0
+                precision_bits = 0
                 hops_away = -1
                 role = "Unknown"
 
@@ -388,6 +389,9 @@ class SITREP:
                         longitude = node["position"]["longitude"]
                     if "altitude" in node["position"]:
                         altitude = node["position"]["altitude"]
+                    if "precisionBits" in node["position"]:
+                        logging.info(f"Node {node['user']['shortName']} has precisionBits: {node['position']['precisionBits']}")
+                        precision_bits = node["position"]["precisionBits"]
                 
                 if "lastHeard" in node:
                     last_heard = node["lastHeard"]
@@ -409,6 +413,7 @@ class SITREP:
                     "lat": latitude,
                     "lon": longitude,
                     "alt": altitude,
+                    "precision_bits": precision_bits,
                     "lastHeard": last_heard,
                     "hopsAway": hops_away,
                     "role": role,
