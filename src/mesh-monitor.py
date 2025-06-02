@@ -230,6 +230,9 @@ def onReceivePosition(packet, interface):
     if 'position' in packet:
         position = packet['position']
         logging.info(f"Position: {position}")
+    else: 
+        logging.info(f"Packet does not contain position data")
+        return
         
 
     if 'latitude' in packet:
