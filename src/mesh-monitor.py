@@ -237,7 +237,7 @@ def onReceivePosition(packet, interface):
         location_source = packet['location_source']
         log_message += f" - Location Source: {location_source}"
         if packet['location_source'] == 'LOC_MANUAL':
-            logging.info(f"{packet['location_source']} Location Source Detected from {node_short_name} not assessing further")
+            logging.info(log_message)
             return
 
     if 'altitude' in packet:
