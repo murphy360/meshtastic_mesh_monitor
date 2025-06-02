@@ -227,6 +227,11 @@ def onReceivePosition(packet, interface):
         return
     log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
 
+    if 'position' in packet:
+        position = packet['position']
+        logging.info(f"Position: {position}")
+        
+
     if 'latitude' in packet:
         latitude = packet['latitude']
         log_message += f" - Latitude: {latitude}"
