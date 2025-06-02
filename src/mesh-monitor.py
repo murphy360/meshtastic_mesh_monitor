@@ -301,10 +301,10 @@ def onReceivePosition(packet, interface):
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Longitude: {longitude}"
     
-    if 'location_source' in packet['decoded']['position']:
-        location_source = packet['decoded']['position']['location_source']
+    if 'locationSource' in packet['decoded']['position']:
+        location_source = packet['decoded']['position']['locationSource']
         log_message += f" - Location Source: {location_source}"
-        if packet['location_source'] == 'LOC_MANUAL':
+        if location_source == 'LOC_MANUAL':
             logging.info(log_message)
             return
 
@@ -337,9 +337,7 @@ def onReceivePosition(packet, interface):
 
     if is_aircraft:
         log_message += f" - Aircraft Detected"
-        # Send a message to the admin channel about the aircraft
-        admin_message = f"Aircraft detected: {node_short_name} at {latitude}, {longitude} with altitude {altitude} ft"
-        send_message(interface, admin_message, admin_channel_number, "^all")
+        set_aircraft(interface, node, True)
     
     logging.info(log_message)
     
@@ -1117,7 +1115,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
                 hop_limit = 1
-            send_trace_route_proto(interface, node['num'], channel, hop_limit)
+            send_trace_route(interface, node['num'], channel, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return
@@ -1127,9 +1125,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            db_helper.set_aircraft(node, True)
-            send_llm_message(interface, f"{node_short_name} is now tracked as an aircraft", channel, to_id)
-            sitrep.log_message_sent("aircraft-set")
+            set_aircraft(interface, channel, node['num'], True)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -1139,12 +1135,11 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            db_helper.set_aircraft(node, False)
-            send_llm_message(interface, f"{node_short_name} is no longer tracked as an aircraft", channel, to_id)
-            sitrep.log_message_sent("aircraft-unset")
+            set_aircraft(interface, channel, node['num'], False)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
+    
     else:
         logging.info(f"Message not recognized: {message}. Not replying.")
         return
@@ -1208,6 +1203,26 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
         
     logging.info(f"leaving send_trace_route")
+
+def set_aircraft(interface, channel, node_num, is_aircraft=True):
+    """
+    Set a node as an aircraft or remove it from the aircraft list.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        channel (int): The channel to send the message to.
+        node_num (int): The number of the node to set as an aircraft.
+        is_aircraft (bool): Whether to set the node as an aircraft or remove it.
+    """
+    logging.info(f"Setting node {node_num} as {'aircraft' if is_aircraft else 'not aircraft'}")
+    node = interface.nodesByNum.get(node_num)
+    if not node:
+        logging.error(f"Node {node_num} not found in the mesh network.")
+        return
+
+    db_helper.set_aircraft(node, is_aircraft)
+    action = "set" if is_aircraft else "removed"
+    send_llm_message(interface, f"Node {node['user']['shortName']} has been {action} as an aircraft.", channel, "^all")
 
 def send_llm_message(interface, message, channel, to_id):
     """
