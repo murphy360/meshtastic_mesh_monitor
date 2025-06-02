@@ -289,14 +289,10 @@ def onReceivePosition(packet, interface):
         logging.info(log_message)
         return
 
-    if 'position' in packet['decoded']:
-        position = packet['decoded']['position']
-        logging.info(f"Position: {position}")
-    else: 
+    if 'position' not in packet['decoded']:
         logging.info(f"Packet does not contain position data")
         return
         
-
     if 'latitude' in packet['decoded']['position']:
         latitude = packet['decoded']['position']['latitude']
         log_message += f" - Latitude: {latitude}"
@@ -314,10 +310,30 @@ def onReceivePosition(packet, interface):
 
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
-        log_message += f" - Altitude: {altitude} ft"
-        logging.info(altitude > 300)
+        log_message += f" - Altitude: {altitude}m"
         if altitude > 900:
+            # If altitude is greater than 900m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
             is_aircraft = True
+
+    if 'satsInView' in packet['decoded']['position']:
+        sats_in_view = packet['decoded']['position']['satsInView']
+        log_message += f" - Satellites in View: {sats_in_view}"
+    if 'PDOP' in packet['decoded']['position']:
+        pdop = packet['decoded']['position']['PDOP']
+        log_message += f" - PDOP: {pdop}"
+    if 'precisionBits' in packet['decoded']['position']:
+        precision_bits = packet['decoded']['position']['precisionBits']
+        log_message += f" - Precision Bits: {precision_bits}"
+    if 'time' in packet['decoded']['position']:
+        time = packet['decoded']['position']['time']
+        time_str = datetime.fromtimestamp(time, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        log_message += f" - Time: {time_str}"
+    if 'groundSpeed' in packet['decoded']['position']:
+        ground_speed = packet['decoded']['position']['groundSpeed']
+        log_message += f" - Ground Speed: {ground_speed} m/s"
+    if 'groundTrack' in packet['decoded']['position']:
+        ground_track = packet['decoded']['position']['groundTrack']
+        log_message += f" - Ground Track: {ground_track} degrees"
 
     if is_aircraft:
         log_message += f" - Aircraft Detected"
