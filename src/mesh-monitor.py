@@ -331,6 +331,13 @@ def onReceivePosition(packet, interface):
     if 'groundSpeed' in packet['decoded']['position']:
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
+        # Notify admin if ground speed is greater than 0
+        is_moving = ground_speed > 0
+        logging.info(f"Ground Speed: {ground_speed} m/s. Moving: {is_moving}")
+        if ground_speed > 0:
+            admin_message = f"Node {node_short_name} is moving at {ground_speed} m/s. Please investigate."
+            send_message(interface, admin_message, admin_channel_number, "^all")
+            logging.info(admin_message)
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
