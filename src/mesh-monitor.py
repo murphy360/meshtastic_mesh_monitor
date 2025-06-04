@@ -273,6 +273,7 @@ def onReceivePosition(packet, interface):
     '''
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
+    node_long_name = lookup_long_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
     is_aircraft = False
@@ -331,12 +332,13 @@ def onReceivePosition(packet, interface):
     if 'groundSpeed' in packet['decoded']['position']:
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
-        # Notify admin if ground speed is greater than 0
-        is_moving = ground_speed > 0
-        logging.info(f"Ground Speed: {ground_speed} m/s. Moving: {is_moving}")
+        # Notify admin if ground speed is greater than 9
         if ground_speed > 9:
-            admin_message = f"Node {node_short_name} is moving at {ground_speed} m/s. Please investigate."
-            send_message(interface, admin_message, admin_channel_number, "^all")
+            admin_message = f"Node {node_short_name} {node_long_name} is moving at {ground_speed} m/s."
+            node_location = find_my_location(interface, from_node_num)
+            if node_location != "Unknown":
+                admin_message += f" Location: {node_location}"
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
             logging.info(admin_message)
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
@@ -967,6 +969,8 @@ def find_my_location(interface, node_num):
     except Exception as e:
         logging.error(f"Error with geolookup: {e}")
         return "Unknown"
+    
+    # If we can't find a location, return "Unknown"
     return "Unknown"
 
 def reply_to_direct_message(interface, message, channel, from_id):
