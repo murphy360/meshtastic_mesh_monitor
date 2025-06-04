@@ -334,7 +334,7 @@ def onReceivePosition(packet, interface):
         # Notify admin if ground speed is greater than 0
         is_moving = ground_speed > 0
         logging.info(f"Ground Speed: {ground_speed} m/s. Moving: {is_moving}")
-        if ground_speed > 0:
+        if ground_speed > 9:
             admin_message = f"Node {node_short_name} is moving at {ground_speed} m/s. Please investigate."
             send_message(interface, admin_message, admin_channel_number, "^all")
             logging.info(admin_message)
