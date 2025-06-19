@@ -260,7 +260,12 @@ def onReceivePosition(packet, interface):
     '''
     logging.info("onReceivePosition")
     from_node_num = packet['from']
-    channel = packet['channel']
+    channel = public_channel_number  # Default to public channel
+    if 'channel' in packet:
+        # If the packet contains a channel, use it
+        channel = packet['channel']
+    else: 
+        logging.info("onReceivePosition - No channel specified, using public channel")
     logging.info("onReceivePosition")
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
