@@ -390,6 +390,9 @@ def onReceiveNeighborInfo(packet, interface):
     send_message(interface, admin_message, admin_channel_number, "^all")
     return
 
+def onResponseTraceRoute(packet, interface):
+    logging.info(f"[FUNCTION] onResponseTraceRoute from {packet['from']} to {packet['to']} - {packet['decoded']['traceroute']}")
+
 def onReceiveTraceRoute(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
@@ -1343,6 +1346,7 @@ pub.subscribe(onReceivePosition, "meshtastic.receive.position")
 pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
 pub.subscribe(onReceiveNeighborInfo, "meshtastic.receive.neighborinfo")
 pub.subscribe(onReceiveTraceRoute, "meshtastic.receive.traceroute")
+pub.subscribe(onResponseTraceRoute, "meshtastic.response.traceroute")
 pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
 pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
 pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
