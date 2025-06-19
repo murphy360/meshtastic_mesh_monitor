@@ -87,7 +87,7 @@ precision_bits: 32
     node_info = interface.getMyNodeInfo()
     short_name = lookup_short_name(interface, localNode.nodeNum)
     long_name = lookup_long_name(interface, localNode.nodeNum)
-    location = find_my_location(interface, localNode.nodeNum)
+    location = find_location_by_node_num(interface, localNode.nodeNum)
     gemini_interface.update_location(location)
     logging.info(f"\n\n \
                 **************************************************************\n \
@@ -319,9 +319,9 @@ def onReceivePosition(packet, interface):
         # Notify admin if ground speed is greater than 9
         if ground_speed > 9:
             admin_message = f"Node {node_short_name} {node_long_name} is moving at {ground_speed} m/s."
-            node_location = find_my_location(interface, from_node_num)
-            if node_location != "Unknown":
-                admin_message += f" Location: {node_location}"
+            node_location = find_location_by_coordinates(interface, latitude, longitude)
+            admin_message += f" Location: {node_location}"
+                
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
             logging.info(admin_message)
     if 'groundTrack' in packet['decoded']['position']:
@@ -930,9 +930,33 @@ def time_since_last_heard(last_heard_time):
     else: # More than a year, return years
         return f"{int(seconds // 31536000)}y"
 
+def find_location_by_coordinates(latitude, longitude):
+    """
+    Find the location by latitude and longitude coordinates.
 
+    Args:
+        latitude (float): The latitude of the location.
+        longitude (float): The longitude of the location.
 
-def find_my_location(interface, node_num):
+    Returns:
+        str: The location name, or "Unknown" if the location cannot be determined.
+    """
+    try:
+        geolocator = geopy.Nominatim(user_agent="mesh-monitor", timeout=10)
+        location = geolocator.reverse((latitude, longitude))
+        if location and 'address' in location.raw:
+            address = location.raw['address']
+            for key in ['city', 'town', 'township', 'municipality', 'county']:
+                if key in address:
+                    return address[key]
+    except Exception as e:
+        logging.error(f"Error with geolookup: {e}")
+        return "Unknown"
+    
+    # If we can't find a location, return "Unknown"
+    return "Unknown"
+
+def find_location_by_node_num(interface, node_num):
     """
     Find the location of the local node.
 
@@ -943,6 +967,7 @@ def find_my_location(interface, node_num):
     Returns:
         str: The location of the local node, or "Unknown" if the location cannot be determined.
     """
+    nodeLat, nodeLon = None, None
     for node in interface.nodes.values():
         if node["num"] == node_num:
             if 'position' in node:
@@ -955,21 +980,12 @@ def find_my_location(interface, node_num):
         else:
             logging.info(f"Node {node_num} not found in interface nodes for geolookup")
             return "Unknown"
-
-    try:
-        geolocator = geopy.Nominatim(user_agent="mesh-monitor", timeout=10)
-        location = geolocator.reverse((nodeLat, nodeLon))
-        if location and 'address' in location.raw:
-            address = location.raw['address']
-            for key in ['city', 'town', 'township', 'municipality', 'county']:
-                if key in address:
-                    return address[key]
-    except Exception as e:
-        logging.error(f"Error with geolookup: {e}")
+    if nodeLat is None or nodeLon is None:
+        logging.info(f"Node {node_num} does not have position data for geolookup")
         return "Unknown"
-    
-    # If we can't find a location, return "Unknown"
-    return "Unknown"
+    else:
+        logging.info(f"Node {node_num} position for geolookup: {nodeLat}, {nodeLon}")   
+        return find_location_by_coordinates(nodeLat, nodeLon)
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
@@ -1010,7 +1026,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     if message == "ping":
         node_short_name = lookup_short_name(interface, from_id)
         local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
-        location = find_my_location(interface, localNode.nodeNum)
+        location = find_location_by_node_num(interface, localNode.nodeNum)
         distance = find_distance_between_nodes(interface, from_node['num'], localNode.nodeNum)
         if distance != "Unknown":
             distance = round(distance, 2)
