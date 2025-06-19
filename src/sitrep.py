@@ -408,6 +408,11 @@ class SITREP:
                     mesh_data["nodes"][0]["alt"] = altitude
                     continue
 
+                # If node is an aircraft, set aircraft to True
+                is_aircraft = False
+                if node["user"]["shortName"] in self.aircraft_tracks:
+                    is_aircraft = True
+
                 node_data = {
                     "id": node["user"]["shortName"],
                     "lat": latitude,
@@ -417,6 +422,7 @@ class SITREP:
                     "lastHeard": last_heard,
                     "hopsAway": hops_away,
                     "role": role,
+                    "aircraft": is_aircraft,
                     "connections": []
                 }
                 
