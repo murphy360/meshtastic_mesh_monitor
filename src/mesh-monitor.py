@@ -309,7 +309,9 @@ def onReceivePosition(packet, interface):
             set_aircraft(interface, channel, node['num'], True)
             log_message += " - Aircraft Detected"
             admin_message += " - Aircraft Detected"
-
+            user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location}. Please Confirm."
+            send_llm_message(interface, user_message, public_channel_number, '^all')
+            
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
         log_message += f" - Satellites in View: {sats_in_view}"
