@@ -256,6 +256,7 @@ def onReceivePosition(packet, interface):
     , 'fromId': '!d1b3386d', 'toId': '^all'}
     '''
     from_node_num = packet['from']
+    channel = packet['channel']
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -305,6 +306,7 @@ def onReceivePosition(packet, interface):
         if altitude > 900:
             # If altitude is greater than 900m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
             is_aircraft = True
+            set_aircraft(interface, channel, node['num'], True)
             log_message += " - Aircraft Detected"
             admin_message += " - Aircraft Detected"
 
@@ -332,11 +334,7 @@ def onReceivePosition(packet, interface):
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
-
-    if is_aircraft:
-        log_message += f" - Aircraft Detected"
-        set_aircraft(interface, node, True)
-  
+        
     if is_fast_moving or is_aircraft:
         # If the node is fast moving or an aircraft, send a message to the admin channel
         logging.info(admin_message)
