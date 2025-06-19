@@ -261,14 +261,17 @@ def onReceivePosition(packet, interface):
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
     is_aircraft = False
+    is_fast_moving = False
+    admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
+    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
+    location = "Unknown"
 
     #logging.info(f"Position Packet: {packet}")
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
-
+    
     if 'decoded' not in packet:
         log_message += " - No decoded data"
         logging.info(log_message)
@@ -278,13 +281,15 @@ def onReceivePosition(packet, interface):
         logging.info(f"Packet does not contain position data")
         return
         
-    if 'latitude' in packet['decoded']['position']:
+    if 'latitude' in packet['decoded']['position'] and 'longitude' not in packet['decoded']['position']:
         latitude = packet['decoded']['position']['latitude']
-        log_message += f" - Latitude: {latitude}"
-                
-    if 'longitude' in packet['decoded']['position']:
+
         longitude = packet['decoded']['position']['longitude']
-        log_message += f" - Longitude: {longitude}"
+        log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
+        location = find_location_by_coordinates(interface, latitude, longitude)
+        
+        log_message += f" - Location: {location}"
+        admin_message += f" Location: {location}"
     
     if 'locationSource' in packet['decoded']['position']:
         location_source = packet['decoded']['position']['locationSource']
@@ -296,9 +301,12 @@ def onReceivePosition(packet, interface):
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude}m"
+        admin_message += f" Altitude: {altitude}m"
         if altitude > 900:
             # If altitude is greater than 900m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
             is_aircraft = True
+            log_message += " - Aircraft Detected"
+            admin_message += " - Aircraft Detected"
 
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
@@ -316,14 +324,11 @@ def onReceivePosition(packet, interface):
     if 'groundSpeed' in packet['decoded']['position']:
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
-        # Notify admin if ground speed is greater than 9
-        if ground_speed > 9:
-            admin_message = f"Node {node_short_name} {node_long_name} is moving at {ground_speed} m/s."
-            node_location = find_location_by_coordinates(interface, latitude, longitude)
-            admin_message += f" Location: {node_location}"
-                
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
-            logging.info(admin_message)
+        admin_message += f" Ground Speed: {ground_speed} m/s"
+        # Notify admin if ground speed is greater than 11
+        if ground_speed > 11:
+            is_fast_moving = True
+
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
@@ -331,6 +336,11 @@ def onReceivePosition(packet, interface):
     if is_aircraft:
         log_message += f" - Aircraft Detected"
         set_aircraft(interface, node, True)
+  
+    if is_fast_moving or is_aircraft:
+        # If the node is fast moving or an aircraft, send a message to the admin channel
+        logging.info(admin_message)
+        send_llm_message(interface, admin_message, admin_channel_number, "^all")
     
     logging.info(log_message)
     
