@@ -139,6 +139,7 @@ def onDisconnect(interface):
     
 
 def onNodeUpdate(node, interface):
+    logging.info(f"[FUNCTION] onNodeUpdate")
     """
     Handle the event when a node is updated.
 
@@ -157,6 +158,7 @@ def onNodeUpdate(node, interface):
     db_helper.add_or_update_node(node)
 
 def onReceiveText(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveText - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -198,6 +200,7 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
+    logging.info(f"[FUNCTION] onReceivePosition - {packet}")
     '''
     {'from': 3518183533, 'to': 4294967295, 'channel': 1, 
     'decoded': 
@@ -348,6 +351,7 @@ def onReceivePosition(packet, interface):
     return
 
 def onReceiveData(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveData - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -360,6 +364,7 @@ def onReceiveData(packet, interface):
     logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
 def onReceiveUser(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveUser - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -372,6 +377,7 @@ def onReceiveUser(packet, interface):
     logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
 
 def onReceiveTelemetry(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveTelemetry - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -385,6 +391,7 @@ def onReceiveTelemetry(packet, interface):
     logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
 
 def onReceiveNeighborInfo(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveNeighborInfo - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -401,10 +408,8 @@ def onReceiveNeighborInfo(packet, interface):
     send_message(interface, admin_message, admin_channel_number, "^all")
     return
 
-def onResponseTraceRoute(packet, interface):
-    logging.info(f"[FUNCTION] onResponseTraceRoute from {packet['from']} to {packet['to']} - {packet['decoded']['traceroute']}")
-
 def onReceiveTraceRoute(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveTraceroute - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -511,6 +516,7 @@ def onReceiveTraceRoute(packet, interface):
     return
 
 def onReceiveWaypoint(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveWaypoint - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -572,6 +578,7 @@ def onReceiveWaypoint(packet, interface):
         send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", admin_channel_number, "^all")
 
 def onReceiveNodeInfo(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveNodeInfo - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -586,6 +593,7 @@ def onReceiveNodeInfo(packet, interface):
     return
 
 def onReceiveRouting(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveRouting - {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -603,6 +611,7 @@ def onReceiveRouting(packet, interface):
     return
 
 def onReceiveRangeTest(packet, interface):
+    logging.info(f"[FUNCTION] onReceiveRangeTest - {packet}")
     '''
     {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': 
         {
@@ -646,6 +655,7 @@ def onReceiveRangeTest(packet, interface):
     return
 
 def onReceive(packet, interface):
+    logging.info(f"[FUNCTION] onReceive - {packet}")
     """
     Handles incoming packets not specifically handled by other functions.
 
