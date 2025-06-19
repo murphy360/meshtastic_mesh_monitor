@@ -258,10 +258,13 @@ def onReceivePosition(packet, interface):
     relay_node: 198
     , 'fromId': '!d1b3386d', 'toId': '^all'}
     '''
+    logging.info("onReceivePosition")
     from_node_num = packet['from']
     channel = packet['channel']
+    logging.info("onReceivePosition")
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
+    logging.info("onReceivePosition")
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
     is_aircraft = False
@@ -271,7 +274,7 @@ def onReceivePosition(packet, interface):
     location = "Unknown"
 
     #logging.info(f"Position Packet: {packet}")
-
+    logging.info(f"onReceivePosition ")
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
