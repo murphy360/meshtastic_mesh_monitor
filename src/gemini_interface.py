@@ -65,8 +65,9 @@ class GeminiInterface:
             logging.info(f"Creating new private chat with {node_short_name}")
             
             private_instruction = self.base_system_instruction + (
-                f" You are currently in a private conversation with {node_short_name}. "
-                f"Personalize your responses appropriately for this direct communication."
+                f" You are currently in a private encrypted conversation with {node_short_name}. "
+                f"Even though these messages are sent on the public channel, they are encrypted and can only be read by {node_short_name}. "
+                f"Personalize your responses for this one-on-one conversation. Be more helpful and conversational since this is a private exchange."
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
@@ -93,8 +94,15 @@ class GeminiInterface:
         try:
             response_text = None
             
+            # Private message to a specific node (takes precedence over channel ID)
+            if node_short_name:
+                logging.info(f"Generating response for private chat with {node_short_name}")
+                private_chat = self.get_or_create_private_chat(node_short_name)
+                response = private_chat.send_message(message)
+                response_text = response.text
+            
             # Admin channel
-            if channel_id == 1:  # admin_channel_number
+            elif channel_id == 1:  # admin_channel_number
                 logging.info("Generating response for admin channel")
                 response = self.admin_chat.send_message(message)
                 response_text = response.text
@@ -103,13 +111,6 @@ class GeminiInterface:
             elif channel_id == 0:  # public_channel_number
                 logging.info("Generating response for public channel")
                 response = self.public_chat.send_message(message)
-                response_text = response.text
-            
-            # Private message to a specific node
-            elif node_short_name:
-                logging.info(f"Generating response for private chat with {node_short_name}")
-                private_chat = self.get_or_create_private_chat(node_short_name)
-                response = private_chat.send_message(message)
                 response_text = response.text
             
             # For any other case, fall back to a generic content generation

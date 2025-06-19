@@ -188,7 +188,6 @@ def onReceiveText(packet, interface):
         if to_id == localNode.nodeNum: # Message sent directly to local node
             logging.info(f"Message sent directly to local node from {packet['from']}")
             reply_to_direct_message(interface, message_string, channelId, packet['from'])
-            #send_message(interface, "Message received, I'm working on smarter replies, but it's going to be a while!", 0, packet['from'])
         elif 'channel' in packet: # Message sent to a channel
             logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
             channelId = int(packet['channel'])
@@ -1228,7 +1227,7 @@ def send_llm_message(interface, message, channel, to_id):
                 logging.warning(f"Could not get short name for node {to_id}")
         
         # Generate response using Gemini interface
-        response_text = gemini_interface.generate_response(message, channel, node_short_name)
+        response_text = gemini_interface.generate_response(message, channel)
         
         if response_text:
             message = response_text
