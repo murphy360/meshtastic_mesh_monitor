@@ -88,6 +88,7 @@ precision_bits: 32
     short_name = lookup_short_name(interface, localNode.nodeNum)
     long_name = lookup_long_name(interface, localNode.nodeNum)
     location = find_my_location(interface, localNode.nodeNum)
+    gemini_interface.update_location(location)
     logging.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \

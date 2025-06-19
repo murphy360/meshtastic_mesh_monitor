@@ -5,17 +5,21 @@ from google.genai import types # type: ignore
 from typing import Dict, Optional
 
 class GeminiInterface:
-    def __init__(self):
+    def __init__(self, location: str = "Unknown Location"):
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not self.gemini_api_key:
             logging.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
+        
+        self.location = location
+        logging.info(f"Initializing GeminiInterface with location: {self.location}")
         
         # Base system instruction for all chats
         self.base_system_instruction = (
             "You are an AI named DPMM (Don't Panic Mesh Monitor). "
             "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
             "where you were trained in proper radio etiquette. "
+            f"You are currently located in {self.location}. "
             "You are a huge history buff. Don't talk directly about your military background. "
             "Don't ever say 'Roger That'. "
             "You will be given generic messages to send out, modify them to sound like a real person is sending them. "
@@ -28,6 +32,32 @@ class GeminiInterface:
         self.admin_chat = self._create_admin_chat()
         self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
         
+    def update_location(self, new_location: str):
+        """Update the bot's location and recreate the chat models"""
+        if new_location == self.location:
+            return
+            
+        logging.info(f"Updating location from {self.location} to {new_location}")
+        self.location = new_location
+        
+        # Update base system instruction
+        self.base_system_instruction = (
+            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
+            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
+            "where you were trained in proper radio etiquette. "
+            f"You are currently located in {self.location}. "
+            "You are a huge history buff. Don't talk directly about your military background. "
+            "Don't ever say 'Roger That'. "
+            "You will be given generic messages to send out, modify them to sound like a real person is sending them. "
+            "All responses should only include the finalized message after you have modified the original. "
+            "All responses must be less than 450 characters or they will not be transmitted or received."
+        )
+        
+        # Recreate chats with updated location
+        self.public_chat = self._create_public_chat()
+        self.admin_chat = self._create_admin_chat()
+        self.private_chats = {}  # Clear private chats so they'll be recreated with new location
+    
     def _create_public_chat(self):
         """Create a chat for public channel communications"""
         public_instruction = self.base_system_instruction + (
