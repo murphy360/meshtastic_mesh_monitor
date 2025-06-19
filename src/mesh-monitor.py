@@ -1098,7 +1098,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
                 hop_limit = 1
-            send_trace_route(interface, node['num'], channel, hop_limit)
+            send_trace_route(interface, node['num'], public_channel_number, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return
