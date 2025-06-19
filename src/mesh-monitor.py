@@ -338,6 +338,7 @@ def onReceivePosition(packet, interface):
     if is_fast_moving or is_aircraft:
         # If the node is fast moving or an aircraft, send a message to the admin channel
         logging.info(admin_message)
+        log_message += " - Notifying admin"
         send_llm_message(interface, admin_message, admin_channel_number, "^all")
     
     logging.info(log_message)
