@@ -1384,10 +1384,8 @@ def send_node_info(interface):
         wantAck=False,
         wantResponse=False
     )
+    logging.info(f"Node info sent to {public_channel_number} - {user.short_name} - {user.long_name} - {user.id}")
     
-    new_node_info = interface.getMyNodeInfo()
-    new_public_key = new_node_info['user']['publicKey']
-    logging.info(f"Node info sent to {public_channel_number} public key: {new_public_key}")
 
 
 # Main loop
