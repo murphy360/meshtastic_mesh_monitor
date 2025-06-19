@@ -275,16 +275,16 @@ def onReceivePosition(packet, interface):
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    
+    logging.info("onReceivePosition")
     if 'decoded' not in packet:
         log_message += " - No decoded data"
         logging.info(log_message)
         return
-
+    logging.info("onReceivePosition")
     if 'position' not in packet['decoded']:
         logging.info(f"Packet does not contain position data")
         return
-        
+    logging.info("onReceivePosition")    
     if 'latitude' in packet['decoded']['position'] and 'longitude' not in packet['decoded']['position']:
         latitude = packet['decoded']['position']['latitude']
 
@@ -294,14 +294,14 @@ def onReceivePosition(packet, interface):
         
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
-    
+    logging.info("onReceivePosition")
     if 'locationSource' in packet['decoded']['position']:
         location_source = packet['decoded']['position']['locationSource']
         log_message += f" - Location Source: {location_source}"
         if location_source == 'LOC_MANUAL':
             logging.info(log_message)
             return
-
+    logging.info("onReceivePosition")
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude}m"
@@ -314,20 +314,24 @@ def onReceivePosition(packet, interface):
             admin_message += " - Aircraft Detected"
             user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location}. Please Confirm."
             send_llm_message(interface, user_message, public_channel_number, '^all')
-            
+    logging.info("onReceivePosition")        
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
         log_message += f" - Satellites in View: {sats_in_view}"
+    logging.info("onReceivePosition")
     if 'PDOP' in packet['decoded']['position']:
         pdop = packet['decoded']['position']['PDOP']
         log_message += f" - PDOP: {pdop}"
+    logging.info("onReceivePosition")
     if 'precisionBits' in packet['decoded']['position']:
         precision_bits = packet['decoded']['position']['precisionBits']
         log_message += f" - Precision Bits: {precision_bits}"
+    logging.info("onReceivePosition")
     if 'time' in packet['decoded']['position']:
         time = packet['decoded']['position']['time']
         time_str = datetime.fromtimestamp(time, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         log_message += f" - Time: {time_str}"
+    logging.info("onReceivePosition")
     if 'groundSpeed' in packet['decoded']['position']:
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
@@ -335,11 +339,12 @@ def onReceivePosition(packet, interface):
         # Notify admin if ground speed is greater than 11
         if ground_speed > 11:
             is_fast_moving = True
-
+    logging.info("onReceivePosition")
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
         
+    logging.info("onReceivePosition")
     if is_fast_moving or is_aircraft:
         # If the node is fast moving or an aircraft, send a message to the admin channel
         logging.info(admin_message)
