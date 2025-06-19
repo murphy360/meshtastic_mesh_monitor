@@ -1372,7 +1372,7 @@ def send_node_info(interface):
     user.long_name = me['longName']
     user.short_name = me['shortName']
     user.hw_model = mesh_pb2.HardwareModel.Value(me['hwModel'])
-    user.public_key = base64.b54decode(me['publicKey'])
+    user.public_key = base64.b64decode(me['publicKey'])
     if user.role:
         user.role = config_pb2.Config.DeviceConfig.Role.Value(me['role'])
 
