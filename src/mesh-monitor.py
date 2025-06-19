@@ -653,6 +653,7 @@ def onReceive(packet, interface):
     #logging.info(f"Received packet: {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
+    node_long_name = lookup_long_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
     localNode = interface.getNode('^local')
 
@@ -670,7 +671,7 @@ def onReceive(packet, interface):
         if 'channel' in packet:
             channelId = int(packet['channel'])
         
-        log_message = f"from {node_short_name} - {from_node_num} - Channel: {channelId}"
+        log_message = f"from Node Short Name: {node_short_name} - Node Long Name: {node_long_name} - {from_node_num} - Channel: {channelId}"
         
         if "hopsAway" in node:
             log_message += f" - Hops Away: {node['hopsAway']}"
@@ -951,6 +952,9 @@ def find_my_location(interface, node_num):
                 else:
                     return "Unknown"
             break
+        else:
+            logging.info(f"Node {node_num} not found in interface nodes for geolookup")
+            return "Unknown"
 
     try:
         geolocator = geopy.Nominatim(user_agent="mesh-monitor", timeout=10)
