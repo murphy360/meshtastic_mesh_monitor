@@ -11,8 +11,7 @@ from sitrep import SITREP
 import logging
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
-from google import genai
-from google.genai import types # type: ignore
+from gemini_interface import GeminiInterface # type: ignore
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -36,24 +35,9 @@ serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
 log_filename = f"/data/mesh_monitor_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
-# Read environment variables set in docker-compose
-gemini_api_key = os.getenv('GEMINI_API_KEY')
-gemini_client = genai.Client(api_key=gemini_api_key)
-public_chat = gemini_client.chats.create(
-    model='gemini-2.0-flash-001',
-    config=types.GenerateContentConfig(
-        system_instruction="You are tasked with monitoring a meshtastic mesh network. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should only include the finalized message after you have modified the original.",      
-        max_output_tokens=75)
-    )
 
-admin_chat = gemini_client.chats.create(
-    model='gemini-2.0-flash-001',
-    config=types.GenerateContentConfig(
-        system_instruction="You are tasked with monitoring a meshtastic mesh network and are currently working directly with the boss as head Administrator. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to send out, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should only include the finalized message after you have modified the original.",      
-        max_output_tokens=75)
-    )
-
-private_chats = {} # Dictionary to store private chats.
+# Initialize Gemini interface
+gemini_interface = GeminiInterface()
 
 logging.info("Starting Mesh Monitor")
 
@@ -975,23 +959,11 @@ def find_my_location(interface, node_num):
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
-    global private_chats
     node = interface.nodesByNum[from_id]
     short_name = node['user']['shortName']
     logging.info(f"Short name: {short_name}")
 
-    # check if the private chat already exists
-    if short_name not in private_chats:
-        logging.info(f"Creating new private chat with {short_name}")
-        private_chats[short_name] = gemini_client.chats.create(
-            model='gemini-2.0-flash-001',
-            config=types.GenerateContentConfig(
-                system_instruction=f"You are tasked with monitoring a meshtastic mesh network and are currently talking privately with {short_name}. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional radio enthusiast and retired from the United States Navy where you were trained in proper radio etiquette. You are a huge history buff. Don't talk directly about your military background. Don't ever say Roger That. Responses must be no longer than 450 characters.",      
-                max_output_tokens=75)
-            )
-
-    response = private_chats[short_name].send_message(message)
-    response_text = response.text
+    response_text = gemini_interface.generate_response(message, channel, short_name)
     if not response_text:
         response_text = "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while! Try sending ping on LongFast."
     logging.info(f"Response: {response_text}")
@@ -1246,24 +1218,18 @@ def send_llm_message(interface, message, channel, to_id):
     """
 
     try:
-        response_text = None
-        if channel == admin_channel_number:
-            response = admin_chat.send_message(message)
-            response_text = response.text
-        elif channel == public_channel_number:
-            response = public_chat.send_message(message)
-            response_text = response.text
-        else:
-            response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash",
-                config=types.GenerateContentConfig(
-                    system_instruction="You are tasked with monitoring a meshtastic mesh network. You're handle is DPMM (Don't Panic Mesh Monitor). You are a knowledgeable and professional meshtastic radio enthusiast. Don't talk directly about your military background. Don't ever say Roger That. You will be given generic messages to prepare for transmission, modify them to sound like a real person is sending them. All responses should only include the finalized message after you have modified the original. All responses should be less than 450 characters or they will not be transmitted or recieved.",
-                    max_output_tokens=75),
-                contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
-            )
-
-            response_text = response.candidates[0].content.parts[0].text.strip()
-            
+        # Get node short name if to_id is not "^all"
+        node_short_name = None
+        if to_id != "^all" and not to_id.startswith("^"):
+            try:
+                node = interface.nodesByNum[to_id]
+                node_short_name = node['user']['shortName']
+            except:
+                logging.warning(f"Could not get short name for node {to_id}")
+        
+        # Generate response using Gemini interface
+        response_text = gemini_interface.generate_response(message, channel, node_short_name)
+        
         if response_text:
             message = response_text
             logging.info(f"Generated response: {message}")
@@ -1273,7 +1239,7 @@ def send_llm_message(interface, message, channel, to_id):
         send_message(interface, message, channel, to_id)
             
     except Exception as e:
-        logging.error(f"Error generating response: {e}")
+        logging.error(f"Error in send_llm_message: {e}")
 
 def send_message(interface, message, channel, to_id):
     """
