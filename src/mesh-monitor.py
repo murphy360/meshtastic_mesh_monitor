@@ -457,6 +457,11 @@ def onReceiveTraceRoute(packet, interface):
             for hop in trace['routeTo']:
                 node = interface.nodesByNum[hop]
                 route_to.append(node)
+        elif 'route' in trace: # If routeTo is not present, use route
+            logging.info(f"ROUTE:  {trace['route']}")
+            for hop in trace['route']:
+                node = interface.nodesByNum[hop]
+                route_to.append(node)
     
     route_to.append(traced_node)
     
