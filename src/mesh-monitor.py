@@ -411,6 +411,8 @@ def onReceiveTraceRoute(packet, interface):
     originator_node = interface.nodesByNum[packet['from']]
     traced_node = interface.nodesByNum[packet['to']]
     global last_trace_time, public_channel_number
+
+    logging.info(f"Trace Route Packet: {trace}")
     
     if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
         originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
