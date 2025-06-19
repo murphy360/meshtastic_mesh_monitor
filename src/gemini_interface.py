@@ -95,16 +95,19 @@ class GeminiInterface:
             
             # Admin channel
             if channel_id == 1:  # admin_channel_number
+                logging.info("Generating response for admin channel")
                 response = self.admin_chat.send_message(message)
                 response_text = response.text
             
             # Public channel
             elif channel_id == 0:  # public_channel_number
+                logging.info("Generating response for public channel")
                 response = self.public_chat.send_message(message)
                 response_text = response.text
             
             # Private message to a specific node
             elif node_short_name:
+                logging.info(f"Generating response for private chat with {node_short_name}")
                 private_chat = self.get_or_create_private_chat(node_short_name)
                 response = private_chat.send_message(message)
                 response_text = response.text
