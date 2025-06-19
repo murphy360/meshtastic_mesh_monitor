@@ -158,7 +158,7 @@ def onNodeUpdate(node, interface):
     db_helper.add_or_update_node(node)
 
 def onReceiveText(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveText - {packet}")
+    logging.info(f"[FUNCTION] onReceiveText")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -200,7 +200,7 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
-    logging.info(f"[FUNCTION] onReceivePosition - {packet}")
+    logging.info(f"[FUNCTION] onReceivePosition")
     '''
     {'from': 3518183533, 'to': 4294967295, 'channel': 1, 
     'decoded': 
@@ -258,41 +258,41 @@ def onReceivePosition(packet, interface):
     relay_node: 198
     , 'fromId': '!d1b3386d', 'toId': '^all'}
     '''
-    logging.info("onReceivePosition")
+    
+    localNode = interface.getNode('^local')
     from_node_num = packet['from']
+
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
+    
     channel = public_channel_number  # Default to public channel
     if 'channel' in packet:
         # If the packet contains a channel, use it
         channel = packet['channel']
     else: 
         logging.info("onReceivePosition - No channel specified, using public channel")
-    logging.info("onReceivePosition")
+    
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
-    logging.info("onReceivePosition")
+    
     node = interface.nodesByNum[from_node_num]
-    localNode = interface.getNode('^local')
+    
     is_aircraft = False
     is_fast_moving = False
     admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
     log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
     location = "Unknown"
 
-    #logging.info(f"Position Packet: {packet}")
-    logging.info(f"onReceivePosition ")
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-    logging.info("onReceivePosition")
     if 'decoded' not in packet:
         log_message += " - No decoded data"
         logging.info(log_message)
         return
-    logging.info("onReceivePosition")
+
     if 'position' not in packet['decoded']:
         logging.info(f"Packet does not contain position data")
         return
-    logging.info("onReceivePosition")    
+ 
     if 'latitude' in packet['decoded']['position'] and 'longitude' not in packet['decoded']['position']:
         latitude = packet['decoded']['position']['latitude']
 
@@ -302,14 +302,14 @@ def onReceivePosition(packet, interface):
         
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
-    logging.info("onReceivePosition")
+
     if 'locationSource' in packet['decoded']['position']:
         location_source = packet['decoded']['position']['locationSource']
         log_message += f" - Location Source: {location_source}"
         if location_source == 'LOC_MANUAL':
             logging.info(log_message)
             return
-    logging.info("onReceivePosition")
+
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude}m"
@@ -322,37 +322,35 @@ def onReceivePosition(packet, interface):
             admin_message += " - Aircraft Detected"
             user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location}. Please Confirm."
             send_llm_message(interface, user_message, public_channel_number, '^all')
-    logging.info("onReceivePosition")        
+      
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
         log_message += f" - Satellites in View: {sats_in_view}"
-    logging.info("onReceivePosition")
+ 
     if 'PDOP' in packet['decoded']['position']:
         pdop = packet['decoded']['position']['PDOP']
         log_message += f" - PDOP: {pdop}"
-    logging.info("onReceivePosition")
+
     if 'precisionBits' in packet['decoded']['position']:
         precision_bits = packet['decoded']['position']['precisionBits']
         log_message += f" - Precision Bits: {precision_bits}"
-    logging.info("onReceivePosition")
+
     if 'time' in packet['decoded']['position']:
         time = packet['decoded']['position']['time']
         time_str = datetime.fromtimestamp(time, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         log_message += f" - Time: {time_str}"
-    logging.info("onReceivePosition")
+
     if 'groundSpeed' in packet['decoded']['position']:
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
         admin_message += f" Ground Speed: {ground_speed} m/s"
-        # Notify admin if ground speed is greater than 11
         if ground_speed > 11:
             is_fast_moving = True
-    logging.info("onReceivePosition")
+
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
         
-    logging.info("onReceivePosition")
     if is_fast_moving or is_aircraft:
         # If the node is fast moving or an aircraft, send a message to the admin channel
         logging.info(admin_message)
@@ -364,7 +362,7 @@ def onReceivePosition(packet, interface):
     return
 
 def onReceiveData(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveData - {packet}")
+    logging.info(f"[FUNCTION] onReceiveData")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -377,7 +375,7 @@ def onReceiveData(packet, interface):
     logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
 def onReceiveUser(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveUser - {packet}")
+    logging.info(f"[FUNCTION] onReceiveUser")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -390,7 +388,7 @@ def onReceiveUser(packet, interface):
     logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
 
 def onReceiveTelemetry(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveTelemetry - {packet}")
+    logging.info(f"[FUNCTION] onReceiveTelemetry")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -404,7 +402,7 @@ def onReceiveTelemetry(packet, interface):
     logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
 
 def onReceiveNeighborInfo(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveNeighborInfo - {packet}")
+    logging.info(f"[FUNCTION] onReceiveNeighborInfo")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -422,7 +420,7 @@ def onReceiveNeighborInfo(packet, interface):
     return
 
 def onReceiveTraceRoute(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveTraceroute - {packet}")
+    logging.info(f"[FUNCTION] onReceiveTraceroute")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -529,7 +527,7 @@ def onReceiveTraceRoute(packet, interface):
     return
 
 def onReceiveWaypoint(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveWaypoint - {packet}")
+    logging.info(f"[FUNCTION] onReceiveWaypoint")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -591,7 +589,7 @@ def onReceiveWaypoint(packet, interface):
         send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", admin_channel_number, "^all")
 
 def onReceiveNodeInfo(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveNodeInfo - {packet}")
+    logging.info(f"[FUNCTION] onReceiveNodeInfo")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -606,7 +604,7 @@ def onReceiveNodeInfo(packet, interface):
     return
 
 def onReceiveRouting(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveRouting - {packet}")
+    logging.info(f"[FUNCTION] onReceiveRouting")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -624,7 +622,7 @@ def onReceiveRouting(packet, interface):
     return
 
 def onReceiveRangeTest(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveRangeTest - {packet}")
+    logging.info(f"[FUNCTION] onReceiveRangeTest")
     '''
     {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': 
         {
@@ -668,7 +666,7 @@ def onReceiveRangeTest(packet, interface):
     return
 
 def onReceive(packet, interface):
-    logging.info(f"[FUNCTION] onReceive - {packet}")
+    logging.info(f"[FUNCTION] onReceive")
     """
     Handles incoming packets not specifically handled by other functions.
 
