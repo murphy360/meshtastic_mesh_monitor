@@ -1181,7 +1181,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
     
-    elif message == "sendnodeinfo":
+    elif "sendnodeinfo" in message or "send node info" in message:
         logging.info("Sending node info")
         node_short_name = lookup_short_name(interface, from_id)
         node = interface.nodesByNum[from_id]
