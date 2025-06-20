@@ -1183,8 +1183,8 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     
     elif "sendnodeinfo" in message or "send node info" in message:
         logging.info("Sending node info")
-        node_short_name = lookup_short_name(interface, from_id)
-        node = interface.nodesByNum[from_id]
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
         if node:
             send_llm_message(interface, f"Requesting node Info for {node_short_name}", channel, to_id)
             send_node_info(interface, node_short_name)
@@ -1414,10 +1414,11 @@ def send_node_info(interface, node_num):
         logging.info("Inside Try")
         interface.sendData(
             user,
-            destinationId=public_channel_number,
+            destinationId=node_num,
             portNum=meshtastic.portnums_pb2.NODEINFO_APP,
             wantAck=False,
-            wantResponse=True
+            wantResponse=True,
+            channelIndex=public_channel_number
         )
         logging.info("Outside try")
         logging.info(f"Node info request sent to node {node_num}")
