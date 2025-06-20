@@ -1385,13 +1385,13 @@ def send_position_request(interface, node_num):
    # position.precision_bits = my_location['precisionBits']
     
     logging.info(f"Sending position request to node {node_num} with position: {position}")
-    interface.sendData(
-        position,
-        destinationId=node_num,
-        portNum=meshtastic.portnums_pb2.POSITION_APP,
-        wantAck=False,
-        wantResponse=True,
-        channelIndex=public_channel_number
+    interface.sendPosition(
+        latitude = my_location['latitudeI'],
+        longitude = my_location['longitudeI'],
+        altitude = my_location['altitude'],
+        destinationId = node_num,
+        wantAck = False,
+        wantResponse = True,
     )
 
 
