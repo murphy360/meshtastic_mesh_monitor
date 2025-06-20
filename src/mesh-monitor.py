@@ -273,6 +273,7 @@ def onReceivePosition(packet, interface):
         channel = packet['channel']
     else: 
         logging.info("onReceivePosition - No channel specified, using public channel")
+        logging.info(f"Packet: {packet}")
     
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
@@ -1371,14 +1372,18 @@ def send_position_request(interface, node_num):
         node_num (int): The number of the node to send the request to.
     """
     logging.info(f"Sending position request to node {node_num}")
-    interface.sendPosition(
-        destinationId = node_num,
-        wantResponse = True,
-        channelIndex = public_channel_number
-    )
+    try:
+        interface.sendPosition(
+            destinationId = node_num,
+            wantResponse = False,
+            channelIndex = public_channel_number
+        )
+    except Exception as e:
+        logging.error(f"Error sending position request: {e}")
+        #send_llm_message(interface, f"Error sending position request to node {node_num}: {e}", admin_channel_number, "^all")
 
 
-def send_node_info(interface):
+def send_node_info(interface, node_num):
     """
     Send node information to a specified node.
 
@@ -1405,10 +1410,11 @@ def send_node_info(interface):
     logging.info(f"User: {user.public_key} - {user.id} - {user.long_name} - {user.short_name} - {user.hw_model} - {user.role}")
     interface.sendData(
         user,
-        destinationId=public_channel_number,
+        destinationId=node_num,
         portNum=meshtastic.portnums_pb2.NODEINFO_APP,
         wantAck=False,
-        wantResponse=False
+        wantResponse=True,
+        channelIndex=public_channel_number
     )
     logging.info(f"Node info sent to {public_channel_number} - {user.short_name} - {user.long_name} - {user.id}")
     
