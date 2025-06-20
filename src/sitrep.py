@@ -378,6 +378,7 @@ class SITREP:
                 longitude = 0
                 altitude = 0
                 last_heard = 0
+                precision_bits = 0
                 hops_away = -1
                 role = "Unknown"
 
@@ -388,6 +389,9 @@ class SITREP:
                         longitude = node["position"]["longitude"]
                     if "altitude" in node["position"]:
                         altitude = node["position"]["altitude"]
+                    if "precisionBits" in node["position"]:
+                        logging.info(f"Node {node['user']['shortName']} has precisionBits: {node['position']['precisionBits']}")
+                        precision_bits = node["position"]["precisionBits"]
                 
                 if "lastHeard" in node:
                     last_heard = node["lastHeard"]
@@ -404,24 +408,32 @@ class SITREP:
                     mesh_data["nodes"][0]["alt"] = altitude
                     continue
 
+                # If node is an aircraft, set aircraft to True
+                is_aircraft = False
+                if node["user"]["shortName"] in self.aircraft_tracks:
+                    is_aircraft = True
+
                 node_data = {
                     "id": node["user"]["shortName"],
                     "lat": latitude,
                     "lon": longitude,
                     "alt": altitude,
+                    "precision_bits": precision_bits,
                     "lastHeard": last_heard,
                     "hopsAway": hops_away,
                     "role": role,
+                    "aircraft": is_aircraft,
                     "connections": []
                 }
                 
+                # Add connections to the node data
                 if node_data["hopsAway"] == 0:
                     node_data["connections"].append(self.shortName)
                     mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
                     
                 mesh_data["nodes"].append(node_data)
 
-                # Add extra connections
+                # Add extra connections (if any) to the node data
                 if node["user"]["shortName"] in self.extra_connections:
                     for connection in self.extra_connections[node["user"]["shortName"]]:
                         node_data["connections"].append(connection)
