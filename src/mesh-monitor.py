@@ -1414,11 +1414,10 @@ def send_node_info(interface, node_num):
         logging.info("Inside Try")
         interface.sendData(
             user,
-            destinationId=node_num,
+            destinationId=public_channel_number,
             portNum=meshtastic.portnums_pb2.NODEINFO_APP,
             wantAck=False,
-            wantResponse=True,
-            channelIndex=public_channel_number
+            wantResponse=True
         )
         logging.info("Outside try")
         logging.info(f"Node info request sent to node {node_num}")
