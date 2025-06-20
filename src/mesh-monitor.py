@@ -1388,6 +1388,8 @@ def send_position_request(interface, node_num):
 
 
 def send_node_info(interface, node_num):
+    logging.info(f"Sending node info to node {node_num} on public channel {public_channel_number}")
+                 
     """
     Send node information to a specified node.
 
@@ -1395,30 +1397,29 @@ def send_node_info(interface, node_num):
         interface: The interface to interact with the mesh network.
         node_num (int): The number of the node to send information to.
     """
-    node_info = interface.getMyNodeInfo()
-    public_key = node_info['user']['publicKey']
-    logging.info("Sending node info, Public key is: " + public_key)
     
     user = mesh_pb2.User()
     me = interface.nodesByNum[interface.localNode.nodeNum]['user']
-    logging.info(f"Setting node info for {me['shortName']} - {me['longName']} - {me['id']} \n 'me': {me}")
-
+    
     user.id = me['id']
     user.long_name = me['longName']
     user.short_name = me['shortName']
     user.hw_model = mesh_pb2.HardwareModel.Value(me['hwModel'])
+    logging.info(f"User ID: {user.id}")
     user.public_key = base64.b64decode(me['publicKey'])
     if user.role:
+        logging.info(f"User role: {user.role}")
         user.role = config_pb2.Config.DeviceConfig.Role.Value(me['role'])
     try:
+        logging.info("Inside Try")
         interface.sendData(
             user,
-            destinationId=node_num,
+            destinationId=public_channel_number,
             portNum=meshtastic.portnums_pb2.NODEINFO_APP,
             wantAck=False,
-            wantResponse=True,
-            channelIndex=public_channel_number
+            wantResponse=True
         )
+        logging.info("Outside try")
         logging.info(f"Node info request sent to node {node_num}")
     except Exception as e:
         logging.error(f"Error sending node info to {node_num}: {e}")
