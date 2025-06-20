@@ -1186,6 +1186,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
     
+    elif "send position" in message or "sendposition" in message:
+        send_position_request(interface)
+    
     else:
         logging.info(f"Message not recognized: {message}. Not replying.")
         return
@@ -1351,6 +1354,22 @@ def send_telemetry_request(interface, node_num):
         logging.info(f"Telemetry request sent to node {node_num}")
     except Exception as e:
         logging.error(f"Error sending telemetry request: {e}")
+
+def send_position_request(interface):
+    """
+    Send a position request to a specified node.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        node_num (int): The number of the node to send the request to.
+    """
+    logging.info(f"Sending position request to node {node_num}")
+    position = mesh_pb2.Position()
+    my_location = interface.getMyNodeInfo()['position']
+    logging.info(f"My location: {my_location}")
+    position.latitude_i = int(my_location['latitude'] * 1e7)  # Convert to integer representation
+    position.longitude_i = int(my_location['longitude'] * 1e7)  #
+    logging.info(f"Sending position request with latitude: {position.latitude_i}, longitude: {position.longitude_i}")
 
 def send_node_info(interface):
     """
