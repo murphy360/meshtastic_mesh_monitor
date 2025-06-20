@@ -1187,7 +1187,14 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         return
     
     elif "send position" in message or "sendposition" in message:
-        send_position_request(interface)
+        logging.info("Sending position request")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            send_position_request(interface, node['num'])
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
+        return
     
     else:
         logging.info(f"Message not recognized: {message}. Not replying.")
@@ -1355,7 +1362,7 @@ def send_telemetry_request(interface, node_num):
     except Exception as e:
         logging.error(f"Error sending telemetry request: {e}")
 
-def send_position_request(interface):
+def send_position_request(interface, node_num):
     """
     Send a position request to a specified node.
 
