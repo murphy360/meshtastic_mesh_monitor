@@ -493,15 +493,23 @@ def onReceiveTraceRoute(packet, interface):
             logging.info(f"ROUTE:  {trace['route']}")
             for hop in trace['route']:
                 node = interface.nodesByNum[hop]
-                route_to.append(node)
-    
+                if node:
+                    route_to.append(node)
+                else:
+                    logging.info(f"Route not found in trace, using node num")
+                    route_to.append(hop) # Fallback to originator node if route not found
+        
     route_to.append(traced_node)
     
     i = 0
     # Add the node names from route_to message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
     for node in route_to:
-        message_string += f"{node['user']['shortName']}"
-        logging.info(f"Length of snr_towards: {len(snr_towards)}")
+        if 'user' in node:
+            message_string += f"{node['user']['shortName']}"
+            logging.info(f"Length of snr_towards: {len(snr_towards)}")
+        else:
+            logging.info(f"Node {node} does not have a user field, using node num")
+            message_string += f"{node}"
         if i < len(snr_towards):
             message_string += f" -> ({snr_towards[i]}dB) "
             i += 1
