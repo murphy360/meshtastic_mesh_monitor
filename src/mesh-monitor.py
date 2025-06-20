@@ -1371,27 +1371,10 @@ def send_position_request(interface, node_num):
         node_num (int): The number of the node to send the request to.
     """
     logging.info(f"Sending position request to node {node_num}")
-    position = mesh_pb2.Position()
-    my_location = interface.getMyNodeInfo()['position']
-    logging.info(f"My location: {my_location}")
-    #position.latitude_i = my_location['latitudeI']
-    #logging.info(f"Latitude: {position.latitude_i}")
-    #position.longitude_i = my_location['longitudeI']
-    #logging.info(f"Longitude: {position.longitude_i}")
-    #position.altitude = my_location['altitude']
-    #position.location_source = my_location['locationSource']
-    #position.ground_speed = my_location['groundSpeed']
-    #position.ground_track = my_location['groundTrack']
-   # position.precision_bits = my_location['precisionBits']
-    
-    logging.info(f"Sending position request to node {node_num} with position: {position}")
     interface.sendPosition(
-        latitude = my_location['latitudeI'],
-        longitude = my_location['longitudeI'],
-        altitude = my_location['altitude'],
         destinationId = node_num,
-        wantAck = False,
         wantResponse = True,
+        channelIndex = public_channel_number
     )
 
 
