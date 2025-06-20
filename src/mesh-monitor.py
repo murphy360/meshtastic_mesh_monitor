@@ -44,6 +44,11 @@ gemini_interface = GeminiInterface()
 # Initialize weather interface
 weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
 
+# Add these global variables at the beginning of the file, with the other globals
+last_alert_check_time = datetime.now(timezone.utc)
+alert_check_interval = timedelta(minutes=1)  # Check for alerts every minute
+previous_alerts = {}  # Store previous alerts to detect changes
+
 logging.info("Starting Mesh Monitor")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
@@ -1487,6 +1492,123 @@ def send_node_info(interface, node_num):
     
     
 
+def check_for_weather_alerts(interface):
+    """
+    Check for weather alerts at the local node's location and broadcast any new alerts.
+    
+    Args:
+        interface: The interface to interact with the mesh network.
+    """
+    global last_alert_check_time, alert_check_interval, previous_alerts
+    
+    now = datetime.now(timezone.utc)
+    
+    # Only check for alerts at the specified interval
+    if now - last_alert_check_time < alert_check_interval:
+        return
+    
+    last_alert_check_time = now
+    
+    try:
+        # Get local node's position for weather alerts
+        if 'position' not in localNode or 'latitude' not in localNode['position'] or 'longitude' not in localNode['position']:
+            logging.debug("Can't check for alerts: Local node has no position information")
+            return
+            
+        node_lat = localNode['position']['latitude']
+        node_lon = localNode['position']['longitude']
+        
+        # Get alerts for the local area
+        alerts_data = weather_interface.get_alerts(node_lat, node_lon)
+        
+        # If there's an error, log it and return
+        if "error" in alerts_data:
+            logging.error(f"Error checking for weather alerts: {alerts_data['error']}")
+            return
+        
+        # Get the current set of active alerts
+        features = alerts_data.get('features', [])
+        current_alerts = {}
+        
+        # Process each alert and add to current_alerts dictionary
+        for feature in features:
+            props = feature['properties']
+            alert_id = props.get('id', '')
+            
+            # Skip if no ID (shouldn't happen but just in case)
+            if not alert_id:
+                continue
+                
+            # Store relevant alert properties
+            current_alerts[alert_id] = {
+                'event': props.get('event', 'Unknown'),
+                'headline': props.get('headline', ''),
+                'description': props.get('description', ''),
+                'severity': props.get('severity', 'Unknown'),
+                'urgency': props.get('urgency', 'Unknown'),
+                'onset': props.get('onset', ''),
+                'expires': props.get('expires', '')
+            }
+        
+        # Find new alerts (not in previous_alerts)
+        new_alerts = {k: v for k, v in current_alerts.items() if k not in previous_alerts}
+        
+        # Find updated alerts (in both but with different content)
+        updated_alerts = {}
+        for alert_id, alert_data in current_alerts.items():
+            if alert_id in previous_alerts and alert_data != previous_alerts[alert_id]:
+                updated_alerts[alert_id] = alert_data
+        
+        # Find expired alerts (in previous but not in current)
+        expired_alerts = {k: v for k, v in previous_alerts.items() if k not in current_alerts}
+        
+        # Broadcast new alerts (admin channel only)
+        if new_alerts:
+            logging.info(f"Found {len(new_alerts)} new weather alerts")
+            
+            for alert_id, alert_data in new_alerts.items():
+                alert_message = f"⚠️ NEW WEATHER ALERT ⚠️\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+                
+                # Send only to admin channel
+                send_llm_message(interface, alert_message, admin_channel_number, "^all")
+                sitrep.log_message_sent("weather-alert-new")
+        
+        # Broadcast updated alerts (admin channel only)
+        if updated_alerts:
+            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
+            
+            for alert_id, alert_data in updated_alerts.items():
+                alert_message = f"⚠️ UPDATED WEATHER ALERT ⚠️\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+                
+                # Send only to admin channel
+                send_llm_message(interface, alert_message, admin_channel_number, "^all")
+                sitrep.log_message_sent("weather-alert-updated")
+        
+        # Log expired alerts (admin channel only)
+        if expired_alerts:
+            logging.info(f"Found {len(expired_alerts)} expired weather alerts")
+            
+            expired_message = f"The following weather alerts have expired:\n"
+            for alert_id, alert_data in expired_alerts.items():
+                expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
+            
+            # Send to admin channel
+            send_message(interface, expired_message, admin_channel_number, "^all")
+            sitrep.log_message_sent("weather-alert-expired")
+        
+        # Update previous_alerts with current_alerts for next comparison
+        previous_alerts = current_alerts
+        
+    except Exception as e:
+        logging.error(f"Error checking for weather alerts: {e}")
 
 # Main loop
 logging.info("Starting Main Loop")
@@ -1542,6 +1664,9 @@ while True:
             heartbeat_counter = 0  # Reset after sending the warning
             continue  # Skip the rest of the loop and try to reconnect
     
+        # Check for weather alerts
+        check_for_weather_alerts(interface)
+        
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
 
