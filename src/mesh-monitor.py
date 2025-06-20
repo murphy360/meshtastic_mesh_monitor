@@ -12,7 +12,8 @@ from sitrep import SITREP
 import logging
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
-from gemini_interface import GeminiInterface # type: ignore
+from gemini_interface import GeminiInterface
+from weather_gov_interface import WeatherGovInterface
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -39,6 +40,9 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 
 # Initialize Gemini interface
 gemini_interface = GeminiInterface()
+
+# Initialize weather interface
+weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
 
 logging.info("Starting Mesh Monitor")
 
@@ -1077,6 +1081,54 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         sitrep.update_sitrep(interface)
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
+        return
+
+    elif message == "get forecast" or message == "getforecast" or message == "forecast":
+        logging.info("Processing forecast request")
+        try:
+            # Get local node's position for weather forecast
+            node_lat, node_lon = None, None
+            
+            # First try to get the location of the requesting node
+            req_node = interface.nodesByNum[from_id]
+            if 'position' in req_node and 'latitude' in req_node['position'] and 'longitude' in req_node['position']:
+                node_lat = req_node['position']['latitude']
+                node_lon = req_node['position']['longitude']
+                location_source = "your current location"
+            
+            # If requesting node has no location, use local node's location
+            if node_lat is None or node_lon is None:
+                if 'position' in localNode and 'latitude' in localNode['position'] and 'longitude' in localNode['position']:
+                    node_lat = localNode['position']['latitude']
+                    node_lon = localNode['position']['longitude'] 
+                    location_source = "my location"
+            
+            # If we have coordinates, get and send the forecast
+            if node_lat is not None and node_lon is not None:
+                logging.info(f"Getting forecast for {node_lat}, {node_lon}")
+                
+                # Get a simple forecast first (shorter message)
+                forecast_data = weather_interface.get_forecast(node_lat, node_lon)
+                forecast_text = weather_interface.format_simple_forecast(forecast_data)
+                
+                # Check if there are any weather alerts
+                alerts_data = weather_interface.get_alerts(node_lat, node_lon)
+                alerts_text = weather_interface.format_alerts(alerts_data)
+                
+                # Only include alerts in the message if there are actual alerts
+                if "No active weather alerts" not in alerts_text:
+                    weather_message = f"Weather forecast for {location_source}:\n\n{alerts_text}\n\n{forecast_text}"
+                else:
+                    weather_message = f"Weather forecast for {location_source}:\n\n{forecast_text}"
+                
+                # Send the forecast through the LLM to make it sound more natural
+                send_llm_message(interface, weather_message, channel, to_id)
+                sitrep.log_message_sent("weather-forecast")
+            else:
+                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+        except Exception as e:
+            logging.error(f"Error getting weather forecast: {e}")
+            send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
         return
 
     elif "set node of interest" in message or "setnoi" in message:
