@@ -1410,17 +1410,21 @@ def send_node_info(interface, node_num):
     user.public_key = base64.b64decode(me['publicKey'])
     if user.role:
         user.role = config_pb2.Config.DeviceConfig.Role.Value(me['role'])
-
-    logging.info(f"User: {user.public_key} - {user.id} - {user.long_name} - {user.short_name} - {user.hw_model} - {user.role}")
-    interface.sendData(
-        user,
-        destinationId=node_num,
-        portNum=meshtastic.portnums_pb2.NODEINFO_APP,
-        wantAck=False,
-        wantResponse=True,
-        channelIndex=public_channel_number
-    )
-    logging.info(f"Node info sent to {public_channel_number} - {user.short_name} - {user.long_name} - {user.id}")
+    try:
+        interface.sendData(
+            user,
+            destinationId=node_num,
+            portNum=meshtastic.portnums_pb2.NODEINFO_APP,
+            wantAck=False,
+            wantResponse=True,
+            channelIndex=public_channel_number
+        )
+        logging.info(f"Node info request sent to node {node_num}")
+    except Exception as e:
+        logging.error(f"Error sending node info to {node_num}: {e}")
+        send_llm_message(interface, f"Error sending node info to node {node_num}: {e}", admin_channel_number, "^all")
+        return
+    
     
 
 
