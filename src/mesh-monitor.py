@@ -1374,13 +1374,15 @@ def send_position_request(interface, node_num):
     position = mesh_pb2.Position()
     my_location = interface.getMyNodeInfo()['position']
     logging.info(f"My location: {my_location}")
-    position.latitude_i = my_location['latitudeI']
-    position.longitude_i = my_location['longitudeI']
-    position.altitude = my_location['altitude']
-    position.location_source = my_location['locationSource']
-    position.ground_speed = my_location['groundSpeed']
-    position.ground_track = my_location['groundTrack']
-    position.precision_bits = my_location['precisionBits']
+    #position.latitude_i = my_location['latitudeI']
+    #logging.info(f"Latitude: {position.latitude_i}")
+    #position.longitude_i = my_location['longitudeI']
+    #logging.info(f"Longitude: {position.longitude_i}")
+    #position.altitude = my_location['altitude']
+    #position.location_source = my_location['locationSource']
+    #position.ground_speed = my_location['groundSpeed']
+    #position.ground_track = my_location['groundTrack']
+   # position.precision_bits = my_location['precisionBits']
     
     logging.info(f"Sending position request to node {node_num} with position: {position}")
     interface.sendData(
@@ -1388,7 +1390,7 @@ def send_position_request(interface, node_num):
         destinationId=node_num,
         portNum=meshtastic.portnums_pb2.POSITION_APP,
         wantAck=False,
-        wantResponse=False,
+        wantResponse=True,
         channelIndex=public_channel_number
     )
 
