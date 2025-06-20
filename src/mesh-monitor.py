@@ -32,6 +32,7 @@ public_channel_number = 0
 admin_channel_number = 1
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
+last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(hours=4)  # Initialize last forecast sent time to allow immediate forecasting
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
@@ -1091,7 +1092,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     elif message == "get forecast" or message == "getforecast" or message == "forecast":
         logging.info("Processing forecast request")
         try:
-            # Get local node's position for weather forecast
+            # Setup variables for location
             node_lat, node_lon = None, None
             
             # First try to get the location of the requesting node
@@ -1490,7 +1491,71 @@ def send_node_info(interface, node_num):
         send_llm_message(interface, f"Error sending node info to node {node_num}: {e}", admin_channel_number, "^all")
         return
     
+def send_weather_forecast_if_needed(interface, channel):
+    """
+    Check if a weather forecast needs to be sent and send it if necessary.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        latitude (float): The latitude of the location.
+        longitude (float): The longitude of the location.
+        node_short_name (str): The short name of the node to send the forecast to.
+        node_long_name (str): The long name of the node to send the forecast to.
+        channel (int): The channel to send the message to.
+    """
+    global last_forecast_sent_time
+    # Get local node's position for weather forecast
+    local_node_info = interface.getMyNodeInfo()
+    if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
+        logging.debug("Can't send forecast: Local node has no position information")
+        return
+    latitude = local_node_info['position']['latitude']
+    longitude = local_node_info['position']['longitude']
+    node_short_name = local_node_info['user']['shortName']
+    node_long_name = local_node_info['user']['longName']
+    # Check if we have already sent a forecast recently
+    now = datetime.now(timezone.utc)
+    if now - last_forecast_sent_time < timedelta(minutes=180):  # 3 hours
+        logging.info("Weather forecast already sent recently, skipping.")
+        return
     
+    # Update last forecast sent time
+    last_forecast_sent_time = now
+    
+    # Send the weather forecast
+    logging.info(f"Sending weather forecast for {node_short_name} ({node_long_name}) at {latitude}, {longitude}")
+    try:
+        send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, channel)
+        logging.info("Weather forecast sent successfully.")
+    except Exception as e:
+        logging.error(f"Error sending weather forecast: {e}")
+    
+def send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, channel):
+    """
+    Send a weather forecast for a specified node.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        latitude (float): The latitude of the location.
+        longitude (float): The longitude of the location.
+        node_short_name (str): The short name of the node to send the forecast to.
+        node_long_name (str): The long name of the node to send the forecast to.
+        channel (int): The channel to send the message to.
+    """
+    try:
+        forecast_data = weather_interface.get_forecast(latitude, longitude)
+        forecast_text = weather_interface.format_simple_forecast(forecast_data)
+        
+        if not forecast_text:
+            logging.error("No forecast data available.")
+            return
+        
+        message = f"Weather forecast for {node_short_name} ({node_long_name}):\n\n{forecast_text}"
+        
+        send_llm_message(interface, message, channel, "^all")
+        
+    except Exception as e:
+        logging.error(f"Error sending weather forecast: {e}")
 
 def check_for_weather_alerts(interface):
     """
@@ -1499,15 +1564,7 @@ def check_for_weather_alerts(interface):
     Args:
         interface: The interface to interact with the mesh network.
     """
-    global last_alert_check_time, alert_check_interval, previous_alerts
-    
-    now = datetime.now(timezone.utc)
-    
-    # Only check for alerts at the specified interval
-    if now - last_alert_check_time < alert_check_interval:
-        return
-    
-    last_alert_check_time = now
+    global previous_alerts
     
     try:
         # Get local node's position for weather alerts
@@ -1669,6 +1726,9 @@ while True:
     
         # Check for weather alerts
         check_for_weather_alerts(interface)
+
+        # Check if we need to send a weather forecast
+        send_weather_forecast_if_needed(interface, admin_channel_number)
         
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
