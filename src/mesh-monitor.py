@@ -1051,12 +1051,6 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     local_node = interface.getNode('^local')
     #logging.info(f"From Node: {from_node}")
 
-    if message == "sendnodeinfo":
-        logging.info("Sending node info")
-        send_node_info(interface)
-        sitrep.log_message_sent("send-node-info")
-        return
-
     if message == "ping":
         node_short_name = lookup_short_name(interface, from_id)
         local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
@@ -1186,6 +1180,16 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
+    
+    elif message == "sendnodeinfo":
+        logging.info("Sending node info")
+        node_short_name = lookup_short_name(interface, from_id)
+        node = interface.nodesByNum[from_id]
+        if node:
+            send_llm_message(interface, f"Requesting node Info for {node_short_name}", channel, to_id)
+            send_node_info(interface, node_short_name)
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send node info request.", channel, to_id)
     
     elif "send position" in message or "sendposition" in message:
         logging.info("Sending position request")
