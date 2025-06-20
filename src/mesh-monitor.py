@@ -1511,12 +1511,15 @@ def check_for_weather_alerts(interface):
     
     try:
         # Get local node's position for weather alerts
-        if 'position' not in localNode or 'latitude' not in localNode['position'] or 'longitude' not in localNode['position']:
+        local_node_info = interface.getMyNodeInfo()
+        
+        
+        if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
             logging.debug("Can't check for alerts: Local node has no position information")
             return
             
-        node_lat = localNode['position']['latitude']
-        node_lon = localNode['position']['longitude']
+        node_lat = local_node_info['position']['latitude']
+        node_lon = local_node_info['position']['longitude']
         
         # Get alerts for the local area
         alerts_data = weather_interface.get_alerts(node_lat, node_lon)
