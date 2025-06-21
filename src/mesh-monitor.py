@@ -211,7 +211,7 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
-    logging.info(f"[FUNCTION] onReceivePosition")
+    #logging.info(f"[FUNCTION] onReceivePosition")
     '''
     {'from': 3518183533, 'to': 4294967295, 'channel': 1, 
     'decoded': 
@@ -1729,7 +1729,7 @@ while True:
         check_for_weather_alerts(interface)
 
         # Check if we need to send a weather forecast
-        send_weather_forecast_if_needed(interface, public_channel_number)
+        send_weather_forecast_if_needed(interface, admin_channel_number)
         
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
