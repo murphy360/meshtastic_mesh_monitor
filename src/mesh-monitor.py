@@ -1550,7 +1550,7 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
             logging.error("No forecast data available.")
             return
         
-        message = f"Weather forecast for {node_short_name} ({node_long_name}):\n\n{forecast_text}"
+        message = f"Weather forecast for {node_short_name} ({node_long_name}) in :\n\n{forecast_text}"
         
         send_llm_message(interface, message, channel, "^all")
         
@@ -1625,6 +1625,7 @@ def check_for_weather_alerts(interface):
         # Broadcast new alerts (admin channel only)
         if new_alerts:
             logging.info(f"Found {len(new_alerts)} new weather alerts")
+            logging.info(f"{new_alerts}")
             
             for alert_id, alert_data in new_alerts.items():
                 alert_message = f"⚠️ NEW WEATHER ALERT ⚠️\n"
@@ -1661,7 +1662,7 @@ def check_for_weather_alerts(interface):
                 expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
             
             # Send to admin channel
-            send_message(interface, expired_message, admin_channel_number, "^all")
+            send_llm_message(interface, expired_message, admin_channel_number, "^all")
             sitrep.log_message_sent("weather-alert-expired")
         
         # Update previous_alerts with current_alerts for next comparison
@@ -1728,7 +1729,7 @@ while True:
         check_for_weather_alerts(interface)
 
         # Check if we need to send a weather forecast
-        send_weather_forecast_if_needed(interface, admin_channel_number)
+        send_weather_forecast_if_needed(interface, public_channel_number)
         
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
@@ -1746,6 +1747,7 @@ while True:
             Public Key: {node_info['user']['publicKey']}\n \
             Connection Timeout: {connect_timeout}\n      \
             Heartbeat Counter: {heartbeat_counter}\n      \
+            Last Weather Forecast Sent: {last_forecast_sent_time}\n      \
         **************************************************************\n    \
         **************************************************************\n\n ")
 
