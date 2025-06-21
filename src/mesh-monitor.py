@@ -1516,7 +1516,7 @@ def send_weather_forecast_if_needed(interface, channel):
     # Check if we have already sent a forecast recently
     now = datetime.now(timezone.utc)
     if now - last_forecast_sent_time < timedelta(minutes=180):  # 3 hours
-        logging.info("Weather forecast already sent recently, skipping.")
+        #logging.info("Weather forecast already sent recently, skipping.")
         return
     
     # Update last forecast sent time
