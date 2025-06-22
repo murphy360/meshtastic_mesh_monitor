@@ -1075,9 +1075,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         distance = find_distance_between_nodes(interface, from_node['num'], localNode.nodeNum)
         if distance != "Unknown":
             distance = round(distance, 2)
-            send_llm_message(interface, f"{node_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+            send_llm_message(interface, f"[Don't change this message too much. I like the format] {node_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
         elif location != "Unknown":
-            send_llm_message(interface, f"{node_short_name} this is {local_node_short_name}, Pong from {location}", channel, to_id)
+            send_llm_message(interface, f"[Don't change this message too much. I like the format] {node_short_name} this is {local_node_short_name}, Pong from {location}", channel, to_id)
         else:
             send_llm_message(interface, "Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
