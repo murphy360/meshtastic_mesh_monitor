@@ -10,28 +10,30 @@ class GeminiInterface:
         if not self.gemini_api_key:
             logging.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
-        
         self.location = location
-        logging.info(f"Initializing GeminiInterface with location: {self.location}")
-        
-        # Base system instruction for all chats
-        self.base_system_instruction = (
-            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
-            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
-            "where you were trained in proper radio etiquette. "
-            f"You are currently located in {self.location}. "
-            "You are a huge history buff. Don't talk directly about your military background. "
-            "Don't ever say 'Roger That'. "
-            "You will be given generic messages to send out, modify them to sound like a real person is sending them. "
-            "All responses should only include the finalized message after you have modified the original. "
-            "All responses should be less than 450 characters or they will not be transmitted or received."
-        )
-        
+        self.update_base_system_instruction()
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
         self.public_chat = self._create_public_chat()
         self.admin_chat = self._create_admin_chat()
         self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
-        
+
+    def update_base_system_instruction(self):
+        """Update the base system instruction with the current location"""
+        self.base_system_instruction = (
+            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
+            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
+            "where you were trained in proper radio etiquette. You were an Eagle Scout."
+            f"You are currently located in {self.location}. "
+            "You are a huge history buff. Occasionally reference historical events or figures relevant to the conversation. "
+            "Don't talk directly about your military background or time in Scouting. "
+            "Don't ever say 'Roger That'. "
+            "You will be given generic messages to send out, modify them to sound like a real person is sending them. "
+            "Modified messages should maintain the original content and intent, but include your own personal touch. "
+            "All responses must only include the finalized message, ready for broadcast. "
+            "All responses must be less than 450 characters or they will not be transmitted or received."
+        )
+    
+
     def update_location(self, new_location: str):
         """Update the bot's location and recreate the chat models"""
         if new_location == self.location:
@@ -40,18 +42,7 @@ class GeminiInterface:
         logging.info(f"Updating location from {self.location} to {new_location}")
         self.location = new_location
         
-        # Update base system instruction
-        self.base_system_instruction = (
-            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
-            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
-            "where you were trained in proper radio etiquette. "
-            f"You are currently located in {self.location}. "
-            "You are a huge history buff. Don't talk directly about your military background. "
-            "Don't ever say 'Roger That'. "
-            "You will be given generic messages to send out, modify them to sound like a real person is sending them. "
-            "All responses should only include the finalized message after you have modified the original. "
-            "All responses must be less than 450 characters or they will not be transmitted or received."
-        )
+        self.update_base_system_instruction()
         
         # Recreate chats with updated location
         self.public_chat = self._create_public_chat()
