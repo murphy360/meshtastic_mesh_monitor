@@ -272,6 +272,8 @@ def onReceivePosition(packet, interface):
     
     localNode = interface.getNode('^local')
     from_node_num = packet['from']
+    altitude = 0
+    ground_speed = 0
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
@@ -321,19 +323,31 @@ def onReceivePosition(packet, interface):
         if location_source == 'LOC_MANUAL':
             logging.info(log_message)
             return
+    
+    if 'groundSpeed' in packet['decoded']['position']:
+        ground_speed = packet['decoded']['position']['groundSpeed']
+        log_message += f" - Ground Speed: {ground_speed} m/s"
+        admin_message += f" Ground Speed: {ground_speed} m/s"
+        if ground_speed > 11:
+            is_fast_moving = True
 
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude}m"
         admin_message += f" Altitude: {altitude}m"
-        if altitude > 900:
-            # If altitude is greater than 900m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
-            is_aircraft = True
-            set_aircraft(interface, channel, node['num'], True)
-            log_message += " - Aircraft Detected"
-            admin_message += " - Aircraft Detected"
-            user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location}. Please Confirm."
-            send_llm_message(interface, user_message, public_channel_number, '^all')
+        if altitude > 1000:
+            # If altitude is greater than 1000m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
+            
+            if db_helper.is_aircraft(node):
+                logging.info(f"Node {node_short_name} is already marked as aircraft")
+            else:
+                logging.info(f"Node {node_short_name} is marked as aircraft due to altitude {altitude}m")
+                is_aircraft = True
+                db_helper.set_aircraft(node, True)
+                log_message += " - Aircraft Detected"
+                admin_message += " - Aircraft Detected"
+                user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
+                send_llm_message(interface, user_message, public_channel_number, node['num'])
       
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
@@ -351,13 +365,6 @@ def onReceivePosition(packet, interface):
         time = packet['decoded']['position']['time']
         time_str = datetime.fromtimestamp(time, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         log_message += f" - Time: {time_str}"
-
-    if 'groundSpeed' in packet['decoded']['position']:
-        ground_speed = packet['decoded']['position']['groundSpeed']
-        log_message += f" - Ground Speed: {ground_speed} m/s"
-        admin_message += f" Ground Speed: {ground_speed} m/s"
-        if ground_speed > 11:
-            is_fast_moving = True
 
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
@@ -1231,7 +1238,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            set_aircraft(interface, channel, node['num'], True)
+            db_helper.set_aircraft(node, True)
+            send_llm_message(interface, f"Node {node_short_name} is now set as an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-set")
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -1241,7 +1250,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            set_aircraft(interface, channel, node['num'], False)
+            db_helper.set_aircraft(node, False)
+            send_llm_message(interface, f"Node {node_short_name} is no longer set as an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-removed")
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -1329,26 +1340,6 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
         
     logging.info(f"leaving send_trace_route")
-
-def set_aircraft(interface, channel, node_num, is_aircraft=True):
-    """
-    Set a node as an aircraft or remove it from the aircraft list.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        channel (int): The channel to send the message to.
-        node_num (int): The number of the node to set as an aircraft.
-        is_aircraft (bool): Whether to set the node as an aircraft or remove it.
-    """
-    logging.info(f"Setting node {node_num} as {'aircraft' if is_aircraft else 'not aircraft'}")
-    node = interface.nodesByNum.get(node_num)
-    if not node:
-        logging.error(f"Node {node_num} not found in the mesh network.")
-        return
-
-    db_helper.set_aircraft(node, is_aircraft)
-    action = "set" if is_aircraft else "removed"
-    send_llm_message(interface, f"Node {node['user']['shortName']} has been {action} as an aircraft.", channel, "^all")
 
 def send_llm_message(interface, message, channel, to_id):
     """
