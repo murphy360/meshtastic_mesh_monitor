@@ -156,7 +156,12 @@ class GeminiInterface:
                 
             logging.info(f"Generated response: {response_text}")
             return response_text
+        
+        # Handle 503 Service Unavailable errors
+        except genai.exceptions.ServiceUnavailable as e:
+            logging.error(f"Service Unavailable: {e}")
+            return "I'm currently unable to process your request. Please try again later."
             
         except Exception as e:
             logging.error(f"Error generating response: {e}")
-            return f"Error generating response. Default message from DPMM."
+            return f"(Error with AI response: {message})"
