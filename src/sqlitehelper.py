@@ -118,6 +118,14 @@ class SQLiteHelper:
         now = datetime.datetime.now()
         log_string = ""
 
+        # Check if node shortname or longname has changed
+        if result:
+            existing_shortname = result[2]
+            existing_longname = result[3]
+            if shortname != existing_shortname or longname != existing_longname:
+                logging.info(f"Node {node_id} shortname or longname has changed: {existing_shortname} -> {shortname}, {existing_longname} -> {longname}")
+                
+
         # Node exists, update it
         if result: 
             new = False

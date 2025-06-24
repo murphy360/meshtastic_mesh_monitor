@@ -1400,7 +1400,13 @@ def send_message(interface, message, channel, to_id):
         
         try:
             interface.sendText(message, channelIndex=channel, destinationId=to_id)
+        
+
         except Exception as e:
+            if e == "Data payload too big":
+                logging.error("Message too long to send. Please shorten the message.")
+                send_llm_message(interface, f"[Message too long to send. Please shorten to less than 400 characters] {message}.", channel, to_id)
+                return
             logging.error(f"Error sending message: {e}")
             return
         node_name = to_id
