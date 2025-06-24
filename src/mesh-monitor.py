@@ -32,9 +32,9 @@ public_channel_number = 0
 admin_channel_number = 1
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
-# Take the modulo 3 of the current hour to find how many hours back to set initial time
+# Take the modulo 6 of the current hour to find how many hours back to set initial time
 last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(
-    hours=datetime.now(timezone.utc).hour % 3, minutes=0, seconds=0
+    hours=datetime.now(timezone.utc).hour % 6, minutes=datetime.now(timezone.utc).minute, seconds=datetime.now(timezone.utc).second
 )  # Initialize last forecast sent time to delay the first forecast
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
@@ -1557,7 +1557,7 @@ def send_weather_forecast_if_needed(interface, channel):
     node_long_name = local_node_info['user']['longName']
     # Check if we have already sent a forecast recently
     now = datetime.now(timezone.utc)
-    if now - last_forecast_sent_time < timedelta(minutes=180):  # 3 hours
+    if now - last_forecast_sent_time < timedelta(minutes=360): # 6 hours
         #logging.info("Weather forecast already sent recently, skipping.")
         return
     
