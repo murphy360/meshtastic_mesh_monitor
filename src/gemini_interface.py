@@ -53,6 +53,7 @@ class GeminiInterface:
         public_instruction = self.base_system_instruction + (
             " You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
             "Your messages will be visible to all nodes in the network."
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
         )
         
         return self.gemini_client.chats.create(
@@ -68,7 +69,8 @@ class GeminiInterface:
         admin_instruction = self.base_system_instruction + (
             " You are tasked with monitoring a meshtastic mesh network and are currently working directly "
             "with administrators on a private admin channel. Be more technical and detailed in your responses "
-            "to administrators, as they need accurate information."
+            "to administrators, as they need accurate information. "
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
         )
         
         return self.gemini_client.chats.create(
@@ -86,8 +88,8 @@ class GeminiInterface:
             
             private_instruction = self.base_system_instruction + (
                 f" You are currently in a private encrypted conversation with {node_short_name}. "
-                f"Even though these messages are sent on the public channel, they are encrypted and can only be read by {node_short_name}. "
-                f"Personalize your responses for this one-on-one conversation. Be more helpful and conversational since this is a private exchange."
+                f" While this is a conversation with a specific node, you may still be asked to forward messages "
+                f" If [Forward Message] you should treat it as a request to forward the message privately to {node_short_name}. "
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
