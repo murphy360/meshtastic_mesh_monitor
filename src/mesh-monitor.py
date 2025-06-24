@@ -32,7 +32,11 @@ public_channel_number = 0
 admin_channel_number = 1
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
-last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(hours=4)  # Initialize last forecast sent time to allow immediate forecasting
+# Take the modulo 3 of the current hour to find how many hours back to set initial time
+last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(
+    hours=datetime.now(timezone.utc).hour % 3, minutes=0, seconds=0
+)  # Initialize last forecast sent time to delay the first forecast
+logging.info(f"Last forecast sent time initialized to {last_forecast_sent_time}")
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
@@ -1397,6 +1401,23 @@ def send_llm_message(interface, message, channel, to_id):
             
     except Exception as e:
         logging.error(f"Error in send_llm_message: {e}")
+
+def find_nearest_three_hour_time_in_past():
+    """
+    Find the nearest time in the past that is a multiple of 3 hours.
+    
+    Returns:
+        datetime: The nearest time in the past that is a multiple of 3 hours (0000, 0300, 0600, 0900 etc.).
+    """
+    now = datetime.now(timezone.utc)
+    # Calculate the number of hours since midnight
+    hours_since_midnight = now.hour + now.minute / 60 + now.second / 3600
+    # Find the nearest multiple of 3 hours  
+    nearest_three_hour_time = now - timedelta(hours=hours_since_midnight % 3)
+    # Set minutes and seconds to zero
+    nearest_three_hour_time = nearest_three_hour_time.replace(minute=0, second=0, microsecond=0)
+    logging.info(f"Nearest three hour time in past: {nearest_three_hour_time}")
+    return nearest_three_hour_time
 
 def send_message(interface, message, channel, to_id):
     """
