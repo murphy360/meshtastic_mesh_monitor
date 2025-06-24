@@ -743,13 +743,19 @@ def onReceive(packet, interface):
             log_message += f" - New Node Detected"
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
+            admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
             notify_admin = True 
         else:
             name_change_list = db_helper.is_name_change(node)
             if name_change_list[0] == True:
                 log_message += f" - Node Name Changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}"
+                
                 private_message = f"Hello {node_short_name}, I noticed your name has changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}. Please confirm if this is correct."
                 send_llm_message(interface, private_message, public_channel_number, from_node_num)
+                
+                admin_message = f"Node {node_short_name} has changed its name from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}. Please confirm if this is correct."
+                send_llm_message(interface, admin_message, admin_channel_number, "^all")
                 notify_admin = True
 
         db_helper.add_or_update_node(node)
@@ -769,6 +775,8 @@ def onReceive(packet, interface):
             if portnum not in portnums_handled:
                 log_message += f" - Unhandled Portnum"
                 notify_admin = True
+                admin_message = f"Unhandled Portnum: {portnum} from {node_short_name} - {node_long_name} ({from_node_num})"
+                send_llm_message(interface, admin_message, admin_channel_number, "^all")
 
             sitrep.log_packet_received(portnum)
 
@@ -780,8 +788,8 @@ def onReceive(packet, interface):
 
         if notify_admin:
             # Notify admin if required
-            log_message += f" Report this to the admin: {log_message}"
-            send_llm_message(interface, log_message, admin_channel_number, "^all")
+            log_message += f" Reported this to the admin: {log_message}"
+            #send_llm_message(interface, log_message, admin_channel_number, "^all")
        
     except KeyError as e:
         logging.error(f"Error processing packet from {packet['from']}: {e}")
