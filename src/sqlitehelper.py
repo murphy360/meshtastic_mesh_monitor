@@ -120,8 +120,8 @@ class SQLiteHelper:
 
         # Check if node shortname or longname has changed
         if result:
-            existing_shortname = result[2]
-            existing_longname = result[3]
+            existing_shortname = result[3]
+            existing_longname = result[4]
             if shortname != existing_shortname or longname != existing_longname:
                 logging.info(f"Node {node_id} shortname or longname has changed: {existing_shortname} -> {shortname}, {existing_longname} -> {longname}")
                 
