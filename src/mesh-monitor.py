@@ -1524,6 +1524,13 @@ def send_weather_forecast_if_needed(interface, channel):
         channel (int): The channel to send the message to.
     """
     global last_forecast_sent_time
+
+    last_weather_report_time = db_helper.get_last_weather_report_time
+    if last_weather_report_time:
+        logging.info(f"Last weather report sent at: {last_weather_report_time}")
+        
+    
+    
     # Get local node's position for weather forecast
     local_node_info = interface.getMyNodeInfo()
     if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
@@ -1572,6 +1579,8 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
         
         message = f"Weather forecast for {node_short_name} ({node_long_name}) in :\n\n{forecast_text}"
         
+        db_helper.write_weather_report(forecast_data, forecast_text)
+        
         send_llm_message(interface, message, channel, "^all")
         
     except Exception as e:
@@ -1585,7 +1594,8 @@ def check_for_weather_alerts(interface):
         interface: The interface to interact with the mesh network.
     """
     global previous_alerts
-    
+
+
     try:
         # Get local node's position for weather alerts
         local_node_info = interface.getMyNodeInfo()
