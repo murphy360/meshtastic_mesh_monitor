@@ -147,6 +147,45 @@ class SQLiteHelper:
         self.conn.commit()
         #logging.info(log_string)
         return new
+    
+    def is_new_node(self, node):
+        """
+        Check if a node is new (not present in the database).
+
+        Args:
+            node (dict): The node data.
+
+        Returns:
+            bool: True if the node is new, False otherwise.
+        """
+        query = "SELECT * FROM node_database WHERE id = ?"
+        cursor = self.conn.execute(query, (node["user"]["id"],))
+        result = cursor.fetchone()
+        if result:
+            return False
+        else:
+            logging.info(f"Node {node['user']['id']} is new and will be added to the database")
+            return True
+    
+    def is_name_change(self, node):
+        """
+        Check if the node's shortname or longname has changed.
+
+        Args:
+            node (dict): The node data.
+
+        Returns:
+            bool: True if the name has changed, False otherwise.
+        """
+        query = "SELECT shortname, longname FROM node_database WHERE id = ?"
+        cursor = self.conn.execute(query, (node["user"]["id"],))
+        result = cursor.fetchone()
+        name_change_list = [False, "", ""]
+        if result:
+            existing_shortname, existing_longname = result
+            if existing_shortname != node["user"]["shortName"] or existing_longname != node["user"]["longName"]:
+                name_change_list = [True, existing_shortname, existing_longname]
+        return name_change_list
    
     def remove_node(self, node):
         """

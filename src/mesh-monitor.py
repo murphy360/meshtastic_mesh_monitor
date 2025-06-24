@@ -734,8 +734,9 @@ def onReceive(packet, interface):
         if "hopsAway" in node:
             log_message += f" - Hops Away: {node['hopsAway']}"
         
+
         # Check if the node is already in the database
-        new_node = db_helper.add_or_update_node(node) 
+        new_node = db_helper.is_new_node(node)
               
         if new_node:
             #send_node_info(interface) TODO Re-enable this when we have a way to send node info correctly. 
@@ -743,9 +744,17 @@ def onReceive(packet, interface):
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
             notify_admin = True 
+        else:
+            name_change_list = db_helper.is_name_change(node)
+            if name_change_list[0] == True:
+                log_message += f" - Node Name Changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}"
+                private_message = f"Hello {node_short_name}, I noticed your name has changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}. Please confirm if this is correct."
+                send_llm_message(interface, private_message, public_channel_number, from_node_num)
+                notify_admin = True
+
+        db_helper.add_or_update_node(node)
 
         # Check if the node is a node of interest
-        #logging.info(f"Checking if node {node_short_name} is a node of interest")
         node_of_interest = db_helper.is_node_of_interest(node)
         if node_of_interest:
             log_message += f" - Node of Interest"
