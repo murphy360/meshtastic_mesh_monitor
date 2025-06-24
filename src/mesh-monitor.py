@@ -328,7 +328,7 @@ def onReceivePosition(packet, interface):
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
         admin_message += f" Ground Speed: {ground_speed} m/s"
-        if ground_speed > 11:
+        if ground_speed > 50:
             is_fast_moving = True
 
     if 'altitude' in packet['decoded']['position']:
