@@ -89,7 +89,8 @@ class GeminiInterface:
             private_instruction = self.base_system_instruction + (
                 f" You are currently in a private encrypted conversation with {node_short_name}. "
                 f" While this is a conversation with a specific node, you may still be asked to forward messages "
-                f" If [Forward Message] you should treat it as a request to forward the message privately to {node_short_name}. "
+                f" If [Forward Message] is included in the message you should treat it as a request to initiate a conversation with {node_short_name} not a reply. "
+                f" You may be slightly more casual in your responses, but still maintain professionalism. "
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
