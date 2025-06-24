@@ -780,6 +780,7 @@ def onReceive(packet, interface):
 
         if notify_admin:
             # Notify admin if required
+            log_message += f" Report this to the admin: {log_message}"
             send_llm_message(interface, log_message, admin_channel_number, "^all")
        
     except KeyError as e:
