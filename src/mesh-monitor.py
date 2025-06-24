@@ -1671,6 +1671,18 @@ def check_for_weather_alerts(interface):
         # Find expired alerts (in previous but not in current)
         expired_alerts = {k: v for k, v in previous_alerts.items() if k not in current_alerts}
         
+        # Log expired alerts (admin channel only)
+        if expired_alerts and not first_run:
+            logging.info(f"Found {len(expired_alerts)} expired weather alerts")
+            
+            expired_message = f"The following weather alerts have expired:\n"
+            for alert_id, alert_data in expired_alerts.items():
+                expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
+            
+            # Send to admin channel
+            send_llm_message(interface, expired_message, admin_channel_number, "^all")
+            sitrep.log_message_sent("weather-alert-expired")
+
         # Broadcast new alerts (admin channel only)
         if new_alerts and not first_run:
             logging.info(f"Found {len(new_alerts)} new weather alerts")
@@ -1701,18 +1713,6 @@ def check_for_weather_alerts(interface):
                 # Send only to admin channel
                 send_llm_message(interface, alert_message, admin_channel_number, "^all")
                 sitrep.log_message_sent("weather-alert-updated")
-        
-        # Log expired alerts (admin channel only)
-        if expired_alerts and not first_run:
-            logging.info(f"Found {len(expired_alerts)} expired weather alerts")
-            
-            expired_message = f"The following weather alerts have expired:\n"
-            for alert_id, alert_data in expired_alerts.items():
-                expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
-            
-            # Send to admin channel
-            send_llm_message(interface, expired_message, admin_channel_number, "^all")
-            sitrep.log_message_sent("weather-alert-expired")
         
         # Update previous_alerts with current_alerts for next comparison
         previous_alerts = current_alerts
