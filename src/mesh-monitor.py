@@ -1122,6 +1122,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         try:
             # Setup variables for location
             node_lat, node_lon = None, None
+            time_string = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
             # First try to get the location of the requesting node
             req_node = interface.nodesByNum[from_id]
@@ -1151,9 +1152,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 
                 # Only include alerts in the message if there are actual alerts
                 if "No active weather alerts" not in alerts_text:
-                    weather_message = f"Weather forecast for {location_source}:\n\n{alerts_text}\n\n{forecast_text}"
+                    weather_message = f"Weather forecast for {location_source} as of {time_string}:\n\n{alerts_text}\n\n{forecast_text}"
                 else:
-                    weather_message = f"Weather forecast for {location_source}:\n\n{forecast_text}"
+                    weather_message = f"Weather forecast for {location_source} as of {time_string}:\n\n{forecast_text}"
                 
                 # Send the forecast through the LLM to make it sound more natural
                 send_llm_message(interface, weather_message, channel, to_id)
