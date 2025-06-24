@@ -36,7 +36,6 @@ last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for
 last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(
     hours=datetime.now(timezone.utc).hour % 3, minutes=0, seconds=0
 )  # Initialize last forecast sent time to delay the first forecast
-logging.info(f"Last forecast sent time initialized to {last_forecast_sent_time}")
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
@@ -52,7 +51,7 @@ weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
 # Add these global variables at the beginning of the file, with the other globals
 last_alert_check_time = datetime.now(timezone.utc)
 alert_check_interval = timedelta(minutes=1)  # Check for alerts every minute
-previous_alerts = {}  # Store previous alerts to detect changes
+previous_alerts = None  # Store previous alerts to detect changes
 
 logging.info("Starting Mesh Monitor")
 
@@ -1545,12 +1544,6 @@ def send_weather_forecast_if_needed(interface, channel):
         channel (int): The channel to send the message to.
     """
     global last_forecast_sent_time
-
-    last_weather_report_time = db_helper.get_last_weather_report_time
-    if last_weather_report_time:
-        logging.info(f"Last weather report sent at: {last_weather_report_time}")
-        
-    
     
     # Get local node's position for weather forecast
     local_node_info = interface.getMyNodeInfo()
@@ -1600,7 +1593,7 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
         
         message = f"Weather forecast for {node_short_name} ({node_long_name}) in :\n\n{forecast_text}"
         
-        db_helper.write_weather_report(forecast_data, forecast_text)
+        #db_helper.write_weather_report(forecast_data, forecast_text)
         
         send_llm_message(interface, message, channel, "^all")
         
@@ -1615,7 +1608,11 @@ def check_for_weather_alerts(interface):
         interface: The interface to interact with the mesh network.
     """
     global previous_alerts
+    first_run = False
 
+    if previous_alerts is None:
+        previous_alerts = {}
+        first_run = True
 
     try:
         # Get local node's position for weather alerts
@@ -1674,7 +1671,7 @@ def check_for_weather_alerts(interface):
         expired_alerts = {k: v for k, v in previous_alerts.items() if k not in current_alerts}
         
         # Broadcast new alerts (admin channel only)
-        if new_alerts:
+        if new_alerts and not first_run:
             logging.info(f"Found {len(new_alerts)} new weather alerts")
             logging.info(f"{new_alerts}")
             
@@ -1690,7 +1687,7 @@ def check_for_weather_alerts(interface):
                 sitrep.log_message_sent("weather-alert-new")
         
         # Broadcast updated alerts (admin channel only)
-        if updated_alerts:
+        if updated_alerts and not first_run:
             logging.info(f"Found {len(updated_alerts)} updated weather alerts")
             
             for alert_id, alert_data in updated_alerts.items():
@@ -1705,7 +1702,7 @@ def check_for_weather_alerts(interface):
                 sitrep.log_message_sent("weather-alert-updated")
         
         # Log expired alerts (admin channel only)
-        if expired_alerts:
+        if expired_alerts and not first_run:
             logging.info(f"Found {len(expired_alerts)} expired weather alerts")
             
             expired_message = f"The following weather alerts have expired:\n"
