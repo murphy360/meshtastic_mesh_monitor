@@ -751,10 +751,10 @@ def onReceive(packet, interface):
             if name_change_list[0] == True:
                 log_message += f" - Node Name Changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}"
                 
-                private_message = f"[Forward Message. You are initiating this conversation] I noticed your name has changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}."
+                private_message = f"[Forward Message. You are initiating this conversation. It is not a response.] Name Change Detecte: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
                 send_llm_message(interface, private_message, public_channel_number, from_node_num)
                 
-                admin_message = f"Node {node_short_name} has changed its name from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}."
+                admin_message = f"Name Change Detecte: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
                 send_llm_message(interface, admin_message, admin_channel_number, "^all")
                 notify_admin = True
 
