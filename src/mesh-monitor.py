@@ -1125,22 +1125,32 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             time_string = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
             # First try to get the location of the requesting node
-            req_node = interface.getNode[from_id]
+            req_node = interface.getNode(from_id)
+            if req_node:
+                logging.info(f"Requesting node: {req_node['user']['shortName']} - {req_node['num']}")
+
             if 'position' in req_node and 'latitude' in req_node['position'] and 'longitude' in req_node['position']:
+                logging.info(f"Requesting node has position data: {req_node['position']}")
                 node_lat = req_node['position']['latitude']
                 node_lon = req_node['position']['longitude']
                 location_source = "your current location"
-            
-            # If requesting node has no location, use local node's location
-            if node_lat is None or node_lon is None:
+            else:
+                logging.info(f"Requesting node does not have position data, using local node's position")
+                # Fallback to local node's position
+                localNode = interface.getNode('^local')
                 if 'position' in localNode and 'latitude' in localNode['position'] and 'longitude' in localNode['position']:
                     node_lat = localNode['position']['latitude']
-                    node_lon = localNode['position']['longitude'] 
+                    node_lon = localNode['position']['longitude']
                     location_source = "my location"
+                else:
+                    logging.error("Local node does not have position data, cannot get forecast")
+                    send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+                    return
+            
             
             # If we have coordinates, get and send the forecast
             if node_lat is not None and node_lon is not None:
-                logging.info(f"Getting forecast for {node_lat}, {node_lon}")
+                logging.info(f"Getting forecast for {node_lat}, {node_lon} from {location_source}")
                 
                 # Get a simple forecast first (shorter message)
                 forecast_data = weather_interface.get_forecast(node_lat, node_lon)
