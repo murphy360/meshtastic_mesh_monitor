@@ -1125,7 +1125,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             time_string = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
             # First try to get the location of the requesting node
-            req_node = interface.nodesByNum[from_id]
+            req_node = interface.getNode[from_id]
             if 'position' in req_node and 'latitude' in req_node['position'] and 'longitude' in req_node['position']:
                 node_lat = req_node['position']['latitude']
                 node_lon = req_node['position']['longitude']
