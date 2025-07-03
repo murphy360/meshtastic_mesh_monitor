@@ -86,6 +86,8 @@ class WeatherGovInterface:
             response.raise_for_status()
             metadata = response.json()
 
+            logging.info(f"Fetched location metadata: {metadata}")
+
             self.county = metadata['properties']['county'] if 'county' in metadata['properties'] else 'Unknown County'
             self.zone = metadata['properties']['forecastZone'] if 'forecastZone' in metadata['properties'] else 'Unknown Zone'
             self.city = metadata['properties']['city'] if 'city' in metadata['properties'] else 'Unknown City'
