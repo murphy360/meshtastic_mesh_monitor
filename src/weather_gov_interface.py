@@ -86,13 +86,6 @@ class WeatherGovInterface:
             response.raise_for_status()
             metadata = response.json()
 
-            logging.info(f"Fetched location metadata: {metadata}")
-
-            '''METADATA STRUCTURE
-            {'@context': ['https://geojson.org/geojson-ld/geojson-context.jsonld', {'@version': '1.1', 'wx': 'https://api.weather.gov/ontology#', 's': 'https://schema.org/', 'geo': 'http://www.opengis.net/ont/geosparql#', 'unit': 'http://codes.wmo.int/common/unit/', '@vocab': 'https://api.weather.gov/ontology#', 'geometry': {'@id': 's:GeoCoordinates', '@type': 'geo:wktLiteral'}, 'city': 's:addressLocality', 'state': 's:addressRegion', 'distance': {'@id': 's:Distance', '@type': 's:QuantitativeValue'}, 'bearing': {'@type': 's:QuantitativeValue'}, 'value': {'@id': 's:value'}, 'unitCode': {'@id': 's:unitCode', '@type': '@id'}, 'forecastOffice': {'@type': '@id'}, 'forecastGridData': {'@type': '@id'}, 'publicZone': {'@type': '@id'}, 'county': {'@type': '@id'}}], 'id': 'https://api.weather.gov/points/41.3318,-81.4775', 'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-81.4775, 41.3318]}, 'properties': {'@id': 'https://api.weather.gov/points/41.3318,-81.4775', '@type': 'wx:Point', 'cwa': 'CLE', 'forecastOffice': 'https://api.weather.gov/offices/CLE', 'gridId': 'CLE', 'gridX': 91, 'gridY': 58, 'forecast': 'https://api.weather.gov/gridpoints/CLE/91,58/forecast', 'forecastHourly': 'https://api.weather.gov/gridpoints/CLE/91,58/forecast/hourly', 'forecastGridData': 'https://api.weather.gov/gridpoints/CLE/91,58', 'observationStations': 'https://api.weather.gov/gridpoints/CLE/91,58/stations', 'relativeLocation': {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [-81.501633, 41.314919]}, 'properties': {'city': 'Macedonia', 'state': 'OH', 'distance': {'unitCode': 'wmoUnit:m', 'value': 2754.0463373735}, 'bearing': {'unitCode': 'wmoUnit:degree_(angle)', 'value': 47}}}, 'forecastZone': 'https://api.weather.gov/zones/forecast/OHZ021', 'county': 'https://api.weather.gov/zones/county/OHC153', 'fireWeatherZone': 'https://api.weather.gov/zones/fire/OHZ021', 'timeZone': 'America/New_York', 'radarStation': 'KCLE'}}
-            
-            '''
-
             if 'forecastZone' in metadata['properties']:
                 self.zone = metadata['properties']['forecastZone']
             if 'city' in metadata['properties']['relativeLocation']['properties']:
@@ -142,7 +135,7 @@ class WeatherGovInterface:
                 self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
             else:
                 # If we have cached data, log it
-                logging.info(f"Using cached alerts data for zone {self.zone} - {alerts_data}")
+                logging.info(f"Using cached alerts data for zone {self.zone} ({latitude}, {longitude})")
 
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts metadata: {e}")
@@ -303,7 +296,7 @@ class WeatherGovInterface:
             for i in range(3):
                 if i < len(periods):
                     period = periods[i]
-                    result += f"{period['name']}: Time start: {period['startTime']}, Time end: {period['endTime']}, {period['detailedForecast']}, {period['temperature']}{period['temperatureUnit']}. "
+                    result += f"{period['name']}: {period['detailedForecast']}, {period['temperature']}{period['temperatureUnit']}. "
 
             return result
             
