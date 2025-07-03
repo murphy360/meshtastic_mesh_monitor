@@ -142,7 +142,7 @@ class WeatherGovInterface:
             title = alerts_data.get('title', 'Active Weather Alerts')
             updated_date = alerts_data.get('updated', datetime.now().isoformat())
 
-            logging.info(f"Processing alerts for zone {zone} - {title} (Updated: {updated_date})")
+            logging.info(f"Processing alerts for zone {self.zone} - {title} (Updated: {updated_date})")
 
             for feature in features:
                 props = feature['properties']
