@@ -1092,7 +1092,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     """
     message = message.lower()
     logging.info(f"Replying to message: {message}")
-    from_node = interface.getNode(from_id)
+    from_node = interface.nodesByNum[from_id]
     local_node = interface.getNode('^local')
     #logging.info(f"From Node: {from_node}")
 
