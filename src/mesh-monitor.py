@@ -1619,7 +1619,7 @@ def send_weather_alerts_if_needed(interface, channel):
     Args:
         interface: The interface to interact with the mesh network.
     """
-
+    logging.info("Checking for weather alerts")
     try:
         # Get local node's position for weather alerts
         local_node_info = interface.getMyNodeInfo()

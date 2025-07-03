@@ -105,13 +105,15 @@ class WeatherGovInterface:
                 self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
                 logging.info(f"Cached alerts data for zone {zone} - {alerts_data}")
             
+            logging.info(f"Fetched alerts data for zone {zone}: {alerts_data}")
+
             # Update Expired Alerts
             current_alerts = {alert['id']: alert for alert in alerts_data.get('features', [])}
             # Log each alert ID for debugging
             for alert_id in current_alerts.keys():
                 logging.debug(f"Current alert ID: {alert_id}")
                 logging.debug(f"Alert details: {current_alerts[alert_id]}")
-                
+
             self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in current_alerts}
 
             # Update new alerts
