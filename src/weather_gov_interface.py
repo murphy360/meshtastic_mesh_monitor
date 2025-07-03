@@ -168,6 +168,7 @@ class WeatherGovInterface:
             
         try:
             periods = forecast_data['properties']['periods']
+            logging.info(f"Periods: {periods}")
             if not periods:
                 return "No forecast data available"
                 
