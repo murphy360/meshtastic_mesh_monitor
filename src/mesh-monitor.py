@@ -1142,10 +1142,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             else:
                 logging.info(f"Requesting node does not have position data, using local node's position")
                 # Fallback to local node's position
-                localNode = interface.getNode('^local')
-                if 'position' in localNode and 'latitude' in localNode['position'] and 'longitude' in localNode['position']:
-                    node_lat = localNode['position']['latitude']
-                    node_lon = localNode['position']['longitude']
+                if 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
+                    node_lat = local_node['position']['latitude']
+                    node_lon = local_node['position']['longitude']
                     location_source = "my location"
                 else:
                     logging.error("Local node does not have position data, cannot get forecast")
