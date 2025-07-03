@@ -1142,6 +1142,8 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             else:
                 logging.info(f"Requesting node does not have position data, using local node's position")
                 # Fallback to local node's position
+                logging.info(f"local_node: {local_node}")
+
                 if 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
                     node_lat = local_node['position']['latitude']
                     node_lon = local_node['position']['longitude']
