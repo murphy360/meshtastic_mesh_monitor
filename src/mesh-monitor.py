@@ -1095,7 +1095,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     message = message.lower()
     logging.info(f"Replying to message: {message}")
     from_node = interface.nodesByNum[from_id]
-    local_node = interface.nodesByNum['^local']
+    local_node = interface.nodesByNum[interface.getNode('^local').nodeNum]
     #logging.info(f"From Node: {from_node}")
 
     if message == "ping":
