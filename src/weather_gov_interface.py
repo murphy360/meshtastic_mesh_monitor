@@ -263,7 +263,7 @@ class WeatherGovInterface:
             logging.error(f"Error fetching current conditions: {e}")
             return {"error": str(e)}
     
-    def get_simple_forecast_string(self, latitude: float, longitude: float) -> str:
+    def get_forecast_string(self, latitude: float, longitude: float) -> str:
         """
         Format forecast data into a simple human-readable string.
         
@@ -304,7 +304,7 @@ class WeatherGovInterface:
             logging.error(f"Error formatting forecast: {e}")
             return "Error formatting weather forecast"
 
-    def format_alerts(self) -> str:
+    def get_alerts_string(self) -> str:
         """
         Format alerts data into a human-readable string.
         
@@ -338,9 +338,7 @@ class WeatherGovInterface:
             logging.error(f"Error formatting alerts: {e}")
             return "Error formatting weather alerts"
             
-        
-    
-    def format_current_conditions(self, conditions_data: Dict[str, Any]) -> str:
+    def get_current_conditions_string(self, latitude: float, longitude: float) -> str:
         """
         Format current conditions data into a human-readable string.
         
@@ -350,6 +348,8 @@ class WeatherGovInterface:
         Returns:
             A formatted string with the current conditions
         """
+        conditions_data = self.get_current_conditions(latitude, longitude)
+
         if "error" in conditions_data:
             return f"Current conditions unavailable: {conditions_data['error']}"
             
@@ -396,23 +396,17 @@ class WeatherGovInterface:
             A formatted string with the weather summary
         """
         # Get current conditions
-        conditions = self.get_current_conditions(latitude, longitude)
-        conditions_str = self.format_current_conditions(conditions)
+        conditions_str = self.get_current_conditions_string(latitude, longitude)
         
         # Get alerts
-        alerts_str = self.format_alerts(self.current_alerts)
+        alerts_str = self.get_alerts_string()
         
         # Get forecast
-        forecast = self.get_forecast(latitude, longitude)
-        forecast_str = self.format_simple_forecast(forecast)
+        forecast_str = self.get_forecast_string(latitude=latitude, longitude=longitude)
         
         # Combine into summary
         summary = f"{conditions_str}\n\n"
-        
-        # Only include alerts section if there are actual alerts
-        if "No active weather alerts" not in alerts_str:
-            summary += f"{alerts_str}\n\n"
-            
+        summary += f"{alerts_str}\n\n"    
         summary += f"{forecast_str}"
         
         return summary
