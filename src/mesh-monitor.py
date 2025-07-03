@@ -1131,14 +1131,13 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             time_string = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
             # First try to get the location of the requesting node
-            req_node = interface.getNode(from_id)
-            if req_node:
-                logging.info(f"Requesting node: {req_node['user']['shortName']} - {req_node['num']}")
+            if from_node:
+                logging.info(f"Requesting node: {from_node['user']['shortName']} - {from_node['num']}")
 
-            if 'position' in req_node and 'latitude' in req_node['position'] and 'longitude' in req_node['position']:
-                logging.info(f"Requesting node has position data: {req_node['position']}")
-                node_lat = req_node['position']['latitude']
-                node_lon = req_node['position']['longitude']
+            if 'position' in from_node and 'latitude' in from_node['position'] and 'longitude' in from_node['position']:
+                logging.info(f"Requesting node has position data: {from_node['position']}")
+                node_lat = from_node['position']['latitude']
+                node_lon = from_node['position']['longitude']
                 location_source = "your current location"
             else:
                 logging.info(f"Requesting node does not have position data, using local node's position")
