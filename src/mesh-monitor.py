@@ -1596,8 +1596,8 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
         channel (int): The channel to send the message to.
     """
     try:
-        forecast_data = weather_interface.get_forecast(latitude, longitude)
-        forecast_text = weather_interface.format_simple_forecast(forecast_data)
+        
+        forecast_text = weather_interface.get_simple_forecast_string(latitude, longitude)
         
         if not forecast_text:
             logging.error("No forecast data available.")

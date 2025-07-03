@@ -28,8 +28,12 @@ class WeatherGovInterface:
         self.new_alerts: Dict[str, Any] = {}
         self.updated_alerts: Dict[str, Any] = {}    
         self.expired_alerts: Dict[str, Any] = {}  # Store expired alerts from previous run
-        
-    def get_forecast(self, latitude: float, longitude: float, detailed: bool = False) -> Dict[str, Any]:
+        self.county = "Unknown County"
+        self.zone = "Unknown Zone"
+        self.city = "Unknown City"
+        self.state = "Unknown State"
+
+    def get_forecast(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
         Get weather forecast for a specific location.
         
@@ -42,61 +46,57 @@ class WeatherGovInterface:
             Dictionary containing forecast data
         """
 
-        # First get the county/zone for the location
-        points_url = f"{self.base_url}/points/{latitude},{longitude}"
-        response = requests.get(points_url, headers=self.headers)
-        response.raise_for_status()
-        
-        metadata = response.json()
-
-        zone = metadata['properties']['forecastZone']
-        cache_key = f"forecast_{zone.split('/')[-1]}"
-        logging.info(f"Metadata: {metadata}")
-
-        if 'county' not in metadata['properties']:
-            logging.warning("County metadata not found, using default 'Unknown County'")
-            county = "Unknown County"
-        else:
-            county = metadata['properties']['county']
-            
-        if 'city' not in metadata['properties']:
-            logging.warning("City metadata not found, using default 'Unknown City'")
-            city = "Unknown City"
-        else:
-            city = metadata['properties']['city']
-        
-        if 'state' not in metadata['properties']:
-            logging.warning("State metadata not found, using default 'Unknown State'")
-            state = "Unknown State"
-        else:
-            state = metadata['properties']['state']
-
+        self.update_location_details(latitude, longitude)
+        cache_key = f"forecast_{self.zone.split('/')[-1]}"
         cached_result = self._get_from_cache(cache_key)
         
         if cached_result:
-            logging.info(f"Using cached forecast data for {city}, {state} ({latitude}, {longitude})")
+            logging.info(f"Using cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
             return cached_result
             
         try:
-            # If detailed forecast is requested, use the hourly endpoint
-            # Otherwise, use the daily forecast endpoint
-            if detailed:
-                forecast_url = metadata['properties']['forecastHourly']
-            else:
-                forecast_url = metadata['properties']['forecast']
-                
+
             # Now get the actual forecast
-            response = requests.get(forecast_url, headers=self.headers)
+            response = requests.get(self.forecast_url, headers=self.headers)
             response.raise_for_status()
             
             forecast_data = response.json()
             self._add_to_cache(cache_key, forecast_data)
-            logging.info(f"Cached forecast data for {city}, {state} ({latitude}, {longitude})")
+            logging.info(f"Cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
             return forecast_data
             
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching forecast: {e}")
             return {"error": str(e)}
+    
+    def update_location_details(self, latitude: float, longitude: float) -> None:
+        """
+        Update the location details for a specific latitude and longitude.
+        
+        Args:
+            latitude: The latitude coordinate
+            longitude: The longitude coordinate
+            
+        This method fetches the county, zone, city, and state for the given coordinates
+        and stores them in the instance variables.
+        """
+        try:
+            points_url = f"{self.base_url}/points/{latitude},{longitude}"
+            response = requests.get(points_url, headers=self.headers)
+            response.raise_for_status()
+            metadata = response.json()
+
+            self.county = metadata['properties']['county'] if 'county' in metadata['properties'] else 'Unknown County'
+            self.zone = metadata['properties']['forecastZone'] if 'forecastZone' in metadata['properties'] else 'Unknown Zone'
+            self.city = metadata['properties']['city'] if 'city' in metadata['properties'] else 'Unknown City'
+            self.state = metadata['properties']['state'] if 'state' in metadata['properties'] else 'Unknown State'
+            self.forecast_url = metadata['properties']['forecastHourly'] if 'forecastHourly' in metadata['properties'] else 'Unknown Forecast URL'
+            self.stations_url = metadata['properties']['observationStations'] if 'observationStations' in metadata['properties'] else 'Unknown Stations URL'
+
+            logging.info(f"Updated location details: {self.city}, {self.state} ({self.county}, {self.zone})")
+            
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching location details: {e}")
     
     def update_alerts(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
@@ -111,27 +111,23 @@ class WeatherGovInterface:
         """   
         try:
             # First get the county/zone for the location
-            points_url = f"{self.base_url}/points/{latitude},{longitude}"
-            response = requests.get(points_url, headers=self.headers)
-            response.raise_for_status()
+            self.update_location_details(latitude, longitude)
+            cache_key = f"alerts_{self.zone.split('/')[-1]}"
             
-            metadata = response.json()
-            county = metadata['properties']['county']
-            zone = metadata['properties']['forecastZone']
-            cache_key = f"alerts_{zone.split('/')[-1]}"
             alerts_data = self._get_from_cache(cache_key, max_age_seconds=900)  # 15 minute cache for alerts
+
             if not alerts_data:
-                logging.info(f"No cached alerts data for zone {zone}, fetching new data")
+                logging.info(f"No cached alerts data for zone {self.zone}, fetching new data")
 
                 # Now get the alerts for this zone
-                alerts_url = f"{self.base_url}/alerts/active?zone={zone.split('/')[-1]}"
+                alerts_url = f"{self.base_url}/alerts/active?zone={self.zone.split('/')[-1]}"
                 response = requests.get(alerts_url, headers=self.headers)
                 response.raise_for_status()
                 alerts_data = response.json()
                 self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
             else:
                 # If we have cached data, log it
-                logging.info(f"Using cached alerts data for zone {zone} - {alerts_data}")
+                logging.info(f"Using cached alerts data for zone {self.zone} - {alerts_data}")
 
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts metadata: {e}")
@@ -242,16 +238,10 @@ class WeatherGovInterface:
             return cached_result
             
         try:
-            # First get the stations for this location
-            points_url = f"{self.base_url}/points/{latitude},{longitude}"
-            response = requests.get(points_url, headers=self.headers)
-            response.raise_for_status()
-            
-            metadata = response.json()
-            stations_url = metadata['properties']['observationStations']
+            self.update_location_details(latitude, longitude)
             
             # Get the list of stations
-            response = requests.get(stations_url, headers=self.headers)
+            response = requests.get(self.stations_url, headers=self.headers)
             response.raise_for_status()
             
             stations_data = response.json()
@@ -273,7 +263,7 @@ class WeatherGovInterface:
             logging.error(f"Error fetching current conditions: {e}")
             return {"error": str(e)}
     
-    def format_simple_forecast(self, forecast_data: Dict[str, Any]) -> str:
+    def get_simple_forecast_string(self, latitude: float, longitude: float) -> str:
         """
         Format forecast data into a simple human-readable string.
         
@@ -283,36 +273,31 @@ class WeatherGovInterface:
         Returns:
             A formatted string with the forecast
         """
+        forecast_data = self.get_forecast(latitude, longitude)
 
         if "error" in forecast_data:
             return f"Weather forecast unavailable: {forecast_data['error']}"
             
         try:
-            logging.info(f"Formatting forecast data: {forecast_data}")
-            if 'city' in forecast_data['properties']:
-                city = forecast_data['properties']['city']
-            if 'state' in forecast_data['properties']:
-                state = forecast_data['properties']['state']
-            if 'county' in forecast_data['properties']:
-                county = forecast_data['properties']['county']
             periods = forecast_data['properties']['periods']
             logging.info(f"Periods: {periods}")
             if not periods:
                 return "No forecast data available"
                 
-            today = periods[0]
-            tonight = periods[1] if len(periods) > 1 else None
-            tomorrow = periods[2] if len(periods) > 2 else None
-            
-            result = f"{today['name']}: {today['shortForecast']}, {today['temperature']}{today['temperatureUnit']}. "
-            result += f"{today['detailedForecast']}\n"
-            
-            if tonight:
-                result += f"{tonight['name']}: {tonight['shortForecast']}, {tonight['temperature']}{tonight['temperatureUnit']}.\n"
-                
-            if tomorrow:
-                result += f"{tomorrow['name']}: {tomorrow['shortForecast']}, {tomorrow['temperature']}{tomorrow['temperatureUnit']}."
-                
+            now = periods[0]
+            next = periods[1] if len(periods) > 1 else None
+            later = periods[2] if len(periods) > 2 else None
+
+            result = f"Forecast for {self.city}, {self.state}\n"
+        
+            result += f"{now['name']}: {now['detailedForecast']}, {now['temperature']}{now['temperatureUnit']}. "
+
+            if next:
+                result += f"{next['name']}: {next['detailedForecast']}, {next['temperature']}{next['temperatureUnit']}.\n"
+
+            if later:
+                result += f"{later['name']}: {later['detailedForecast']}, {later['temperature']}{later['temperatureUnit']}."
+
             return result
             
         except (KeyError, IndexError) as e:
