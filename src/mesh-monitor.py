@@ -923,6 +923,7 @@ def lookup_short_name(interface, node_num):
     Returns:
         str: The short name of the node.
     """
+    logging.info(f"Looking up short name for node number {node_num}")
     for n in interface.nodes.values():
         if n["num"] == node_num:
             return n["user"]["shortName"]
