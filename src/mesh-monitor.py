@@ -1577,7 +1577,7 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
     """
     try:
         
-        forecast_text = weather_interface.get_simple_forecast_string(latitude, longitude)
+        forecast_text = weather_interface.get_forecast_string(latitude, longitude)
         
         if not forecast_text:
             logging.error("No forecast data available.")
