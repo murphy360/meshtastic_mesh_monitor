@@ -1047,6 +1047,7 @@ def find_location_by_node_num(interface, node_num):
     Returns:
         str: The location of the local node, or "Unknown" if the location cannot be determined.
     """
+    logging.info(f"Finding location for node number {node_num}")
     nodeLat, nodeLon = None, None
     for node in interface.nodes.values():
         if node["num"] == node_num:
