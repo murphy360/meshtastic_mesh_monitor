@@ -1125,20 +1125,17 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         try:
             # Setup variables for location
             wx_lat, wx_lon = None, None
-            time_string = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
             # First try to get the location of the requesting node
             if 'position' in from_node and 'latitude' in from_node['position'] and 'longitude' in from_node['position']:
                 logging.info(f"Requesting node has position data: {from_node['position']}")
                 wx_lat = from_node['position']['latitude']
                 wx_lon = from_node['position']['longitude']
-                location_source = "your current location"
             # If the requesting node does not have position data, try to use the local node's position
             elif 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
                 logging.info(f"Requesting node does not have position data, using local node's position")
                 wx_lat = local_node['position']['latitude']
                 wx_lon = local_node['position']['longitude']
-                location_source = "my location"
             # If neither node has position data, we cannot get a forecast
             else:
                 logging.error("Requesting node nor Local node have position data, cannot get forecast")
@@ -1149,7 +1146,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
             
             # If we have coordinates, get and send the forecast
             if wx_lat is not None and wx_lon is not None:
-                send_weather_forecast(interface, wx_lat, wx_lon, channel, to_id)
+                send_weather_forecast(interface, wx_lat, wx_lon, from_node['user']['shortName'], from_node['user']['longName'], channel)
                 sitrep.log_message_sent("weather-forecast-requested")
             else:
                 logging.error("No valid coordinates found for weather forecast")
