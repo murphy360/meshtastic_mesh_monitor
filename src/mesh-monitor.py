@@ -1095,23 +1095,19 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     message = message.lower()
     logging.info(f"Replying to message: {message}")
     from_node = interface.nodesByNum[from_id]
-    local_node = interface.getNode('^local')
+    local_node = interface.nodesByNum['^local']
     #logging.info(f"From Node: {from_node}")
 
     if message == "ping":
-        logging.info("Processing ping request")
-        from_node_short_name = from_node['user']['shortName']
-        logging.info(f"from_node_short_name: {from_node_short_name}")
-        node_short_name = lookup_short_name(interface, from_id)
-        logging.info(f"local_node_num: {local_node.nodeNum}")
-        local_node_short_name = lookup_short_name(interface, local_node.nodeNum)
-        location = find_location_by_node_num(interface, local_node.nodeNum)
-        distance = find_distance_between_nodes(interface, from_node['num'], local_node.nodeNum)
+        logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
+        location = find_location_by_node_num(interface, local_node['num'])
+        distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
+
         if distance != "Unknown":
             distance = round(distance, 2)
-            send_llm_message(interface, f"[Don't change this message too much. I like the format] {node_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+            send_llm_message(interface, f"[Don't change this message too much. I like the format] {from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}. Distance: {distance} miles", channel, to_id)
         elif location != "Unknown":
-            send_llm_message(interface, f"[Don't change this message too much. I like the format] {node_short_name} this is {local_node_short_name}, Pong from {location}", channel, to_id)
+            send_llm_message(interface, f"[Don't change this message too much. I like the format] {from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}", channel, to_id)
         else:
             send_llm_message(interface, "Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
@@ -1124,46 +1120,44 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         return
 
     elif message == "get forecast" or message == "getforecast" or message == "forecast":
-        logging.info("Processing forecast request")
+        logging.info(f"Processing weather forecast request from {from_node['user']['shortName']} - {from_node['num']}")
+        
         try:
             # Setup variables for location
-            node_lat, node_lon = None, None
+            wx_lat, wx_lon = None, None
             time_string = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
             # First try to get the location of the requesting node
-            if from_node:
-                logging.info(f"Requesting node: {from_node['user']['shortName']} - {from_node['num']}")
-
             if 'position' in from_node and 'latitude' in from_node['position'] and 'longitude' in from_node['position']:
                 logging.info(f"Requesting node has position data: {from_node['position']}")
-                node_lat = from_node['position']['latitude']
-                node_lon = from_node['position']['longitude']
+                wx_lat = from_node['position']['latitude']
+                wx_lon = from_node['position']['longitude']
                 location_source = "your current location"
-            else:
+            # If the requesting node does not have position data, try to use the local node's position
+            elif 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
                 logging.info(f"Requesting node does not have position data, using local node's position")
-                # Fallback to local node's position
-                logging.info(f"local_node: {local_node}")
-
-                if 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
-                    node_lat = local_node['position']['latitude']
-                    node_lon = local_node['position']['longitude']
-                    location_source = "my location"
-                else:
-                    logging.error("Local node does not have position data, cannot get forecast")
-                    send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
-                    return
+                wx_lat = local_node['position']['latitude']
+                wx_lon = local_node['position']['longitude']
+                location_source = "my location"
+            # If neither node has position data, we cannot get a forecast
+            else:
+                logging.error("Requesting node nor Local node have position data, cannot get forecast")
+                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+                admin_message = f"Weather forecast request from {from_node['user']['shortName']} - {from_node['num']} failed due to missing position data for both requesting and local nodes."
+                send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                return
             
             
             # If we have coordinates, get and send the forecast
-            if node_lat is not None and node_lon is not None:
-                logging.info(f"Getting forecast for {node_lat}, {node_lon} from {location_source}")
-                
+            if wx_lat is not None and wx_lon is not None:
+                logging.info(f"Getting forecast for {wx_lat}, {wx_lon} from {location_source}")
+
                 # Get a simple forecast first (shorter message)
-                forecast_data = weather_interface.get_forecast(node_lat, node_lon)
+                forecast_data = weather_interface.get_forecast(wx_lat, wx_lon)
                 forecast_text = weather_interface.format_simple_forecast(forecast_data)
                 
                 # Check if there are any weather alerts
-                alerts_data = weather_interface.get_alerts(node_lat, node_lon)
+                alerts_data = weather_interface.get_alerts(wx_lat, wx_lon)
                 alerts_text = weather_interface.format_alerts(alerts_data)
                 
                 # Only include alerts in the message if there are actual alerts
@@ -1176,6 +1170,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 send_llm_message(interface, weather_message, channel, to_id)
                 sitrep.log_message_sent("weather-forecast")
             else:
+                logging.error("No valid coordinates found for weather forecast")
                 send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
         except Exception as e:
             logging.error(f"Error getting weather forecast: {e}")
