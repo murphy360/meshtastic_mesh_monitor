@@ -1103,9 +1103,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         from_node_short_name = from_node['user']['shortName']
         logging.info(f"from_node_short_name: {from_node_short_name}")
         node_short_name = lookup_short_name(interface, from_id)
-        local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
-        location = find_location_by_node_num(interface, localNode.nodeNum)
-        distance = find_distance_between_nodes(interface, from_node['num'], localNode.nodeNum)
+        logging.info(f"local_node_num: {local_node.nodeNum}")
+        local_node_short_name = lookup_short_name(interface, local_node.nodeNum)
+        location = find_location_by_node_num(interface, local_node.nodeNum)
+        distance = find_distance_between_nodes(interface, from_node['num'], local_node.nodeNum)
         if distance != "Unknown":
             distance = round(distance, 2)
             send_llm_message(interface, f"[Don't change this message too much. I like the format] {node_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
