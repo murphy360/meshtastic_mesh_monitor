@@ -1097,6 +1097,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     #logging.info(f"From Node: {from_node}")
 
     if message == "ping":
+        logging.info("Processing ping request")
         node_short_name = lookup_short_name(interface, from_id)
         local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
         location = find_location_by_node_num(interface, localNode.nodeNum)
