@@ -51,7 +51,7 @@ class WeatherGovInterface:
         cached_result = self._get_from_cache(cache_key)
         
         if cached_result:
-            logging.info(f"Using cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
+            #logging.info(f"Using cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
             return cached_result
             
         try:
@@ -62,7 +62,7 @@ class WeatherGovInterface:
             
             forecast_data = response.json()
             self._add_to_cache(cache_key, forecast_data)
-            logging.info(f"Cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
+            logging.info(f"Cached new forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
             return forecast_data
             
         except requests.exceptions.RequestException as e:
@@ -147,8 +147,9 @@ class WeatherGovInterface:
             features = alerts_data.get('features', [])
             title = alerts_data.get('title', 'Active Weather Alerts')
             updated_date = alerts_data.get('updated', datetime.now().isoformat())
+            logging.info(f"alerts_data: {alerts_data}")
 
-            logging.info(f"Processing alerts for zone {self.zone} - {title} (Updated: {updated_date})")
+            logging.info(f"Processing {title}")
 
             for feature in features:
                 props = feature['properties']

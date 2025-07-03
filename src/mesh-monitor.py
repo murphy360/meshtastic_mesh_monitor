@@ -1722,7 +1722,7 @@ while True:
             continue  # Skip the rest of the loop and try to reconnect
     
         # Check for weather alerts
-        send_weather_alerts_if_needed(interface, admin_channel_number)
+        send_weather_alerts_if_needed(interface, public_channel_number)
 
         # Check if we need to send a weather forecast
         send_weather_forecast_if_needed(interface, public_channel_number)
