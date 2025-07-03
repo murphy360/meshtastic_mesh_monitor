@@ -91,28 +91,52 @@ class WeatherGovInterface:
             metadata = response.json()
             county = metadata['properties']['county']
             zone = metadata['properties']['forecastZone']
-            logging.info(f"Found county: {county}, zone: {zone} for coordinates {latitude}, {longitude}")
             cache_key = f"alerts_{zone.split('/')[-1]}"
             alerts_data = self._get_from_cache(cache_key, max_age_seconds=900)  # 15 minute cache for alerts
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching alerts metadata: {e}")
+            return {"error": str(e)}
+        
+        try:
             if not alerts_data:
                 logging.info(f"No cached alerts data for zone {zone}, fetching new data")
+
                 # Now get the alerts for this zone
                 alerts_url = f"{self.base_url}/alerts/active?zone={zone.split('/')[-1]}"
                 response = requests.get(alerts_url, headers=self.headers)
                 response.raise_for_status()
-            
+    
                 alerts_data = response.json()
                 self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
                 logging.info(f"Cached alerts data for zone {zone} - {alerts_data}")
             
             logging.info(f"Fetched alerts data for zone {zone}: {alerts_data}")
 
-            # Update Expired Alerts
-            current_alerts = {alert['id']: alert for alert in alerts_data.get('features', [])}
-            # Log each alert ID for debugging
-            for alert_id in current_alerts.keys():
-                logging.debug(f"Current alert ID: {alert_id}")
-                logging.debug(f"Alert details: {current_alerts[alert_id]}")
+            
+
+            # Create a dictionary to store current alerts to compare with previous run
+            # This will help us determine new, updated, and expired alerts
+            current_alerts: Dict[str, Any] = {}
+            features = alerts_data.get('features', [])
+            for feature in features:
+                props = feature['properties']
+                alert_id = props.get('id', '')
+            
+                # Skip if no ID (shouldn't happen but just in case)
+                if not alert_id:
+                    continue
+                
+                # Store relevant alert properties
+                current_alerts[alert_id] = {
+                    'event': props.get('event', 'Unknown'),
+                    'headline': props.get('headline', ''),
+                    'description': props.get('description', ''),
+                    'severity': props.get('severity', 'Unknown'),
+                    'urgency': props.get('urgency', 'Unknown'),
+                    'onset': props.get('onset', ''),
+                    'expires': props.get('expires', '')
+                }
+                logging.info(f"Processed alert ID {alert_id}: {current_alerts[alert_id]}")
 
             self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in current_alerts}
 
@@ -125,6 +149,33 @@ class WeatherGovInterface:
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts: {e}")
             return {"error": str(e)}
+
+    def get_new_alerts(self) -> Dict[str, Any]:
+        """
+        Get newly added weather alerts since the last check.
+        
+        Returns:
+            Dictionary containing new alerts data
+        """
+        return self.new_alerts
+    
+    def get_updated_alerts(self) -> Dict[str, Any]:
+        """
+        Get updated weather alerts since the last check.
+        
+        Returns:
+            Dictionary containing updated alerts data
+        """
+        return self.updated_alerts
+    
+    def get_expired_alerts(self) -> Dict[str, Any]:
+        """
+        Get expired weather alerts since the last check.
+        
+        Returns:
+            Dictionary containing expired alerts data
+        """
+        return self.expired_alerts
 
     def clear_alerts(self) -> None:
         """

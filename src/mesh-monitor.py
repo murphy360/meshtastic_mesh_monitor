@@ -1634,52 +1634,12 @@ def send_weather_alerts_if_needed(interface, channel):
         # Update weather alerts
         weather_interface.update_alerts(wx_lat, wx_lon)
 
-
-        
-        # Get the current set of active alerts
-        #features = alerts_data.get('features', [])
-        #current_alerts = {}
-        
-        # Process each alert and add to current_alerts dictionary
-        '''
-        for feature in features:
-            props = feature['properties']
-            alert_id = props.get('id', '')
-            
-            # Skip if no ID (shouldn't happen but just in case)
-            if not alert_id:
-                continue
-                
-            # Store relevant alert properties
-            current_alerts[alert_id] = {
-                'event': props.get('event', 'Unknown'),
-                'headline': props.get('headline', ''),
-                'description': props.get('description', ''),
-                'severity': props.get('severity', 'Unknown'),
-                'urgency': props.get('urgency', 'Unknown'),
-                'onset': props.get('onset', ''),
-                'expires': props.get('expires', '')
-            }
-        
-        # Find expired alerts (in previous but not in current)
-        expired_alerts = {k: v for k, v in previous_alerts.items() if k not in current_alerts}
-
-        # Find new alerts (not in previous_alerts)
-        new_alerts = {k: v for k, v in current_alerts.items() if k not in previous_alerts}
-        
-        # Find updated alerts (in both but with different content)
-        updated_alerts = {}
-        for alert_id, alert_data in current_alerts.items():
-            if alert_id in previous_alerts and alert_data != previous_alerts[alert_id]:
-                updated_alerts[alert_id] = alert_data
-        
-
-        
-        # Broadcast expired alerts
-        if expired_alerts and not first_run:
+        # Check for expired alerts first
+        expired_alerts = weather_interface.get_expired_alerts()
+        if expired_alerts is not None and len(expired_alerts) > 0:
             logging.info(f"Found {len(expired_alerts)} expired weather alerts")
             
-            expired_message = f"The following weather alerts have expired:\n"
+            expired_message = f"The following weather alerts are no longer active:\n"
             for alert_id, alert_data in expired_alerts.items():
                 expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
 
@@ -1687,8 +1647,26 @@ def send_weather_alerts_if_needed(interface, channel):
             send_llm_message(interface, expired_message, channel, "^all")
             sitrep.log_message_sent("weather-alert-expired")
 
-        # Broadcast new alerts
-        if new_alerts and not first_run:
+
+        # Check for updated alerts
+        updated_alerts = weather_interface.get_updated_alerts()
+        if updated_alerts is not None and len(updated_alerts) > 0:
+            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
+            
+            for alert_id, alert_data in updated_alerts.items():
+                alert_message = f"⚠️ UPDATED WEATHER ALERT ⚠️\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
+                sitrep.log_message_sent("weather-alert-updated")
+
+        # Check for new alerts
+        new_alerts = weather_interface.get_new_alerts()
+        if new_alerts is not None and len(new_alerts) > 0:
             logging.info(f"Found {len(new_alerts)} new weather alerts")
             logging.info(f"{new_alerts}")
             
@@ -1703,24 +1681,8 @@ def send_weather_alerts_if_needed(interface, channel):
                 send_llm_message(interface, alert_message, channel, "^all")
                 sitrep.log_message_sent("weather-alert-new")
         
-        # Broadcast updated alerts
-        if updated_alerts and not first_run:
-            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
-            
-            for alert_id, alert_data in updated_alerts.items():
-                alert_message = f"⚠️ UPDATED WEATHER ALERT ⚠️\n"
-                alert_message += f"Type: {alert_data['event']}\n"
-                alert_message += f"Severity: {alert_data['severity']}\n"
-                alert_message += f"Urgency: {alert_data['urgency']}\n"
-                alert_message += f"{alert_data['headline']}"
+        weather_interface.clear_alerts()  # Clear alerts after processing
 
-                # Send to specified channel
-                send_llm_message(interface, alert_message, channel, "^all")
-                sitrep.log_message_sent("weather-alert-updated")
-        
-        # Update previous_alerts with current_alerts for next comparison
-        previous_alerts = current_alerts
-    '''    
     except Exception as e:
         logging.error(f"Error checking for weather alerts: {e}")
     
@@ -1780,7 +1742,7 @@ while True:
             continue  # Skip the rest of the loop and try to reconnect
     
         # Check for weather alerts
-        send_weather_alerts_if_needed(interface, public_channel_number)
+        send_weather_alerts_if_needed(interface, admin_channel_number)
 
         # Check if we need to send a weather forecast
         send_weather_forecast_if_needed(interface, public_channel_number)
