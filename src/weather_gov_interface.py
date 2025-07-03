@@ -102,11 +102,11 @@ class WeatherGovInterface:
             if 'radarStation' in metadata['properties']:
                 self.radar_station = metadata['properties']['radarStation']
             if 'forecastHourly' in metadata['properties']:
-                self.forecast_url = metadata['properties']['forecastHourly']
+                self.forecast_url = self.base_url + metadata['properties']['forecast']
             if 'observationStations' in metadata['properties']:
-                self.stations_url = metadata['properties']['observationStations']
+                self.stations_url = self.base_url + metadata['properties']['observationStations']
 
-            logging.info(f"Updated location details: {self.city}, {self.state} ({self.county}, {self.zone})")
+            logging.info(f"Updated location details: {self.city}, {self.state}")
             
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching location details: {e}")
@@ -293,23 +293,15 @@ class WeatherGovInterface:
             
         try:
             periods = forecast_data['properties']['periods']
-            logging.info(f"Periods: {periods}")
             if not periods:
                 return "No forecast data available"
                 
-            now = periods[0]
-            next = periods[1] if len(periods) > 1 else None
-            later = periods[2] if len(periods) > 2 else None
-
             result = f"Forecast for {self.city}, {self.state}\n"
-        
-            result += f"{now['name']}: {now['detailedForecast']}, {now['temperature']}{now['temperatureUnit']}. "
-
-            if next:
-                result += f"{next['name']}: {next['detailedForecast']}, {next['temperature']}{next['temperatureUnit']}.\n"
-
-            if later:
-                result += f"{later['name']}: {later['detailedForecast']}, {later['temperature']}{later['temperatureUnit']}."
+            # iterate through the first three periods and format the output
+            for i in range(3):
+                if i < len(periods):
+                    period = periods[i]
+                    result += f"{period['name']}: Time start: {period['startTime']}, Time end: {period['endTime']}, {period['detailedForecast']}, {period['temperature']}{period['temperatureUnit']}. "
 
             return result
             
