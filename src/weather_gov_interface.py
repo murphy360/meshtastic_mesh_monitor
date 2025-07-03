@@ -23,6 +23,10 @@ class WeatherGovInterface:
         self.cache = {}
         self.cache_expiry = {}
         self.default_cache_seconds = 3600  # 1 hour default cache
+        self.previous_alerts: Dict[str, Any] = {}  # Store previous alerts to detect changes
+        self.new_alerts: Dict[str, Any] = {}
+        self.updated_alerts: Dict[str, Any] = {}    
+        self.expired_alerts: Dict[str, Any] = {}  # Store expired alerts from previous run
         
     def get_forecast(self, latitude: float, longitude: float, detailed: bool = False) -> Dict[str, Any]:
         """
@@ -39,6 +43,7 @@ class WeatherGovInterface:
         cache_key = f"forecast_{latitude}_{longitude}_{detailed}"
         cached_result = self._get_from_cache(cache_key)
         if cached_result:
+            logging.info(f"Using cached forecast data for {latitude}, {longitude}")
             return cached_result
             
         try:
@@ -66,7 +71,7 @@ class WeatherGovInterface:
             logging.error(f"Error fetching forecast: {e}")
             return {"error": str(e)}
     
-    def get_alerts(self, latitude: float, longitude: float) -> Dict[str, Any]:
+    def update_alerts(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
         Get active weather alerts for a specific location.
         
@@ -76,12 +81,7 @@ class WeatherGovInterface:
             
         Returns:
             Dictionary containing alert data
-        """
-        cache_key = f"alerts_{latitude}_{longitude}"
-        cached_result = self._get_from_cache(cache_key, max_age_seconds=900)  # 15 minute cache for alerts
-        if cached_result:
-            return cached_result
-            
+        """   
         try:
             # First get the county/zone for the location
             points_url = f"{self.base_url}/points/{latitude},{longitude}"
@@ -91,20 +91,49 @@ class WeatherGovInterface:
             metadata = response.json()
             county = metadata['properties']['county']
             zone = metadata['properties']['forecastZone']
+            logging.info(f"Found county: {county}, zone: {zone} for coordinates {latitude}, {longitude}")
+            cache_key = f"alerts_{zone.split('/')[-1]}"
+            alerts_data = self._get_from_cache(cache_key, max_age_seconds=900)  # 15 minute cache for alerts
+            if not alerts_data:
+                logging.info(f"No cached alerts data for zone {zone}, fetching new data")
+                # Now get the alerts for this zone
+                alerts_url = f"{self.base_url}/alerts/active?zone={zone.split('/')[-1]}"
+                response = requests.get(alerts_url, headers=self.headers)
+                response.raise_for_status()
             
-            # Now get the alerts for this zone
-            alerts_url = f"{self.base_url}/alerts/active?zone={zone.split('/')[-1]}"
-            response = requests.get(alerts_url, headers=self.headers)
-            response.raise_for_status()
+                alerts_data = response.json()
+                self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
+                logging.info(f"Cached alerts data for zone {zone} - {alerts_data}")
             
-            alerts_data = response.json()
-            self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
-            return alerts_data
-            
+            # Update Expired Alerts
+            current_alerts = {alert['id']: alert for alert in alerts_data.get('features', [])}
+            # Log each alert ID for debugging
+            for alert_id in current_alerts.keys():
+                logging.debug(f"Current alert ID: {alert_id}")
+                logging.debug(f"Alert details: {current_alerts[alert_id]}")
+                
+            self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in current_alerts}
+
+            # Update new alerts
+            self.new_alerts = {k: v for k, v in current_alerts.items() if k not in self.previous_alerts}
+
+            # Update updated alerts
+            self.updated_alerts = {k: v for k, v in current_alerts.items() if k in self.previous_alerts and v != self.previous_alerts[k]}
+
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts: {e}")
             return {"error": str(e)}
-    
+
+    def clear_alerts(self) -> None:
+        """
+        Clear the previous alerts data.
+        
+        This is useful to reset the state before fetching new alerts.
+        """
+        self.new_alerts = {}
+        self.updated_alerts = {}
+        self.expired_alerts = {}
+
     def get_current_conditions(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
         Get current weather conditions for a specific location.

@@ -1612,45 +1612,36 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
     except Exception as e:
         logging.error(f"Error sending weather forecast: {e}")
 
-def check_for_weather_alerts(interface):
+def send_weather_alerts_if_needed(interface, channel):
     """
     Check for weather alerts at the local node's location and broadcast any new alerts.
     
     Args:
         interface: The interface to interact with the mesh network.
     """
-    global previous_alerts
-    first_run = False
-
-    if previous_alerts is None:
-        previous_alerts = {}
-        first_run = True
 
     try:
         # Get local node's position for weather alerts
         local_node_info = interface.getMyNodeInfo()
         
-        
         if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
             logging.debug("Can't check for alerts: Local node has no position information")
             return
             
-        node_lat = local_node_info['position']['latitude']
-        node_lon = local_node_info['position']['longitude']
+        wx_lat = local_node_info['position']['latitude']
+        wx_lon = local_node_info['position']['longitude']
         
-        # Get alerts for the local area
-        alerts_data = weather_interface.get_alerts(node_lat, node_lon)
-        
-        # If there's an error, log it and return
-        if "error" in alerts_data:
-            logging.error(f"Error checking for weather alerts: {alerts_data['error']}")
-            return
+        # Update weather alerts
+        weather_interface.update_alerts(wx_lat, wx_lon)
+
+
         
         # Get the current set of active alerts
-        features = alerts_data.get('features', [])
-        current_alerts = {}
+        #features = alerts_data.get('features', [])
+        #current_alerts = {}
         
         # Process each alert and add to current_alerts dictionary
+        '''
         for feature in features:
             props = feature['properties']
             alert_id = props.get('id', '')
@@ -1670,6 +1661,9 @@ def check_for_weather_alerts(interface):
                 'expires': props.get('expires', '')
             }
         
+        # Find expired alerts (in previous but not in current)
+        expired_alerts = {k: v for k, v in previous_alerts.items() if k not in current_alerts}
+
         # Find new alerts (not in previous_alerts)
         new_alerts = {k: v for k, v in current_alerts.items() if k not in previous_alerts}
         
@@ -1679,22 +1673,21 @@ def check_for_weather_alerts(interface):
             if alert_id in previous_alerts and alert_data != previous_alerts[alert_id]:
                 updated_alerts[alert_id] = alert_data
         
-        # Find expired alerts (in previous but not in current)
-        expired_alerts = {k: v for k, v in previous_alerts.items() if k not in current_alerts}
+
         
-        # Log expired alerts (admin channel only)
+        # Broadcast expired alerts
         if expired_alerts and not first_run:
             logging.info(f"Found {len(expired_alerts)} expired weather alerts")
             
             expired_message = f"The following weather alerts have expired:\n"
             for alert_id, alert_data in expired_alerts.items():
                 expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
-            
-            # Send to admin channel
-            send_llm_message(interface, expired_message, admin_channel_number, "^all")
+
+            # Send to specified channel
+            send_llm_message(interface, expired_message, channel, "^all")
             sitrep.log_message_sent("weather-alert-expired")
 
-        # Broadcast new alerts (admin channel only)
+        # Broadcast new alerts
         if new_alerts and not first_run:
             logging.info(f"Found {len(new_alerts)} new weather alerts")
             logging.info(f"{new_alerts}")
@@ -1705,12 +1698,12 @@ def check_for_weather_alerts(interface):
                 alert_message += f"Severity: {alert_data['severity']}\n"
                 alert_message += f"Urgency: {alert_data['urgency']}\n"
                 alert_message += f"{alert_data['headline']}"
-                
-                # Send only to admin channel
-                send_llm_message(interface, alert_message, admin_channel_number, "^all")
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
                 sitrep.log_message_sent("weather-alert-new")
         
-        # Broadcast updated alerts (admin channel only)
+        # Broadcast updated alerts
         if updated_alerts and not first_run:
             logging.info(f"Found {len(updated_alerts)} updated weather alerts")
             
@@ -1720,16 +1713,17 @@ def check_for_weather_alerts(interface):
                 alert_message += f"Severity: {alert_data['severity']}\n"
                 alert_message += f"Urgency: {alert_data['urgency']}\n"
                 alert_message += f"{alert_data['headline']}"
-                
-                # Send only to admin channel
-                send_llm_message(interface, alert_message, admin_channel_number, "^all")
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
                 sitrep.log_message_sent("weather-alert-updated")
         
         # Update previous_alerts with current_alerts for next comparison
         previous_alerts = current_alerts
-        
+    '''    
     except Exception as e:
         logging.error(f"Error checking for weather alerts: {e}")
+    
 
 # Main loop
 logging.info("Starting Main Loop")
@@ -1786,10 +1780,10 @@ while True:
             continue  # Skip the rest of the loop and try to reconnect
     
         # Check for weather alerts
-        check_for_weather_alerts(interface)
+        send_weather_alerts_if_needed(interface, public_channel_number)
 
         # Check if we need to send a weather forecast
-        send_weather_forecast_if_needed(interface, admin_channel_number)
+        send_weather_forecast_if_needed(interface, public_channel_number)
         
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
