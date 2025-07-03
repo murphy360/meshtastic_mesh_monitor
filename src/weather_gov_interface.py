@@ -93,11 +93,6 @@ class WeatherGovInterface:
             zone = metadata['properties']['forecastZone']
             cache_key = f"alerts_{zone.split('/')[-1]}"
             alerts_data = self._get_from_cache(cache_key, max_age_seconds=900)  # 15 minute cache for alerts
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching alerts metadata: {e}")
-            return {"error": str(e)}
-        
-        try:
             if not alerts_data:
                 logging.info(f"No cached alerts data for zone {zone}, fetching new data")
 
@@ -105,19 +100,24 @@ class WeatherGovInterface:
                 alerts_url = f"{self.base_url}/alerts/active?zone={zone.split('/')[-1]}"
                 response = requests.get(alerts_url, headers=self.headers)
                 response.raise_for_status()
-    
                 alerts_data = response.json()
                 self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
-                logging.info(f"Cached alerts data for zone {zone} - {alerts_data}")
-            
-            logging.info(f"Fetched alerts data for zone {zone}: {alerts_data}")
+            else:
+                # If we have cached data, log it
+                logging.info(f"Using cached alerts data for zone {zone} - {alerts_data}")
 
-            
-
-            # Create a dictionary to store current alerts to compare with previous run
-            # This will help us determine new, updated, and expired alerts
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error fetching alerts metadata: {e}")
+            return {"error": str(e)}
+        
+        # Now process the alerts data
+        try:
             current_alerts: Dict[str, Any] = {}
             features = alerts_data.get('features', [])
+            if features is None or len(features) == 0:
+                logging.info(f"No active alerts found for zone {zone}")
+                return
+
             for feature in features:
                 props = feature['properties']
                 alert_id = props.get('id', '')
