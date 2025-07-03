@@ -48,25 +48,38 @@ class WeatherGovInterface:
         response.raise_for_status()
         
         metadata = response.json()
-        county = metadata['properties']['county']
+
         zone = metadata['properties']['forecastZone']
         cache_key = f"forecast_{zone.split('/')[-1]}"
         logging.info(f"Metadata: {metadata}")
-        title = metadata['properties'].get('title', 'Weather Forecast')
+
+        if 'county' not in metadata['properties']:
+            logging.warning("County metadata not found, using default 'Unknown County'")
+            county = "Unknown County"
+        else:
+            county = metadata['properties']['county']
+            
+        if 'city' not in metadata['properties']:
+            logging.warning("City metadata not found, using default 'Unknown City'")
+            city = "Unknown City"
+        else:
+            city = metadata['properties']['city']
+        
+        if 'state' not in metadata['properties']:
+            logging.warning("State metadata not found, using default 'Unknown State'")
+            state = "Unknown State"
+        else:
+            state = metadata['properties']['state']
 
         cached_result = self._get_from_cache(cache_key)
         
         if cached_result:
-            logging.info(f"Using cached forecast data for {latitude}, {longitude}")
+            logging.info(f"Using cached forecast data for {city}, {state} ({latitude}, {longitude})")
             return cached_result
             
         try:
-            # First get the forecast office and grid coordinates
-            points_url = f"{self.base_url}/points/{latitude},{longitude}"
-            response = requests.get(points_url, headers=self.headers)
-            response.raise_for_status()
-            
-            metadata = response.json()
+            # If detailed forecast is requested, use the hourly endpoint
+            # Otherwise, use the daily forecast endpoint
             if detailed:
                 forecast_url = metadata['properties']['forecastHourly']
             else:
@@ -78,7 +91,7 @@ class WeatherGovInterface:
             
             forecast_data = response.json()
             self._add_to_cache(cache_key, forecast_data)
-            logging.info(f"Cached forecast data for {latitude}, {longitude} - {forecast_data}")
+            logging.info(f"Cached forecast data for {city}, {state} ({latitude}, {longitude})")
             return forecast_data
             
         except requests.exceptions.RequestException as e:
@@ -275,6 +288,13 @@ class WeatherGovInterface:
             return f"Weather forecast unavailable: {forecast_data['error']}"
             
         try:
+            logging.info(f"Formatting forecast data: {forecast_data}")
+            if 'city' in forecast_data['properties']:
+                city = forecast_data['properties']['city']
+            if 'state' in forecast_data['properties']:
+                state = forecast_data['properties']['state']
+            if 'county' in forecast_data['properties']:
+                county = forecast_data['properties']['county']
             periods = forecast_data['properties']['periods']
             logging.info(f"Periods: {periods}")
             if not periods:
