@@ -1153,13 +1153,11 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 logging.info(f"Getting forecast for {wx_lat}, {wx_lon} from {location_source}")
 
                 # Get a simple forecast first (shorter message)
-                forecast_data = weather_interface.get_forecast(wx_lat, wx_lon)
-                forecast_text = weather_interface.format_simple_forecast(forecast_data)
+                forecast_text = weather_interface.get_forecast_string(wx_lat, wx_lon)
                 
-                # Check if there are any weather alerts
-                weather_interface.update_alerts(wx_lat, wx_lon)
-                alerts_text = weather_interface.format_alerts()
-                
+                # Get the location name from the coordinates
+                alerts_text = weather_interface.get_alerts_string()
+
                 # Only include alerts in the message if there are actual alerts
                 if "No active weather alerts" not in alerts_text:
                     weather_message = f"Weather forecast for {location_source} as of {time_string}:\n\n{alerts_text}\n\n{forecast_text}"
