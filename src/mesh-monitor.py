@@ -1157,8 +1157,8 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 forecast_text = weather_interface.format_simple_forecast(forecast_data)
                 
                 # Check if there are any weather alerts
-                alerts_data = weather_interface.get_alerts(wx_lat, wx_lon)
-                alerts_text = weather_interface.format_alerts(alerts_data)
+                weather_interface.update_alerts(wx_lat, wx_lon)
+                alerts_text = weather_interface.format_alerts()
                 
                 # Only include alerts in the message if there are actual alerts
                 if "No active weather alerts" not in alerts_text:

@@ -24,6 +24,7 @@ class WeatherGovInterface:
         self.cache_expiry = {}
         self.default_cache_seconds = 3600  # 1 hour default cache
         self.previous_alerts: Dict[str, Any] = {}  # Store previous alerts to detect changes
+        self.current_alerts: Dict[str, Any] = {}
         self.new_alerts: Dict[str, Any] = {}
         self.updated_alerts: Dict[str, Any] = {}    
         self.expired_alerts: Dict[str, Any] = {}  # Store expired alerts from previous run
@@ -112,7 +113,7 @@ class WeatherGovInterface:
         
         # Now process the alerts data
         try:
-            current_alerts: Dict[str, Any] = {}
+            self.current_alerts: Dict[str, Any] = {}
             features = alerts_data.get('features', [])
             title = alerts_data.get('title', 'Active Weather Alerts')
             updated_date = alerts_data.get('updated', datetime.now().isoformat())
@@ -128,7 +129,7 @@ class WeatherGovInterface:
                     continue
                 
                 # Store relevant alert properties
-                current_alerts[alert_id] = {
+                self.current_alerts[alert_id] = {
                     'event': props.get('event', 'Unknown'),
                     'headline': props.get('headline', ''),
                     'description': props.get('description', ''),
@@ -137,19 +138,29 @@ class WeatherGovInterface:
                     'onset': props.get('onset', ''),
                     'expires': props.get('expires', '')
                 }
-                logging.info(f"Processed alert ID {alert_id}: {current_alerts[alert_id]}")
 
-            self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in current_alerts}
+                logging.info(f"Processed alert ID {alert_id}: {self.current_alerts[alert_id]}")
+
+            self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in self.current_alerts}
 
             # Update new alerts
-            self.new_alerts = {k: v for k, v in current_alerts.items() if k not in self.previous_alerts}
+            self.new_alerts = {k: v for k, v in self.current_alerts.items() if k not in self.previous_alerts}
 
             # Update updated alerts
-            self.updated_alerts = {k: v for k, v in current_alerts.items() if k in self.previous_alerts and v != self.previous_alerts[k]}
+            self.updated_alerts = {k: v for k, v in self.current_alerts.items() if k in self.previous_alerts and v != self.previous_alerts[k]}
 
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts: {e}")
             return {"error": str(e)}
+        
+    def get_current_alerts(self) -> Dict[str, Any]:
+        """
+        Get currently active weather alerts.
+        
+        Returns:
+            Dictionary containing current alerts data
+        """
+        return self.current_alerts
 
     def get_new_alerts(self) -> Dict[str, Any]:
         """
@@ -246,6 +257,7 @@ class WeatherGovInterface:
         Returns:
             A formatted string with the forecast
         """
+
         if "error" in forecast_data:
             return f"Weather forecast unavailable: {forecast_data['error']}"
             
@@ -273,8 +285,8 @@ class WeatherGovInterface:
         except (KeyError, IndexError) as e:
             logging.error(f"Error formatting forecast: {e}")
             return "Error formatting weather forecast"
-    
-    def format_alerts(self, alerts_data: Dict[str, Any]) -> str:
+
+    def format_alerts(self) -> str:
         """
         Format alerts data into a human-readable string.
         
@@ -284,28 +296,31 @@ class WeatherGovInterface:
         Returns:
             A formatted string with the active alerts
         """
-        if "error" in alerts_data:
-            return f"Weather alerts unavailable: {alerts_data['error']}"
-            
+        result = "No active weather alerts"
+        
         try:
-            features = alerts_data.get('features', [])
-            if not features:
-                return "No active weather alerts"
+            # If current alerts is empty, return default message
+            if not self.current_alerts or len(self.current_alerts) == 0:
+                return result
                 
             result = "ACTIVE WEATHER ALERTS:\n"
-            for i, feature in enumerate(features, 1):
-                props = feature['properties']
-                result += f"{i}. {props['event']} - {props['headline']}\n"
-                if i == 3:  # Limit to 3 alerts to keep message size reasonable
-                    if len(features) > 3:
-                        result += f"...and {len(features) - 3} more alerts."
-                    break
-                    
+            for alert_id in self.current_alerts:
+                event = self.current_alerts[alert_id]['event']
+                headline = self.current_alerts[alert_id]['headline']
+                description = self.current_alerts[alert_id]['description']
+                severity = self.current_alerts[alert_id]['severity']
+                urgency = self.current_alerts[alert_id]['urgency']
+                onset = self.current_alerts[alert_id]['onset']
+                expires = self.current_alerts[alert_id]['expires']
+                result += f"{alert_id}: {event} - {headline} - {description} - {severity} - {urgency} - {onset} - Expires: {expires}\n"
+
             return result
             
         except (KeyError, IndexError) as e:
             logging.error(f"Error formatting alerts: {e}")
             return "Error formatting weather alerts"
+            
+        
     
     def format_current_conditions(self, conditions_data: Dict[str, Any]) -> str:
         """
@@ -367,8 +382,7 @@ class WeatherGovInterface:
         conditions_str = self.format_current_conditions(conditions)
         
         # Get alerts
-        alerts = self.get_alerts(latitude, longitude)
-        alerts_str = self.format_alerts(alerts)
+        alerts_str = self.format_alerts(self.current_alerts)
         
         # Get forecast
         forecast = self.get_forecast(latitude, longitude)
