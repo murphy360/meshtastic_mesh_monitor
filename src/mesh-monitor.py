@@ -1147,29 +1147,14 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 send_llm_message(interface, admin_message, admin_channel_number, "^all")
                 return
             
-            
             # If we have coordinates, get and send the forecast
             if wx_lat is not None and wx_lon is not None:
-                logging.info(f"Getting forecast for {wx_lat}, {wx_lon} from {location_source}")
-
-                # Get a simple forecast first (shorter message)
-                forecast_text = weather_interface.get_forecast_string(wx_lat, wx_lon)
-                
-                # Get the location name from the coordinates
-                alerts_text = weather_interface.get_alerts_string()
-
-                # Only include alerts in the message if there are actual alerts
-                if "No active weather alerts" not in alerts_text:
-                    weather_message = f"Weather forecast for {location_source} as of {time_string}:\n\n{alerts_text}\n\n{forecast_text}"
-                else:
-                    weather_message = f"Weather forecast for {location_source} as of {time_string}:\n\n{forecast_text}"
-                
-                # Send the forecast through the LLM to make it sound more natural
-                send_llm_message(interface, weather_message, channel, to_id)
-                sitrep.log_message_sent("weather-forecast")
+                send_weather_forecast(interface, wx_lat, wx_lon, channel, to_id)
+                sitrep.log_message_sent("weather-forecast-requested")
             else:
                 logging.error("No valid coordinates found for weather forecast")
                 send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+        
         except Exception as e:
             logging.error(f"Error getting weather forecast: {e}")
             send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
