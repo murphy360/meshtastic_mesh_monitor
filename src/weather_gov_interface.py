@@ -101,10 +101,12 @@ class WeatherGovInterface:
                 self.state = metadata['properties']['relativeLocation']['properties']['state']
             if 'radarStation' in metadata['properties']:
                 self.radar_station = metadata['properties']['radarStation']
+            if 'forecast' in metadata['properties']:
+                self.forecast_url = metadata['properties']['forecast']
             if 'forecastHourly' in metadata['properties']:
-                self.forecast_url = self.base_url + metadata['properties']['forecast']
+                self.forecast_hourly_url = metadata['properties']['forecastHourly']
             if 'observationStations' in metadata['properties']:
-                self.stations_url = self.base_url + metadata['properties']['observationStations']
+                self.stations_url = metadata['properties']['observationStations']
 
             logging.info(f"Updated location details: {self.city}, {self.state}")
             
