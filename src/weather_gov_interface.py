@@ -41,8 +41,21 @@ class WeatherGovInterface:
         Returns:
             Dictionary containing forecast data
         """
-        cache_key = f"forecast_{latitude}_{longitude}_{detailed}"
+
+        # First get the county/zone for the location
+        points_url = f"{self.base_url}/points/{latitude},{longitude}"
+        response = requests.get(points_url, headers=self.headers)
+        response.raise_for_status()
+        
+        metadata = response.json()
+        county = metadata['properties']['county']
+        zone = metadata['properties']['forecastZone']
+        cache_key = f"forecast_{zone.split('/')[-1]}"
+        logging.info(f"Metadata: {metadata}")
+        title = metadata['properties'].get('title', 'Weather Forecast')
+
         cached_result = self._get_from_cache(cache_key)
+        
         if cached_result:
             logging.info(f"Using cached forecast data for {latitude}, {longitude}")
             return cached_result
