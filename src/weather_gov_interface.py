@@ -114,9 +114,10 @@ class WeatherGovInterface:
         try:
             current_alerts: Dict[str, Any] = {}
             features = alerts_data.get('features', [])
-            if features is None or len(features) == 0:
-                logging.info(f"No active alerts found for zone {zone}")
-                return
+            title = alerts_data.get('title', 'Active Weather Alerts')
+            updated_date = alerts_data.get('updated', datetime.now().isoformat())
+
+            logging.info(f"Processing alerts for zone {zone} - {title} (Updated: {updated_date})")
 
             for feature in features:
                 props = feature['properties']
