@@ -1562,8 +1562,8 @@ def send_weather_forecast_if_needed(interface, channel):
     if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
         logging.debug("Can't send forecast: Local node has no position information")
         return
-    latitude = local_node_info['position']['latitude']
-    longitude = local_node_info['position']['longitude']
+    wx_lat = local_node_info['position']['latitude']
+    wx_lon = local_node_info['position']['longitude']
     node_short_name = local_node_info['user']['shortName']
     node_long_name = local_node_info['user']['longName']
     # Check if we have already sent a forecast recently
@@ -1576,9 +1576,9 @@ def send_weather_forecast_if_needed(interface, channel):
     last_forecast_sent_time = now
     
     # Send the weather forecast
-    logging.info(f"Sending weather forecast for {node_short_name} ({node_long_name}) at {latitude}, {longitude}")
+    logging.info(f"Sending weather forecast for {node_short_name} ({node_long_name}) at {wx_lat}, {wx_lon}")
     try:
-        send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, channel)
+        send_weather_forecast(interface, wx_lat, wx_lon, node_short_name, node_long_name, channel)
         logging.info("Weather forecast sent successfully.")
     except Exception as e:
         logging.error(f"Error sending weather forecast: {e}")
