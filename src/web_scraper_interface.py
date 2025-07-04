@@ -143,11 +143,11 @@ class WebScraperInterface:
             
             if not agenda_container:
                 # If the container is not found, iterate through available elements
-                for element in soup.find_all():
-                    logging.info(f"Checking element: {element.name} with classes {element.get('class', [])}")
-                    if 'agenda' in element.get('class', []):
-                        agenda_container = element
-                        break
+
+                for link in soup.find_all('a'):
+                    logging.info(f"Checking link: {link}")
+                    logging.info(f"Link found: {link.get('href')}")
+                    
                 logging.warning("Could not find agenda container")
                 return items
             
