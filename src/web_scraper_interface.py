@@ -138,22 +138,16 @@ class WebScraperInterface:
         items = []
         
         try:
-            # Log all container elements for debugging
-            logging.info("Checking for container elements in Twinsburg agendas")
-            for element in soup.find_all():
-                logging.info(f"Checking element: {element.name} with classes {element.get('class', [])}")
-                if 'downloadcomponent_linktext' in element.get('class', []):
-                    logging.info(f"Found agenda container: {element.name} with classes {element.get('class', [])}")
-                    break
-            # Find all links in the container
-            links = soup.find_all('a', class_='downloadcomponent_linktext')
+            
+            links = soup.find_all('a')
             
             for link in links:
                 href = link.get('href')
                 if href:
                     title = link.get_text(strip=True)
-                    logging.info(f"Found agenda link: {title} ({href})")
-                    
+                    if "agenda" in title.lower() or "agenda" in href.lower():
+                        logging.info(f"Found agenda link: {title} ({href})")
+
                     # Create a unique ID for this item
                     item_id = f"{href}|{title}"
                     
