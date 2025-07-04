@@ -144,6 +144,8 @@ class WebScraperInterface:
             for link in links:
                 href = link.get('href')
                 title = link.get_text(strip=True)
+                if not href or not title:
+                    continue
                 link_type = "unknown"
                 
                 if "agenda" in title.lower() or "agenda" in href.lower():
@@ -242,7 +244,10 @@ class WebScraperInterface:
             if is_initial_check:
                 self.initial_check_complete[website_id] = True
                 if self.discard_initial_items:
-                    logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items)} initial items")
+                    # Discard all but one item if discard_initial_items is True
+                    if new_items:
+                        new_items = [new_items[0]]
+                    logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 1} initial items")
                 else:
                     logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
             else:
