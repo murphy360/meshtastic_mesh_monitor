@@ -155,7 +155,7 @@ class WebScraperInterface:
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
-                logging.info(f"Found {link_type} link: {title} ({href})")
+                #logging.info(f"Found {link_type} link: {title} ({href})")
                 items.append({
                     'url': href,
                     'title': title,
@@ -284,10 +284,10 @@ class WebScraperInterface:
             # Only check if interval has elapsed
             if now - self.last_check_time[website_id] >= self.check_interval:
                 new_items = self.check_website(website_id)
-                
+                logging.info(f"Checked website '{website_id}' at {now.isoformat()}, found {len(new_items)} new items")
                 if new_items:
                     result[website_id] = new_items
-                    
+                    logging.info(f"New items found for website '{website_id}': {len(new_items)}")
                     # Send notification for each new item
                     for item in new_items:
                         # Format message based on item type
@@ -307,7 +307,7 @@ class WebScraperInterface:
                             # Generic format for other items
                             message = f"🌐 Update Detected: {website_id.replace('_', ' ').title()} 🌐\n\n"
                             message += f"New content has been detected on this website."
-                        
+                        logging.info(f"Sending message for {website_id}: {message}")
                         # Send message
                         message_callback(message, channel, destination)
                         
