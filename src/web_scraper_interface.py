@@ -289,16 +289,14 @@ class WebScraperInterface:
             # Only check if interval has elapsed
             if now - self.last_check_time[website_id] >= self.check_interval:
                 new_items = self.check_website(website_id)
-                logging.info(f"Checked website '{website_id}' at {now.isoformat()}, found {len(new_items)} new items")
                 if new_items:
                     result[website_id] = new_items
-                    logging.info(f"New items found for website '{website_id}': {len(new_items)}")
                     # Send notification for each new item
                     for item in new_items:
                         # Format message based on item type
-                        if 'title' in item and 'url' in item:
+                        if 'title' in item and 'url' in item and 'type' in item:
                             # Format link items
-                            message = f"🔗 New Content: {website_id.replace('_', ' ').title()} 🔗\n\n"
+                            message = f"I found new {item['type']} Found on Site: {website_id.replace('_', ' ').title()} 🔗\n\n"
                             message += f"{item['title']}\n\n"
                             message += f"URL: {item['url']}"
                         elif 'content' in item:
