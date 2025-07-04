@@ -1662,9 +1662,9 @@ while True:
     try:
         
         node_info = interface.getMyNodeInfo()
-        interface.sendHeartbeat()
-        
+
         # Increment heartbeat counter
+        interface.sendHeartbeat()
         heartbeat_counter += 1
         
         # Check if heartbeat counter has reached the threshold
