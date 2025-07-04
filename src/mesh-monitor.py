@@ -61,11 +61,15 @@ previous_alerts = None  # Store previous alerts to detect changes
 # Initialize RSS interface
 rss_interface = RSSInterface()
 
-# Initialize Web Scraper
-web_scraper = WebScraperInterface()
+# Initialize web scraper interface
+from web_scraper_interface import WebScraperInterface
+web_scraper = WebScraperInterface(discard_initial_items=True)
+
+# Add Twinsburg school agendas to monitor
 web_scraper.add_website(
-    website_id="twinsburg_boe_agendas_minutes",
-    url="https://www.twinsburg.k12.oh.us/agendasandminutes.aspx"
+    "twinsburg_school_agendas",
+    "https://www.twinsburg.k12.oh.us/BoardofEducationAgendas.aspx",
+    extractor_type="twinsburg_agendas"
 )
 
 logging.info("Starting Mesh Monitor")
@@ -1725,11 +1729,12 @@ while True:
             destination="^all"
         )
 
-        # Scrape Web Pages
+        # Check for website updates
         web_scraper.scrape_websites_if_needed(
-            message_callback=send_llm_callback,
-            channel=admin_channel_number,
-            destination="^all"
+            send_llm_message,
+            admin_channel_number,  # or public_channel_number if you prefer
+            "^all",
+            sitrep.log_message_sent
         )
 
         logging.info(f"\n\n \
