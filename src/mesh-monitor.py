@@ -15,6 +15,7 @@ from collections import defaultdict
 from gemini_interface import GeminiInterface
 from weather_gov_interface import WeatherGovInterface
 from rss_interface_twinsburg import RSSInterfaceTwinsburg
+from scrape_twinsburg_boe import TwinsburgBOEScraper
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -59,6 +60,9 @@ previous_alerts = None  # Store previous alerts to detect changes
 
 # Initialize RSS interface for Twinsburg
 rss_interface_twinsburg = RSSInterfaceTwinsburg()
+
+# Initialize Web Scraper
+twinsburg_boe_scraper = TwinsburgBOEScraper()
 
 logging.info("Starting Mesh Monitor")
 
@@ -1712,6 +1716,13 @@ while True:
 
         # Check rss feed
         rss_interface_twinsburg.check_feeds_if_needed(
+            message_callback=send_llm_callback,
+            channel=admin_channel_number,
+            destination="^all"
+        )
+
+        # Scrape Twinsburg BOE
+        twinsburg_boe_scraper.scrape_if_needed(
             message_callback=send_llm_callback,
             channel=admin_channel_number,
             destination="^all"
