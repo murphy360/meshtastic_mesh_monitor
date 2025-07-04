@@ -138,30 +138,21 @@ class WebScraperInterface:
         items = []
         
         try:
-            # Find the agenda container
-            agenda_container = soup.select_one('.component_container_downloads')
-            
-            if not agenda_container:
-                # If the container is not found, iterate through available elements
-
-                for link in soup.find_all('a'):
-                    href = link.get('href')
-                    title = link.get_text(strip=True) if link else ''
-                    if href and 'agendas' in title.lower():
-                        logging.info(f"Found agenda link: {title} ({href})")
-                    else:
-                        logging.info(f"Link found: {title} ({href})")
-                    
-                logging.warning("Could not find agenda container")
-                return items
-            
+            # Log all container elements for debugging
+            logging.info("Checking for container elements in Twinsburg agendas")
+            for element in soup.find_all():
+                logging.info(f"Checking element: {element.name} with classes {element.get('class', [])}")
+                if 'downloadcomponent_linktext' in element.get('class', []):
+                    logging.info(f"Found agenda container: {element.name} with classes {element.get('class', [])}")
+                    break
             # Find all links in the container
-            links = agenda_container.find_all('a', class_='downloadcomponent_linktext')
+            links = soup.find_all('a', class_='downloadcomponent_linktext')
             
             for link in links:
                 href = link.get('href')
                 if href:
                     title = link.get_text(strip=True)
+                    logging.info(f"Found agenda link: {title} ({href})")
                     
                     # Create a unique ID for this item
                     item_id = f"{href}|{title}"
