@@ -151,13 +151,17 @@ class WebScraperInterface:
                     continue
 
                 link_type = "unknown"
+
+                logging.info(f"Processing link: {title} ({href})")
                 
                 if "agenda" in title.lower() or "agenda" in href.lower():
                     link_type = "agenda"
                 elif "minutes" in title.lower() or "minutes" in href.lower():
                     link_type = "minutes"
-                elif link.get('class') and 'linkcomponent_linktext' in link.get('class'): #
+                elif "youtube.com" in href:
                     link_type = "broadcast"
+                else:
+                    continue
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
