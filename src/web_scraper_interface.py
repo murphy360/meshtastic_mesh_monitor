@@ -296,7 +296,7 @@ class WebScraperInterface:
                         # Format message based on item type
                         if 'title' in item and 'url' in item and 'type' in item:
                             # Format link items
-                            message = f"I found new {item['type']} Found on Site: {website_id.replace('_', ' ').title()} 🔗\n\n"
+                            message = f"I found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗\n\n"
                             message += f"{item['title']}\n\n"
                             message += f"URL: {item['url']}"
                         elif 'content' in item:
