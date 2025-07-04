@@ -142,6 +142,12 @@ class WebScraperInterface:
             agenda_container = soup.select_one('.component_container_downloads')
             
             if not agenda_container:
+                # If the container is not found, iterate through available elements
+                for element in soup.find_all():
+                    logging.info(f"Checking element: {element.name} with classes {element.get('class', [])}")
+                    if 'agenda' in element.get('class', []):
+                        agenda_container = element
+                        break
                 logging.warning("Could not find agenda container")
                 return items
             
