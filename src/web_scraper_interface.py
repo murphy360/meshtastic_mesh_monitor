@@ -131,6 +131,24 @@ class WebScraperInterface:
                         
                         if log_callback:
                             log_callback(f"website-change-{website_id}")
+                    elif self.previous_content[website_id] is None:
+                        logging.info(f"Initial content check for website: {website_id}")
+                        logging.info(content_text)
+                        result[website_id] = {
+                            'url': url,
+                            'changed': False
+                        }
+                        
+                        # Send initial notification
+                        message = f"🌐 Initial Content Check 🌐\n\n"
+                        message += f"Website: {website_id.replace('_', ' ').title()}\n"
+                        message += f"URL: {url}\n\n"
+                        message += "This is the first content check for this website."
+                        
+                        message_callback(message, channel, destination)
+                        
+                        if log_callback:
+                            log_callback(f"website-initial-check-{website_id}")
                     
                     # Update the stored content
                     self.previous_content[website_id] = content_text
