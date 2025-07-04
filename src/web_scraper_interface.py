@@ -158,7 +158,7 @@ class WebScraperInterface:
                     link_type = "agenda"
                 elif "minutes" in title.lower() or "minutes" in href.lower():
                     link_type = "minutes"
-                elif "youtube.com" in href:
+                elif "youtube.com" in href.lower():
                     link_type = "broadcast"
                 else:
                     continue
@@ -174,7 +174,7 @@ class WebScraperInterface:
                 })
         
         except Exception as e:
-            logging.error(f"Error extracting Twinsburg agendas: {e}")
+            logging.error(f"Error extracting Twinsburg links: {e}")
         
         return items
     
