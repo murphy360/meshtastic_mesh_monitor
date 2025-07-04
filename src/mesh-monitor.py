@@ -1330,6 +1330,24 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
         
     logging.info(f"leaving send_trace_route")
 
+def send_llm_callback(message, channel, to_id):
+    """
+    Callback function to send a message to the LLM and receive a response.
+    Args:
+        message (str): The message to send.
+        channel (int): The channel to send the message to.
+        to_id (str): The ID of the recipient.
+    """
+    logging.info(f"send_llm_callback called with message: {message}, channel: {channel}, to_id: {to_id}")
+    
+    # Get the interface from the global variable
+    global interface
+    if interface is None:
+        logging.error("Interface is not initialized. Cannot send LLM callback.")
+        return
+    
+    send_llm_message(interface, message, channel, to_id)
+
 def send_llm_message(interface, message, channel, to_id):
     """
     Send a message to the LLM and receive a response.
@@ -1694,7 +1712,7 @@ while True:
 
         # Check rss feed
         rss_interface_twinsburg.check_feeds_if_needed(
-            message_callback=send_llm_message,
+            message_callback=send_llm_callback,
             channel=admin_channel_number,
             destination="^all"
         )
