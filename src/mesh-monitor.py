@@ -1731,7 +1731,7 @@ while True:
 
         # Check for website updates
         web_scraper.scrape_websites_if_needed(
-            send_llm_message,
+            send_llm_callback,
             admin_channel_number,  # or public_channel_number if you prefer
             "^all",
             sitrep.log_message_sent
