@@ -110,6 +110,9 @@ class WebScraperInterface:
                         content = soup.select(css_selector)
                         content_text = '\n'.join([element.get_text(strip=True) for element in content])
                     else:
+                        # iterate through all elements and log them so i can see what is available
+                        for element in soup.find_all(True):
+                            logging.debug(f"Element: {element.name}, Text: {element.get_text(strip=True)}")
                         # Use the whole body if no selector
                         content_text = soup.body.get_text(strip=True)
                     
