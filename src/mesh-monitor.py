@@ -14,8 +14,8 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from gemini_interface import GeminiInterface
 from weather_gov_interface import WeatherGovInterface
-from rss_interface_twinsburg import RSSInterfaceTwinsburg
-from scrape_twinsburg_boe import WebScraperInterface
+from rss_interface import RSSInterface
+from web_scraper_interface import WebScraperInterface
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -58,11 +58,11 @@ last_alert_check_time = datetime.now(timezone.utc)
 alert_check_interval = timedelta(minutes=1)  # Check for alerts every minute
 previous_alerts = None  # Store previous alerts to detect changes
 
-# Initialize RSS interface for Twinsburg
-rss_interface_twinsburg = RSSInterfaceTwinsburg()
+# Initialize RSS interface
+rss_interface = RSSInterface()
 
 # Initialize Web Scraper
-twinsburg_boe_scraper = WebScraperInterface()
+web_scraper = WebScraperInterface()
 
 logging.info("Starting Mesh Monitor")
 
@@ -1715,14 +1715,14 @@ while True:
         sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
 
         # Check rss feed
-        rss_interface_twinsburg.check_feeds_if_needed(
+        rss_interface.check_feeds_if_needed(
             message_callback=send_llm_callback,
             channel=admin_channel_number,
             destination="^all"
         )
 
-        # Scrape Twinsburg BOE
-        twinsburg_boe_scraper.check_scrapers_if_needed(
+        # Scrape Web Pages
+        web_scraper.check_scrapers_if_needed(
             message_callback=send_llm_callback,
             channel=admin_channel_number,
             destination="^all"
