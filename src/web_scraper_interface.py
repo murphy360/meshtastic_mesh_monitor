@@ -158,14 +158,15 @@ class WebScraperInterface:
                     link_type = "agenda"
                 elif "minutes" in title.lower() or "minutes" in href.lower():
                     link_type = "minutes"
-                elif "youtube.com" in href.lower():
+                # youtube, mediacast youtu.be
+                elif "youtube.com" in href.lower() or "youtu.be" in href.lower() or "mediacast" in href.lower():
                     link_type = "broadcast"
                 else:
                     continue
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
-                #logging.info(f"Found {link_type} link: {title} ({href})")
+                logging.info(f"Found {link_type} link: {title} ({href})")
                 items.append({
                     'url': href,
                     'title': title,
