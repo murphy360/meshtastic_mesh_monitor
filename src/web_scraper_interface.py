@@ -111,8 +111,8 @@ class WebScraperInterface:
                         content_text = '\n'.join([element.get_text(strip=True) for element in content])
                     else:
                         # iterate through all elements and log them so i can see what is available
-                        for element in soup.find_all(True):
-                            logging.info(f"Element: {element.name}, Text: {element.get_text(strip=True)}")
+                        for link in soup.find_all('a'):
+                            logging.info(f"Link found: {link.get('href')}")
                         # Use the whole body if no selector
                         content_text = soup.body.get_text(strip=True)
                     
@@ -136,7 +136,7 @@ class WebScraperInterface:
                             log_callback(f"website-change-{website_id}")
                     elif self.previous_content[website_id] is None:
                         logging.info(f"Initial content check for website: {website_id}")
-                        logging.info(content_text)
+                        #logging.info(content_text)
                         result[website_id] = {
                             'url': url,
                             'changed': False
