@@ -34,7 +34,10 @@ last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 # Take the modulo 6 of the current hour to find how many hours back to set initial time
 last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(
-    hours=datetime.now(timezone.utc).hour % 6, minutes=datetime.now(timezone.utc).minute, seconds=datetime.now(timezone.utc).second
+    hours=datetime.now(timezone.utc).hour % 6, 
+    minutes=datetime.now(timezone.utc).minute, 
+    seconds=datetime.now(timezone.utc).second, 
+    microseconds=datetime.now(timezone.utc).microsecond
 )  # Initialize last forecast sent time to delay the first forecast
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
@@ -62,37 +65,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     Args:
         interface: The interface object representing the connection.
         topic: The topic of the connection (default: pub.AUTO_TOPIC).
-
- {
- 'num': 667704512, 
- 'user': {
- 'id': '!27cc5cc0', 
- 'longName': "Don't Panic Mesh Monitor", 
- 'shortName': 'DPMM', 
- 'macaddr': 'PIQnzFzA', 
- 'hwModel': 'T_DECK', 
- 'publicKey': 'QIx3ZIxRAdAt1Z0zWiP+89X4rlXtR9tvLrH2ZAMcehI='
- }, 
- 'position': {
- 'latitudeI': 413318362, 'longitudeI': -814774529, 'altitude': 340, 
- 'locationSource': 'LOC_MANUAL', 'groundSpeed': 0, 'groundTrack': 0, 'precisionBits': 32, 
- 'raw': 
-latitude_i: 413318362
-longitude_i: -814774529
-altitude: 340
-location_source: LOC_MANUAL
-ground_speed: 0
-ground_track: 0
-precision_bits: 32
-, 'latitude': 41.3318362, 'longitude': -81.4774529}, 
-'snr': 5.75, 
-'deviceMetrics': {
-'batteryLevel': 101, 
-'voltage': 5.102, 
-'channelUtilization': 3.9433334, 
-'airUtilTx': 0.09419444, 
-'uptimeSeconds': 186}, 
-'isFavorite': True}
 
     """
     logging.info("Connection established")
@@ -1392,23 +1364,6 @@ def send_llm_message(interface, message, channel, to_id):
             
     except Exception as e:
         logging.error(f"Error in send_llm_message: {e}")
-
-def find_nearest_three_hour_time_in_past():
-    """
-    Find the nearest time in the past that is a multiple of 3 hours.
-    
-    Returns:
-        datetime: The nearest time in the past that is a multiple of 3 hours (0000, 0300, 0600, 0900 etc.).
-    """
-    now = datetime.now(timezone.utc)
-    # Calculate the number of hours since midnight
-    hours_since_midnight = now.hour + now.minute / 60 + now.second / 3600
-    # Find the nearest multiple of 3 hours  
-    nearest_three_hour_time = now - timedelta(hours=hours_since_midnight % 3)
-    # Set minutes and seconds to zero
-    nearest_three_hour_time = nearest_three_hour_time.replace(minute=0, second=0, microsecond=0)
-    logging.info(f"Nearest three hour time in past: {nearest_three_hour_time}")
-    return nearest_three_hour_time
 
 def send_message(interface, message, channel, to_id):
     """
