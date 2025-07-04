@@ -1722,7 +1722,7 @@ while True:
         )
 
         # Scrape Twinsburg BOE
-        twinsburg_boe_scraper.scrape_if_needed(
+        twinsburg_boe_scraper.check_scrapers_if_needed(
             message_callback=send_llm_callback,
             channel=admin_channel_number,
             destination="^all"
