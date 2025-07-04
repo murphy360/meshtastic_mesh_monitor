@@ -145,8 +145,12 @@ class WebScraperInterface:
                 # If the container is not found, iterate through available elements
 
                 for link in soup.find_all('a'):
-                    logging.info(f"Checking link: {link}")
-                    logging.info(f"Link found: {link.get('href')}")
+                    href = link.get('href')
+                    title = link.get_text(strip=True) if link else ''
+                    if href and 'agendas' in title.lower():
+                        logging.info(f"Found agenda link: {title} ({href})")
+                    else:
+                        logging.info(f"Link found: {title} ({href})")
                     
                 logging.warning("Could not find agenda container")
                 return items
