@@ -143,22 +143,23 @@ class WebScraperInterface:
             
             for link in links:
                 href = link.get('href')
-                if href:
-                    logging.info(f"Checking link: {href}")
-                    title = link.get_text(strip=True)
-                    if "agenda" in title.lower() or "agenda" in href.lower():
-                        logging.info(f"Found agenda link: {title} ({href})")
-
-                    # Create a unique ID for this item
-                    item_id = f"{href}|{title}"
-                    
-                    
-                    items.append({
-                        'url': href,
-                        'title': title,
-                        'id': item_id,
-                        'type': 'agenda'
-                    })
+                title = link.get_text(strip=True)
+                link_type = "unknown"
+                
+                if "agenda" in title.lower() or "agenda" in href.lower():
+                    link_type = "agenda"
+                elif "minutes" in title.lower() or "minutes" in href.lower():
+                    link_type = "minutes"
+                
+                # Create a unique ID for this item
+                item_id = f"{href}|{title}"
+                logging.info(f"Found {link_type} link: {title} ({href})")
+                items.append({
+                    'url': href,
+                    'title': title,
+                    'id': item_id,
+                    'type': link_type
+                })
         
         except Exception as e:
             logging.error(f"Error extracting Twinsburg agendas: {e}")
