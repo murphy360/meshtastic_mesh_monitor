@@ -246,8 +246,10 @@ class WebScraperInterface:
                 if self.discard_initial_items:
                     # Discard all but one two items if discard_initial_items is True
                     if new_items:
-                        new_items = new_items[:2] # Keep only the first two items
-                    logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 1} initial items returning {len(new_items)} new items")
+                        # randomply keep two items
+                        for i in range(len(new_items) - 2):
+                            new_items.pop()
+                    logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 2} initial items returning {len(new_items)} new items")
                 else:
                     logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
             else:
