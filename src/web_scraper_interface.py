@@ -110,9 +110,8 @@ class WebScraperInterface:
                         content = soup.select(css_selector)
                         content_text = '\n'.join([element.get_text(strip=True) for element in content])
                     else:
-                        # iterate through all elements and log them so i can see what is available
-                        for link in soup.find_all('a'):
-                            logging.info(f"Link found: {link.get('href')}")
+                        # Log beautiful soup object
+                        logging.info(f"BeautifulSoup object for {website_id}: {soup.prettify()}")
                         # Use the whole body if no selector
                         content_text = soup.body.get_text(strip=True)
                     
