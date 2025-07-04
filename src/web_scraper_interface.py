@@ -85,10 +85,12 @@ class WebScraperInterface:
         Returns:
             Dict mapping website IDs to any detected changes
         """
+        
         now = datetime.now(timezone.utc)
         result = {}
         
         for website_id, config in self.websites.items():
+            logging.info(f"Checking website: {website_id} - {config['url']}")
             # Only check if interval has elapsed
             if now - self.last_check_time[website_id] >= self.check_interval:
                 try:
