@@ -218,8 +218,8 @@ class WebScraperInterface:
             
             if extractor_type == "links":
                 items = self._extract_links_and_titles(soup, css_selector)
-            elif extractor_type == "twinsburg_agendas":
-                items = self._extract_twinsburg_agendas(soup)
+            elif extractor_type == "twinsburg_links":
+                items = self._extract_twinsburg_links(soup)
             elif custom_parser:
                 items = custom_parser(soup, css_selector)
             else:
