@@ -144,6 +144,7 @@ class WebScraperInterface:
             for link in links:
                 href = link.get('href')
                 if href:
+                    logging.info(f"Checking link: {href}")
                     title = link.get_text(strip=True)
                     if "agenda" in title.lower() or "agenda" in href.lower():
                         logging.info(f"Found agenda link: {title} ({href})")
@@ -151,11 +152,6 @@ class WebScraperInterface:
                     # Create a unique ID for this item
                     item_id = f"{href}|{title}"
                     
-                    # Get the full URL if it's relative
-                    if href.startswith('/') or not href.startswith(('http://', 'https://')):
-                        # Extract base URL from the website URL
-                        base_url = re.match(r'(https?://[^/]+)', soup.get('base_url', '')).group(1)
-                        href = f"{base_url}{'' if href.startswith('/') else '/'}{href}"
                     
                     items.append({
                         'url': href,
