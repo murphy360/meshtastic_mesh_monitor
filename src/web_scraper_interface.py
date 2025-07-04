@@ -90,9 +90,10 @@ class WebScraperInterface:
         result = {}
         
         for website_id, config in self.websites.items():
-            logging.info(f"Checking website: {website_id} - {config['url']}")
+            logging.info(f"Checking website interval: {website_id} - {config['url']}")
             # Only check if interval has elapsed
             if now - self.last_check_time[website_id] >= self.check_interval:
+                logging.info(f"Checking website {website_id} for changes")
                 try:
                     url = config['url']
                     css_selector = config.get('css_selector')
