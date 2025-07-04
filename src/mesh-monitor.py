@@ -63,6 +63,10 @@ rss_interface = RSSInterface()
 
 # Initialize Web Scraper
 web_scraper = WebScraperInterface()
+web_scraper.add_website(
+    website_id="twinsburg_boe_agendas_minutes",
+    url="https://www.twinsburg.k12.oh.us/agendasandminutes.aspx"
+)
 
 logging.info("Starting Mesh Monitor")
 
