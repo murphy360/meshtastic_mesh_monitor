@@ -1722,7 +1722,7 @@ while True:
         )
 
         # Scrape Web Pages
-        web_scraper.check_scrapers_if_needed(
+        web_scraper.scrape_websites_if_needed(
             message_callback=send_llm_callback,
             channel=admin_channel_number,
             destination="^all"
