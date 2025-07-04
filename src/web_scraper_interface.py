@@ -231,10 +231,13 @@ class WebScraperInterface:
                 item_id = item.get('id')
                 if item_id:
                     current_items[item_id] = item
-                    
+                    logging.info(f"Checking item: {item_id} on website '{website_id}'")
                     # Check if this is a new item
                     if item_id not in self.previous_items[website_id] and (not is_initial_check or not self.discard_initial_items):
+                        logging.info(f"New item found on website '{website_id}': {item_id}")
                         new_items.append(item)
+                else:
+                    logging.warning(f"Item on website '{website_id}' has no ID, skipping: {item}")
             
             # Update previous items
             self.previous_items[website_id] = current_items
@@ -245,10 +248,7 @@ class WebScraperInterface:
                 self.initial_check_complete[website_id] = True
                 if self.discard_initial_items:
                     # Discard all but one two items if discard_initial_items is True
-                    if new_items:
-                        # randomply keep two items
-                        for i in range(len(new_items) - 2):
-                            new_items.pop()
+                    new_items = new_items[:2] if len(new_items) > 2 else new_items
                     logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 2} initial items returning {len(new_items)} new items")
                 else:
                     logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
