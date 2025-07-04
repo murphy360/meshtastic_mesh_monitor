@@ -35,7 +35,7 @@ class WebScraperInterface:
             website_id: A unique identifier for this website
             url: The URL of the website to scrape
             css_selector: CSS selector to extract specific content
-            extractor_type: Type of content to extract ("generic", "links", "twinsburg_agendas")
+            extractor_type: Type of content to extract ("generic", "links", "twinsburg_links")
             custom_parser: Optional custom parsing function for special cases
         """
         self.websites[website_id] = {
@@ -125,15 +125,15 @@ class WebScraperInterface:
         
         return items
     
-    def _extract_twinsburg_agendas(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+    def _extract_twinsburg_links(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
         """
-        Extract agenda links and titles from Twinsburg school website.
+        Extract links and titles from Twinsburg school website.
         
         Args:
             soup: BeautifulSoup object of the parsed HTML
             
         Returns:
-            List of dicts with agenda information
+            List of dicts with link information
         """
         items = []
         
@@ -149,12 +149,15 @@ class WebScraperInterface:
                 # Ensure href is absolute URL
                 if not href.startswith(('http://', 'https://')):
                     continue
+
                 link_type = "unknown"
                 
                 if "agenda" in title.lower() or "agenda" in href.lower():
                     link_type = "agenda"
                 elif "minutes" in title.lower() or "minutes" in href.lower():
                     link_type = "minutes"
+                elif link.get('class') and 'linkcomponent_linktext' in link.get('class'): #
+                    link_type = "broadcast"
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
@@ -251,8 +254,8 @@ class WebScraperInterface:
                 self.initial_check_complete[website_id] = True
                 if self.discard_initial_items:
                     # Discard all but one two items if discard_initial_items is True
-                    new_items = new_items[:2] if len(new_items) > 2 else new_items
-                    logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 2} initial items returning {len(new_items)} new items")
+                    new_items = new_items[0] if len(new_items) > 1 else new_items
+                    logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 1} initial items returning {len(new_items)} new items")
                 else:
                     logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
             else:
