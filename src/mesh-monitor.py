@@ -68,7 +68,7 @@ web_scraper = WebScraperInterface(discard_initial_items=True)
 # Add Twinsburg school agendas to monitor
 web_scraper.add_website(
     "twinsburg_school_agendas",
-    "https://www.twinsburg.k12.oh.us/BoardofEducationAgendas.aspx",
+    "https://www.twinsburg.k12.oh.us/agendasandminutes.aspx",
     extractor_type="twinsburg_agendas"
 )
 
