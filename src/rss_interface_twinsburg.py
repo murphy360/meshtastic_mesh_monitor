@@ -7,7 +7,7 @@ import time
 import re
 from html import unescape
 
-class RSSInterface:
+class RSSInterfaceTwinsburg:
     """Interface for accessing and monitoring RSS feeds."""
     
     def __init__(self):
