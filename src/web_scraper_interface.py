@@ -146,6 +146,9 @@ class WebScraperInterface:
                 title = link.get_text(strip=True)
                 if not href or not title:
                     continue
+                # Ensure href is absolute URL
+                if not href.startswith(('http://', 'https://')):
+                    continue
                 link_type = "unknown"
                 
                 if "agenda" in title.lower() or "agenda" in href.lower():
@@ -311,6 +314,7 @@ class WebScraperInterface:
                             message += f"New content has been detected on this website."
                         logging.info(f"Sending message for {website_id}: {message}")
                         # Send message
+                        logging.info(message)
                         message_callback(message, channel, destination)
                         
                         if log_callback:
