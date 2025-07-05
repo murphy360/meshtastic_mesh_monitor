@@ -1427,7 +1427,7 @@ def send_message(interface, message, channel, to_id):
                 logging.error(f"Error sending chunk: {e}")
                 return
     else:
-        logging.info(f"Sending message: {message} to channel {channel} and node {to_id}")
+        logging.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
         
         try:
             interface.sendText(message, channelIndex=channel, destinationId=to_id)

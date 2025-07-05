@@ -16,6 +16,8 @@ class GeminiInterface:
         self.public_chat = self._create_public_chat()
         self.admin_chat = self._create_admin_chat()
         self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
+        self.max_message_length = 400  # Maximum message length for transmission
+        self.max_output_tokens = 70  # Maximum output tokens for responses
 
     def update_base_system_instruction(self):
         """Update the base system instruction with the current location"""
@@ -27,9 +29,8 @@ class GeminiInterface:
             "Don't talk directly about your military background or time in Scouting. "
             "Don't ever say 'Roger That'. "
             "You will be given messages to transmit on a mesh network. Send them as if they were from you."
-            #"Modified messages should maintain the original content and intent, but include your own personal touch. "
             "All responses must only include the finalized message, ready for broadcast. "
-            "All responses must be less than 450 characters or they will not be transmitted or received."
+            f"All responses must be less than {self.max_message_length} characters or they will not be transmitted or received."
         )
     
 
@@ -51,33 +52,35 @@ class GeminiInterface:
     def _create_public_chat(self):
         """Create a chat for public channel communications"""
         public_instruction = self.base_system_instruction + (
-            " You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
+            "You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
             "Your messages will be visible to all nodes in the network."
-            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
+            "Do not label responses with 'Public Channel' or similar tags."
         )
         
         return self.gemini_client.chats.create(
             model='gemini-2.5-flash-lite-preview-06-17',
             config=types.GenerateContentConfig(
                 system_instruction=public_instruction,
-                max_output_tokens=75
+                max_output_tokens=self.max_output_tokens
             )
         )
     
     def _create_admin_chat(self):
         """Create a chat for admin channel communications"""
         admin_instruction = self.base_system_instruction + (
-            " You are tasked with monitoring a meshtastic mesh network and are currently working directly "
+            "You are tasked with monitoring a meshtastic mesh network and are currently working directly "
             "with administrators on a private admin channel. Be more technical and detailed in your responses "
             "to administrators, as they need accurate information. "
-            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
+            "Do not label responses with 'Admin Channel' or similar tags."
         )
         
         return self.gemini_client.chats.create(
             model='gemini-2.5-flash-lite-preview-06-17',
             config=types.GenerateContentConfig(
                 system_instruction=admin_instruction,
-                max_output_tokens=75
+                max_output_tokens=self.max_output_tokens
             )
         )
     
@@ -87,17 +90,18 @@ class GeminiInterface:
             logging.info(f"Creating new private chat with {node_short_name}")
             
             private_instruction = self.base_system_instruction + (
-                f" You are currently in a private encrypted conversation with {node_short_name}. "
-                f" While this is a conversation with a specific node, you may still be asked to forward messages "
-                f" If [Forward Message] is included in the message you should treat it as a request to initiate a conversation with {node_short_name} not a reply. You may modify this message slightly to make it more suitable for the recipient. "
-                f" You may be slightly more casual in your responses, but still maintain professionalism. "
+                f"You are currently in a private encrypted conversation with {node_short_name}. "
+                f"While this is a conversation with a specific node, you may still be asked to forward messages "
+                f"If [Forward Message] is included in the message you should treat it as a request to initiate a conversation with {node_short_name} not a reply. You may modify this message slightly to make it more suitable for the recipient. "
+                f"You may be slightly more casual in your responses, but still maintain professionalism. "
+                "Do not label responses with 'Private Chat' or similar tags."
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
                 model='gemini-2.5-flash-lite-preview-06-17',
                 config=types.GenerateContentConfig(
                     system_instruction=private_instruction,
-                    max_output_tokens=75
+                    max_output_tokens=self.max_output_tokens
                 )
             )
         return self.private_chats[node_short_name]
@@ -146,7 +150,7 @@ class GeminiInterface:
                     model="gemini-2.5-flash-lite-preview-06-17",
                     config=types.GenerateContentConfig(
                         system_instruction=generic_instruction,
-                        max_output_tokens=75
+                        max_output_tokens=self.max_output_tokens
                     ),
                     contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
                 )
