@@ -83,6 +83,7 @@ class RSSInterface:
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
+            logging.info(f"requested RSS feed '{feed_id}' successfully. {response}")
             
             items = self._parse_rss(response.content)
             current_items = {}

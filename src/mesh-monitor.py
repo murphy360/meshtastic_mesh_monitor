@@ -1436,7 +1436,7 @@ def send_message(interface, message, channel, to_id):
         except Exception as e:
             if e == "Data payload too big":
                 logging.error("Message too long to send. Please shorten the message.")
-                send_llm_message(interface, f"[Message too long to send. Please shorten to less than 400 characters] {message}.", channel, to_id)
+                send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
                 return
             logging.error(f"Error sending message: {e}")
             return
@@ -1630,7 +1630,7 @@ def send_weather_alerts_if_needed(interface, channel):
             logging.info(f"Found {len(updated_alerts)} updated weather alerts")
             
             for alert_id, alert_data in updated_alerts.items():
-                alert_message = f"⚠️ UPDATED WEATHER ALERT ⚠️\n"
+                alert_message = f"UPDATED WEATHER ALERT\n"
                 alert_message += f"Type: {alert_data['event']}\n"
                 alert_message += f"Severity: {alert_data['severity']}\n"
                 alert_message += f"Urgency: {alert_data['urgency']}\n"
@@ -1650,7 +1650,7 @@ def send_weather_alerts_if_needed(interface, channel):
             logging.info(f"{new_alerts}")
             
             for alert_id, alert_data in new_alerts.items():
-                alert_message = f"⚠️ NEW WEATHER ALERT ⚠️\n"
+                alert_message = f"NEW WEATHER ALERT\n"
                 alert_message += f"Type: {alert_data['event']}\n"
                 alert_message += f"Severity: {alert_data['severity']}\n"
                 alert_message += f"Urgency: {alert_data['urgency']}\n"
