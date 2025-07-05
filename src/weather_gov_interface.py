@@ -180,6 +180,9 @@ class WeatherGovInterface:
             # Update updated alerts
             self.updated_alerts = {k: v for k, v in self.current_alerts.items() if k in self.previous_alerts and v != self.previous_alerts[k]}
 
+            # Update previous alerts for next run
+            self.previous_alerts = self.current_alerts.copy()
+            
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts: {e}")
             return {"error": str(e)}
