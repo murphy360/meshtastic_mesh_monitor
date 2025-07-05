@@ -87,6 +87,7 @@ class RSSInterface:
             logging.info(f"Response content: {response.content}") 
             
             items = self._parse_rss(response.content)
+            logging.info(f"Parsed {len(items)} items from feed '{feed_id}'")
             current_items = {}
             
             # Process each item and find new ones
