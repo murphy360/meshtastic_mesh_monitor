@@ -220,12 +220,16 @@ class WebScraperInterface:
             items = []
             
             if extractor_type == "links":
+                logging.info(f"Using links extractor for website '{website_id}'")
                 items = self._extract_links_and_titles(soup, css_selector)
             elif extractor_type == "twinsburg_links":
+                logging.info(f"Using Twinsburg links extractor for website '{website_id}'")
                 items = self._extract_twinsburg_links(soup)
             elif custom_parser:
+                logging.info(f"Using custom parser for website '{website_id}'")
                 items = custom_parser(soup, css_selector)
             else:
+                logging.info(f"Using generic content extraction for website '{website_id}'")
                 # Generic content extraction
                 if css_selector:
                     elements = soup.select(css_selector)
@@ -263,6 +267,7 @@ class WebScraperInterface:
                     # Discard all but one two items if discard_initial_items is True
                     new_items = new_items[0] if len(new_items) > 1 else new_items
                     for item in new_items:
+                        logging.info(item)
                         item_id = item.get('id')
                         if item_id:
                             logging.info(f"Keeping initial item: {item_id} on website '{website_id}' {item.get('type', 'unknown')}")
@@ -274,6 +279,7 @@ class WebScraperInterface:
             
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching website '{website_id}': {e}")
+
         except Exception as e:
             logging.error(f"Unexpected error checking website '{website_id}': {e}")
         
