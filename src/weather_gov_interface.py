@@ -147,9 +147,8 @@ class WeatherGovInterface:
             features = alerts_data.get('features', [])
             title = alerts_data.get('title', 'Active Weather Alerts')
             updated_date = alerts_data.get('updated', datetime.now().isoformat())
-            logging.info(f"alerts_data: {alerts_data}")
 
-            logging.info(f"Processing {title}")
+            logging.info(f"Processing {title}, updated at {updated_date}")
 
             for feature in features:
                 props = feature['properties']
@@ -164,13 +163,14 @@ class WeatherGovInterface:
                     'event': props.get('event', 'Unknown'),
                     'headline': props.get('headline', ''),
                     'description': props.get('description', ''),
+                    'sender': props.get('senderName', 'Unknown'),
                     'severity': props.get('severity', 'Unknown'),
                     'urgency': props.get('urgency', 'Unknown'),
                     'onset': props.get('onset', ''),
                     'expires': props.get('expires', '')
                 }
 
-                logging.info(f"Processed alert ID {alert_id}: {self.current_alerts[alert_id]}")
+                logging.info(f"Processed alert ID {alert_id}: {self.current_alerts[alert_id].get('headline', 'No headline')}")
 
             self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in self.current_alerts}
 
@@ -182,7 +182,7 @@ class WeatherGovInterface:
 
             # Update previous alerts for next run
             self.previous_alerts = self.current_alerts.copy()
-            
+
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts: {e}")
             return {"error": str(e)}
