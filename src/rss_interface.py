@@ -176,6 +176,7 @@ class RSSInterface:
                         message += f"Title: {item.get('title', 'No Title')}\n"
                         message += f"Link: {item.get('link', 'No Link')}\n"
                         message += f"Description: {item.get('description', 'No Description')}\n"
+                        message += f"Published: {item.get('pubDate', 'No Date')}\n"
                         
                         message_callback(message, channel, destination)
                 else:
