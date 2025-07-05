@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 import requests
 from typing import Dict, List
+import xml.etree.ElementTree as ET
 
 class RSSInterface:
     """Interface for accessing and monitoring RSS feeds."""
@@ -52,15 +53,48 @@ class RSSInterface:
     def _parse_rss(self, content: bytes) -> List[Dict[str, str]]:
         """
         Parse the RSS feed content.
-        
+
         Args:
             content: The RSS feed content as bytes
-            
+
         Returns:
-            List[Dict[str, str]]: Parsed RSS items
+            List[Dict[str, str]]: Parsed RSS items in a human-readable format
         """
-        # Placeholder for RSS parsing logic
-        return []
+        
+
+        items = []
+        try:
+            root = ET.fromstring(content)
+            for child in root:
+                logging.info(f"Processing root child: {child.tag}")
+            # Find the channel element
+            channel = root.find('channel')
+            if channel is None:
+                # Sometimes the namespace is present, so try with namespace
+                channel = root.find('{*}channel')
+            if channel is None:
+                logging.warning("No <channel> element found in RSS feed")
+                return items
+
+            # Iterate over all <item> elements
+            for item_elem in channel.findall('item'):
+                item = {}
+                for child in item_elem:
+                    tag = child.tag
+                    # Remove namespace if present
+                    if '}' in tag:
+                        tag = tag.split('}', 1)[1]
+                    # Store text content
+                    item[tag] = child.text.strip() if child.text else ''
+                    # For <enclosure> tag, get the url attribute
+                    if tag == 'enclosure':
+                        item['enclosure_url'] = child.attrib.get('url', '')
+                        item['enclosure_type'] = child.attrib.get('type', '')
+                items.append(item)
+        except Exception as e:
+            logging.error(f"Error parsing RSS feed: {e}")
+        return items
+        
 
     def check_feed(self, feed_id: str) -> List[Dict[str, str]]:
         """
