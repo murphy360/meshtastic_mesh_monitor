@@ -11,13 +11,14 @@ class GeminiInterface:
             logging.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
         self.location = location
+        self.max_message_length = 400  # Maximum message length for transmission
+        self.max_output_tokens = 70  # Maximum output tokens for responses
         self.update_base_system_instruction()
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
         self.public_chat = self._create_public_chat()
         self.admin_chat = self._create_admin_chat()
         self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
-        self.max_message_length = 400  # Maximum message length for transmission
-        self.max_output_tokens = 70  # Maximum output tokens for responses
+
 
     def update_base_system_instruction(self):
         """Update the base system instruction with the current location"""
@@ -30,6 +31,7 @@ class GeminiInterface:
             "Don't ever say 'Roger That'. "
             "You will be given messages to transmit on a mesh network. Send them as if they were from you."
             "All responses must only include the finalized message, ready for broadcast. "
+            "Don't create links or URLs that weren't already provided to you in the message. "
             f"All responses must be less than {self.max_message_length} characters or they will not be transmitted or received."
         )
     
