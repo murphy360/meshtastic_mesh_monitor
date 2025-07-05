@@ -251,7 +251,7 @@ class WebScraperInterface:
                     #logging.info(f"Checking item: {item_id} on website '{website_id}'")
                     # Check if this is a new item
                     if item_id not in self.previous_items[website_id]:
-                        logging.info(f"New item found on website '{website_id}': {item_id}")
+                        #logging.info(f"New item found on website '{website_id}': {item_id}")
                         new_items.append(item)
                 else:
                     logging.warning(f"Item on website '{website_id}' has no ID, skipping: {item}")
