@@ -89,6 +89,7 @@ class RSSInterface:
             
             # Process each item and find new ones
             for item in items:
+                logging.debug(f"Processing item: {item}")
                 if 'guid' in item:
                     item_id = item['guid']
                     current_items[item_id] = item
