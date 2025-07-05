@@ -61,10 +61,11 @@ class RSSInterface:
             List[Dict[str, str]]: Parsed RSS items in a human-readable format
         """
         
-
+        logging.debug("Parsing RSS feed content")
         items = []
         try:
             root = ET.fromstring(content)
+            logging.info(f"Root element: {root.tag}")
             for child in root:
                 logging.info(f"Processing root child: {child.tag}")
             # Find the channel element
