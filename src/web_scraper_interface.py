@@ -152,7 +152,7 @@ class WebScraperInterface:
 
                 link_type = "unknown"
 
-                logging.info(f"Processing link: {title} ({href})")
+                
                 
                 if "agenda" in title.lower() or "agenda" in href.lower():
                     link_type = "agenda"
@@ -166,7 +166,9 @@ class WebScraperInterface:
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
-                logging.info(f"Found {link_type} link: {title} ({href})")
+
+                href = f'"{href}"'
+                title = f'"{title}"'
                 items.append({
                     'url': href,
                     'title': title,
@@ -242,7 +244,7 @@ class WebScraperInterface:
                 item_id = item.get('id')
                 if item_id:
                     current_items[item_id] = item
-                    logging.info(f"Checking item: {item_id} on website '{website_id}'")
+                    #logging.info(f"Checking item: {item_id} on website '{website_id}'")
                     # Check if this is a new item
                     if item_id not in self.previous_items[website_id]:
                         logging.info(f"New item found on website '{website_id}': {item_id}")
@@ -260,6 +262,10 @@ class WebScraperInterface:
                 if self.discard_initial_items:
                     # Discard all but one two items if discard_initial_items is True
                     new_items = new_items[0] if len(new_items) > 1 else new_items
+                    for item in new_items:
+                        item_id = item.get('id')
+                        if item_id:
+                            logging.info(f"Keeping initial item: {item_id} on website '{website_id}' {item.get('type', 'unknown')}")
                     logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 1} initial items returning {len(new_items)} new items")
                 else:
                     logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
@@ -304,11 +310,13 @@ class WebScraperInterface:
                         # Format message based on item type
                         if 'title' in item and 'url' in item and 'type' in item:
                             # Format link items
+                            logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗")
                             message = f"I found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗\n\n"
                             message += f"{item['title']}\n\n"
                             message += f"URL: {item['url']}"
                         elif 'content' in item:
                             # Format text content
+                            logging.info(f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄")
                             message = f"📄 Content Update: {website_id.replace('_', ' ').title()} 📄\n\n"
                             content = item['content']
                             if len(content) > 300:
@@ -316,8 +324,10 @@ class WebScraperInterface:
                             message += content
                         else:
                             # Generic format for other items
+                            logging.info(f"Update detected on Site: {website_id.replace('_', ' ').title()} 🌐")
                             message = f"🌐 Update Detected: {website_id.replace('_', ' ').title()} 🌐\n\n"
                             message += f"New content has been detected on this website."
+                            
                         logging.info(f"Sending message for {website_id}: {message}")
                         # Send message
                         logging.info(message)
