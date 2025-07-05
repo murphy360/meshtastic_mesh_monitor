@@ -57,7 +57,7 @@ class GeminiInterface:
         )
         
         return self.gemini_client.chats.create(
-            model='gemini-2.0-flash-001',
+            model='gemini-2.5-flash-lite',
             config=types.GenerateContentConfig(
                 system_instruction=public_instruction,
                 max_output_tokens=75
@@ -74,7 +74,7 @@ class GeminiInterface:
         )
         
         return self.gemini_client.chats.create(
-            model='gemini-2.0-flash-001',
+            model='gemini-2.5-flash-lite',
             config=types.GenerateContentConfig(
                 system_instruction=admin_instruction,
                 max_output_tokens=75
@@ -94,7 +94,7 @@ class GeminiInterface:
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
-                model='gemini-2.0-flash-001',
+                model='gemini-2.5-flash-lite',
                 config=types.GenerateContentConfig(
                     system_instruction=private_instruction,
                     max_output_tokens=75
@@ -143,7 +143,7 @@ class GeminiInterface:
                 )
                 
                 response = self.gemini_client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash-lite",
                     config=types.GenerateContentConfig(
                         system_instruction=generic_instruction,
                         max_output_tokens=75
