@@ -1635,6 +1635,9 @@ def send_weather_alerts_if_needed(interface, channel):
                 alert_message += f"Severity: {alert_data['severity']}\n"
                 alert_message += f"Urgency: {alert_data['urgency']}\n"
                 alert_message += f"{alert_data['headline']}"
+                alert_message += f"Onset: {alert_data['onset']}\n"
+                alert_message += f"Expires: {alert_data['expires']}\n"
+                alert_message += f"Description: {alert_data['description']}\n"
 
                 # Send to specified channel
                 send_llm_message(interface, alert_message, channel, "^all")
@@ -1651,7 +1654,10 @@ def send_weather_alerts_if_needed(interface, channel):
                 alert_message += f"Type: {alert_data['event']}\n"
                 alert_message += f"Severity: {alert_data['severity']}\n"
                 alert_message += f"Urgency: {alert_data['urgency']}\n"
-                alert_message += f"{alert_data['headline']}"
+                alert_message += f"{alert_data['headline']}\n"
+                alert_message += f"Onset: {alert_data['onset']}\n"
+                alert_message += f"Expires: {alert_data['expires']}\n"
+                alert_message += f"Description: {alert_data['description']}\n"
 
                 # Send to specified channel
                 send_llm_message(interface, alert_message, channel, "^all")
