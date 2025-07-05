@@ -173,6 +173,7 @@ class RSSInterface:
                 if new_items:
                     for item in new_items:
                         message = f"📰 New RSS Item Detected 📰\n\n"
+                        message += f"Feed: {feed_id.replace('_', ' ')}\n"
                         message += f"Title: {item.get('title', 'No Title')}\n"
                         message += f"Link: {item.get('link', 'No Link')}\n"
                         message += f"Description: {item.get('description', 'No Description')}\n"
