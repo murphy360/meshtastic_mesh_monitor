@@ -265,7 +265,8 @@ class WebScraperInterface:
                 self.initial_check_complete[website_id] = True
                 if self.discard_initial_items:
                     # Discard all but one two items if discard_initial_items is True
-                    new_items = new_items[0] if len(new_items) > 1 else new_items
+                    if len(new_items) > 1:
+                        new_items = new_items[0:1]  # Keep only the first item
                     for item in new_items:
                         logging.info(item)
                         item_id = item.get('id')
