@@ -94,7 +94,7 @@ class RSSInterface:
                     current_items[item_id] = item
                     
                     # Only add to new_items if not first check or if we're not discarding initial items
-                    if item_id not in self.previous_items[feed_id] and (not is_initial_check or not self.discard_initial_items):
+                    if item_id not in self.previous_items[feed_id]:
                         new_items.append(item)
             
             # Update previous items
@@ -105,7 +105,8 @@ class RSSInterface:
             if is_initial_check:
                 self.initial_check_complete[feed_id] = True
                 if self.discard_initial_items:
-                    logging.info(f"Initial check of feed '{feed_id}' complete, discarded {len(items)} initial items")
+                    logging.info(f"Initial check of feed '{feed_id}' complete, discarding {len(new_items) - 1} initial items. Keeping only the first item.")
+                    new_items = new_items[0:1]  # Keep only the first item if discarding initial items
                 else:
                     logging.info(f"Initial check of feed '{feed_id}' complete, found {len(new_items)} items")
             else:
