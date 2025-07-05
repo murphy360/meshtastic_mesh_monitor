@@ -65,9 +65,7 @@ class RSSInterface:
         items = []
         try:
             root = ET.fromstring(content)
-            logging.info(f"Root element: {root.tag}")
-            for child in root:
-                logging.info(f"Processing root child: {child.tag}")
+
             # Find the channel element
             channel = root.find('channel')
             if channel is None:
@@ -117,25 +115,20 @@ class RSSInterface:
         
         try:
             response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            logging.info(f"requested RSS feed '{feed_id}' successfully. {response}")
-            logging.info(f"Response content: {response.content}") 
-            
+            response.raise_for_status()           
             items = self._parse_rss(response.content)
             logging.info(f"Parsed {len(items)} items from feed '{feed_id}'")
             current_items = {}
             
             # Process each item and find new ones
             for item in items:
-                logging.debug(f"Processing item: {item}")
                 if 'guid' in item:
                     item_id = item['guid']
                     current_items[item_id] = item
-                    logging.info(f"Processing item '{item_id}' from feed '{feed_id}'")
                     # Add to new_items if not already seen
                     if item_id not in self.previous_items[feed_id]:
-                        logging.info(f"Adding '{feed_id}': {item.get('title', 'No Title')}")
                         new_items.append(item)
+                        logging.info(f"Adding: {item}")
             
             # Update previous items
             self.previous_items[feed_id] = current_items
