@@ -126,6 +126,61 @@ class WebScraperInterface:
         
         return items
     
+    def _extract_twinsburg_rock_the_park_links(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+        """
+        Extract links and titles from the Rock the Park website.
+        
+        Args:
+            soup: BeautifulSoup object of the parsed HTML
+            
+        Returns:
+            List of dicts with link information
+        """
+        items = []
+        
+        try:
+            # Find all links in the soup object
+            links = soup.find_all('a')
+            
+            for link in links:
+                href = link.get('href')
+                title = link.get_text(strip=True)
+                class_ = link.get('class')
+
+                # Skip if href is missing
+                if not href:
+                    continue
+                
+                # Looking for specific Rock the Park links
+                if not href.startswith('https://rocktheparkconcert.com/schedule/'):
+                    continue
+
+                # Example link format:
+                '''
+                    "<a href="https://rocktheparkconcert.com/schedule/august-16/">
+				AUGUST 16: Cocktail Johnny			</a>"
+                '''     
+                           
+                logging.info(f"Processing link: {link}")
+                link_type = "event"
+                date = href.split('/')[-2]
+                logging.info(f"Extracted date: {date} from link: {href}")
+                
+                # Create a unique ID for this item
+                item_id = f"{href}|{title}"
+                
+                items.append({
+                    'url': href,
+                    'title': title,
+                    'id': item_id,
+                    'type': link_type
+                })
+        
+        except Exception as e:
+            logging.error(f"Error extracting Rock the Park links: {e}")
+        
+        return items
+    
     def _extract_twinsburg_links(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
         """
         Extract links and titles from Twinsburg school website.

@@ -94,6 +94,13 @@ web_scraper.add_website(
     extractor_type="twinsburg_links"
 )
 
+# Add Rock the Park to monitor
+web_scraper.add_website(
+    "twinsburg_rock_the_park",
+    "https://rocktheparkconcert.com/",
+    extractor_type="rock_the_park_links"
+)
+
 logging.info("Starting Mesh Monitor")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
