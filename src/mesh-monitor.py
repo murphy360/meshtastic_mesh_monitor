@@ -87,6 +87,13 @@ web_scraper.add_website(
     extractor_type="twinsburg_links"
 )
 
+# Add Twinsburg City Document Center to monitor
+web_scraper.add_website(
+    "twinsburg_city_document_center",
+    "https://www.mytwinsburg.com/DocumentCenter/",
+    extractor_type="twinsburg_links"
+)
+
 logging.info("Starting Mesh Monitor")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):

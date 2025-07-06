@@ -145,29 +145,20 @@ class WebScraperInterface:
             for link in links:
                 href = link.get('href')
                 title = link.get_text(strip=True)
+                class_ = link.get('class')
                 if not href or not title:
                     continue
                 # Ensure href is absolute URL
                 if not href.startswith(('http://', 'https://')):
                     continue
 
-                # skip non-pdf links
-                if '.pdf' not in href: #TODO Remove this line in the future to look at more than just PDFs
-                    continue
-
                 link_type = "unknown"
 
                 
-                
-                if "agenda" in title.lower() or "agenda" in href.lower():
-                    link_type = "agenda"
-                elif "minutes" in title.lower() or "minutes" in href.lower():
-                    link_type = "minutes"
-                # youtube, mediacast youtu.be
-                elif "youtube.com" in href.lower() or "youtu.be" in href.lower() or "mediacast" in href.lower():
-                    link_type = "broadcast"
+                if '.pdf' in href or 'pdf' in class_:  
+                    link_type = "pdf"
                 else:
-                    continue
+                    link_type = "unknown"
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
@@ -271,13 +262,9 @@ class WebScraperInterface:
                     # Discard all but one two items if discard_initial_items is True
                     if len(new_items) > 1:
                         # remove any items that are not agenda
-                        new_items = [item for item in new_items if item.get('type') == 'agenda']
+                        new_items = [item for item in new_items if item.get('type') == 'pdf'] #TODO Remove this line in the future to look at more than just PDFs
                         new_items = new_items[0:1]  # Keep only the first item
-                    for item in new_items:
-                        logging.info(item)
-                        item_id = item.get('id')
-                        if item_id:
-                            logging.info(f"Keeping initial item: {item_id} on website '{website_id}' {item.get('type', 'unknown')}")
+                    
                     logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 1} initial items returning {len(new_items)} new items")
                 else:
                     logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
@@ -354,10 +341,9 @@ class WebScraperInterface:
                         pdf_path = None
                         if 'title' in item and 'url' in item and 'type' in item:
                             # If .pdf in url, download and process it
-                            if '.pdf' in item['url']:
+                            if item['type'] == 'pdf':
                                 logging.info(f"Downloading PDF from {item['url']}")
-                                clean_filename = re.sub(r'[\\/*?:"<>|]', '', item['title'].strip())
-                                                            
+                                clean_filename = re.sub(r'[\\/*?:"<>|]', '', item['title'].strip())                    
                                 pdf_path = f"/data/{website_id}/{clean_filename}.pdf"
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
