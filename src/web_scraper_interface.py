@@ -147,7 +147,8 @@ class WebScraperInterface:
                 href = link.get('href')
                 title = link.get_text(strip=True)
                 class_ = link.get('class')
-                if not href or not title:
+                # Skip if href, title, or class is missing
+                if not href or not title or not class_:
                     continue
                 # Ensure href is absolute URL
                 if not href.startswith(('http://', 'https://')):
@@ -155,7 +156,7 @@ class WebScraperInterface:
 
                 link_type = "unknown"
 
-                
+                # Are we dealing with a PDF link?
                 if '.pdf' in href or 'pdf' in class_:  
                     link_type = "pdf"
                 else:
