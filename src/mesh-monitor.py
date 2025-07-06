@@ -1518,9 +1518,9 @@ def send_message(interface, message, channel, to_id):
         channel (int): The channel to send the message to.
         to_id (str): The ID of the recipient.
     """
-    # Split every message into chunks of no more than 450 characters
-    if len(message) > 450:
-        message_chunks = [message[i:i + 450] for i in range(0, len(message), 450)]
+    # Split every message into chunks of no more than 200 characters
+    if len(message) > 240:
+        message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
         for chunk in message_chunks:
             logging.info(f"Sending chunk: {chunk}")
             try:
