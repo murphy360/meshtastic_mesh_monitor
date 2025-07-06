@@ -889,13 +889,17 @@ def check_node_health(interface, node):
                 active_health_alerts[f"battery_{node['num']}_notification"] = datetime.now(timezone.utc)
                 logging.info(f"Low Battery Notification: {node['user']['shortName']} - {battery_level}%")
                 send_message(interface, f"Notification: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")
-        else:
-            logging.info(f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%")
+        elif battery_level > 50:
+            logging.info(f"Battery level is returning to normal for node {node['user']['shortName']} - {battery_level}%")
             # Clear any active alerts for this node
-            send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%, clearing alerts", admin_channel_number, "^all")
+            send_llm_callback = False
             for key in list(active_health_alerts.keys()):
                 if key.startswith(f"battery_{node['num']}"):
+                    send_llm_callback = True
                     del active_health_alerts[key]
+            if send_llm_callback:
+                logging.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
+                send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
 
 def lookup_nodes(interface, node_generic_identifier):
     """

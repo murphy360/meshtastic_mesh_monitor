@@ -151,6 +151,10 @@ class WebScraperInterface:
                 if not href.startswith(('http://', 'https://')):
                     continue
 
+                # skip non-pdf links
+                if '.pdf' not in href: #TODO Remove this line in the future to look at more than just PDFs
+                    continue
+
                 link_type = "unknown"
 
                 
