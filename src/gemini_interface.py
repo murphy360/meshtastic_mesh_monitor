@@ -119,7 +119,7 @@ class GeminiInterface:
             A summary of the PDF content
         """
         try:
-            uploaded_file = self.gemini_client.files.upload(path_to_pdf)
+            uploaded_file = self.gemini_client.files.upload(file=path_to_pdf)
 
             if not uploaded_file:
                 logging.error("Failed to upload PDF file.")
