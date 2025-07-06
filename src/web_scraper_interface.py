@@ -361,10 +361,10 @@ class WebScraperInterface:
                                 pdf_path = f"/data/{website_id}/{clean_filename}.pdf"
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
-                            logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗")
-                            message = f"I found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗\n\n"
+                            logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}")
+                            message = f"New {item['type']} on Site: {website_id.replace('_', ' ').title()}\n\n"
                             message += f"{item['title']}\n\n"
-                            message += f"URL: {item['url']}"
+                            message += f"URL: '{item['url']}'"
                         elif 'content' in item:
                             # Format text content
                             logging.info(f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄")
