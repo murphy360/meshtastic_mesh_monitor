@@ -353,7 +353,8 @@ class WebScraperInterface:
                             # If .pdf in url, download and process it
                             if '.pdf' in item['url']:
                                 logging.info(f"Downloading PDF from {item['url']}")
-                                pdf_path = f"/data/{website_id}/{item['title']}.pdf"
+                                clean_filename = re.sub(r'[\\/*?:"<>|]', '', item['title'].strip())
+                                pdf_path = f"/data/{website_id}/{clean_filename}.pdf"
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
                             logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗")
