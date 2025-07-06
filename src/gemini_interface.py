@@ -11,7 +11,7 @@ class GeminiInterface:
             logging.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
         self.location = location
-        self.max_message_length = 250  # Maximum message length for transmission
+        self.max_message_length = 350  # Maximum message length for transmission
         self.max_output_tokens = 70  # Maximum output tokens for responses
         self.update_base_system_instruction()
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
