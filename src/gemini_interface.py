@@ -132,11 +132,7 @@ class GeminiInterface:
         try:
             response = self.gemini_client.models.generate_content(
                 model="gemini-2.5-flash-lite-preview-06-17",
-                config=types.GenerateContentConfig(
-                    system_instruction="You are an AI tasked with summarizing PDF documents in {self.max_message_length} characters or less. Provide a concise summary of the document's content.",
-                    max_output_tokens=self.max_output_tokens
-                ),
-                contents=f"Summarize this PDF File in {self.max_message_length} characters or less: {uploaded_file}"
+                contents=[f"Summarize this PDF File in {self.max_message_length} characters or less", uploaded_file]
             )
             logging.info(f"Response: {response}")
             return response.text
