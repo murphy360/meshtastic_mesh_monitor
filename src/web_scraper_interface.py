@@ -362,8 +362,7 @@ class WebScraperInterface:
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
                             logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}")
-                            message = f"New {item['title']} on Site: {website_id.replace('_', ' ').title()}\n\n"
-                            message += f"URL: '{item['url']}'"
+                            message = f"New {item['title']} on Site: {website_id.replace('_', ' ').title()}"
                         elif 'content' in item:
                             # Format text content
                             logging.info(f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄")
@@ -381,7 +380,7 @@ class WebScraperInterface:
                         logging.info(f"Sending message for {website_id}: {message}")
                         # Send message
                         logging.info(message)
-                        message_callback(message, channel, destination, pdf_path)
+                        message_callback(message, channel, destination, pdf_path, item.get('url', None))
 
                         if log_callback:
                             log_callback(f"web-scrape-{website_id}")
