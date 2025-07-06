@@ -29,7 +29,7 @@ class GeminiInterface:
             "Don't ever say 'Roger That'. "
             "You will be given messages to transmit on a mesh network. Send them as if they were from you."
             "All responses must only include the finalized message, ready for broadcast. "
-            "You may use acronyms selectively to shorten messages, but do not overuse them. Do not write entire messages in acronyms. "
+            "You may use acronyms selectively to shorten messages, but do not write entire messages in acronyms. "
             "Don't create links or URLs that weren't already provided to you in the message. "
             "If including links, ensure they are complete and functional. Never create shortened links or URLs. Do wrap them in quotes if they are not already wrapped to ensure they are treated as a single link. "
             f"All responses must be less than {self.max_message_length} characters or they will not be transmitted or received."
