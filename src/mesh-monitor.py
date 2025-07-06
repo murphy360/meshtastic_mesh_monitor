@@ -1477,7 +1477,7 @@ def send_message(interface, message, channel, to_id):
         
 
         except Exception as e:
-            if e == "Data payload too big":
+            if "Data payload too big" in str(e):
                 logging.error("Message too long to send. Please shorten the message.")
                 send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
                 return

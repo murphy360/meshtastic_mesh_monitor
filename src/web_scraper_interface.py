@@ -362,8 +362,7 @@ class WebScraperInterface:
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
                             logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}")
-                            message = f"New {item['type']} on Site: {website_id.replace('_', ' ').title()}\n\n"
-                            message += f"{item['title']}\n\n"
+                            message = f"New {item['title']} on Site: {website_id.replace('_', ' ').title()}\n\n"
                             message += f"URL: '{item['url']}'"
                         elif 'content' in item:
                             # Format text content
