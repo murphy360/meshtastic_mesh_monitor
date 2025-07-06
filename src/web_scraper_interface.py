@@ -126,7 +126,7 @@ class WebScraperInterface:
         
         return items
     
-    def _extract_twinsburg_rock_the_park_links(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+    def _extract_rock_the_park_links(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
         """
         Extract links and titles from the Rock the Park website.
         
