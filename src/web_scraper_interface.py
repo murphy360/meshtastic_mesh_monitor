@@ -168,8 +168,7 @@ class WebScraperInterface:
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
 
-                href = f'"{href}"'
-                title = f'"{title}"'
+                
                 items.append({
                     'url': href,
                     'title': title,
@@ -354,6 +353,7 @@ class WebScraperInterface:
                             if '.pdf' in item['url']:
                                 logging.info(f"Downloading PDF from {item['url']}")
                                 clean_filename = re.sub(r'[\\/*?:"<>|]', '', item['title'].strip())
+                                                            
                                 pdf_path = f"/data/{website_id}/{clean_filename}.pdf"
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
