@@ -264,7 +264,7 @@ class WebScraperInterface:
                     # Discard all but one two items if discard_initial_items is True
                     if len(new_items) > 1:
                         # remove any items that are not agenda
-                        new_items = [item for item in new_items if item.get('type') == 'pdf'] #TODO Remove this line in the future to look at more than just PDFs
+                        #new_items = [item for item in new_items if item.get('type') == 'pdf'] #TODO Remove this line in the future to look at more than just PDFs
                         new_items = new_items[0:1]  # Keep only the first item
                     
                     logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 1} initial items returning {len(new_items)} new items")
