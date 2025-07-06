@@ -143,7 +143,7 @@ class WebScraperInterface:
             links = soup.find_all('a')
             
             for link in links:
-                logging.info(f"Processing link: {link}")
+                
                 href = link.get('href')
                 title = link.get_text(strip=True)
                 class_ = link.get('class')
@@ -174,8 +174,8 @@ class WebScraperInterface:
                 })
         
         except Exception as e:
-            logging.error(f"Error extracting Twinsburg links: {e}")
-        
+            logging.error(f"Error extracting {link}:\n\n {e}")
+
         return items
     
     def check_website(self, website_id: str) -> List[Dict[str, Any]]:
