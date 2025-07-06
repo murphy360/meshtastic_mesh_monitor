@@ -351,7 +351,8 @@ class WebScraperInterface:
                         pdf_path = None
                         if 'title' in item and 'url' in item and 'type' in item:
                             # If .pdf in url, download and process it
-                            if item['url'].endswith('.pdf'):
+                            if '.pdf' in item['url']:
+                                logging.info(f"Downloading PDF from {item['url']}")
                                 pdf_path = f"/data/{website_id}/{item['title']}.pdf"
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
