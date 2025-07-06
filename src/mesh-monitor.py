@@ -32,6 +32,7 @@ sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 public_channel_number = 0
 admin_channel_number = 1
+active_health_alerts = {}
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 # Take the modulo 6 of the current hour to find how many hours back to set initial time
@@ -848,6 +849,9 @@ def check_node_health(interface, node):
     """
     Check the health of a node and send warnings if necessary.
 
+    This function accesses and modifies the global variable `active_health_alerts`
+    to track and manage health alerts for nodes.
+
     Args:
         interface: The interface to interact with the mesh network.
         node (dict): The node data.
@@ -861,10 +865,31 @@ def check_node_health(interface, node):
     if "batteryLevel" in node["deviceMetrics"]:
         #logging.info(f"Checking battery level of node {node['user']['shortName']}")
         battery_level = node["deviceMetrics"]["batteryLevel"]
-        if battery_level < 20:
-            logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
-            send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")             
-                
+        if battery_level < 5:
+            # prevent sending multiple critical alerts in a short time
+            alert_key = f"critical_battery_{node['num']}"
+            if alert_key not in active_health_alerts:
+                active_health_alerts[alert_key] = datetime.now(timezone.utc)
+                logging.info(f"Critical Battery Alert: {node['user']['shortName']} - {battery_level}%")
+                send_message(interface, f"Critical Alert: {node['user']['shortName']} has a critical battery level ({battery_level}%)", admin_channel_number, "^all")
+        elif battery_level < 10:
+            if f"battery_{node['num']}_warning" not in active_health_alerts:
+                active_health_alerts[f"battery_{node['num']}_warning"] = datetime.now(timezone.utc)
+                logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
+                send_message(interface, f"Low Battery Warning: {node['user']['shortName']} has a low battery level ({battery_level}%)", admin_channel_number, "^all")
+        elif battery_level < 20:
+            if f"battery_{node['num']}_notification" not in active_health_alerts:
+                active_health_alerts[f"battery_{node['num']}_notification"] = datetime.now(timezone.utc)
+                logging.info(f"Low Battery Notification: {node['user']['shortName']} - {battery_level}%")
+                send_message(interface, f"Notification: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")
+        else:
+            logging.info(f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%")
+            # Clear any active alerts for this node
+            send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%, clearing alerts", admin_channel_number, "^all")
+            for key in list(active_health_alerts.keys()):
+                if key.startswith(f"battery_{node['num']}"):
+                    del active_health_alerts[key]
+
 def lookup_nodes(interface, node_generic_identifier):
     """
     Lookup nodes by their short name, long name, number, or user ID.
