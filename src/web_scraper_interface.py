@@ -143,6 +143,7 @@ class WebScraperInterface:
             links = soup.find_all('a')
             
             for link in links:
+                logging.info(f"Processing link: {link}")
                 href = link.get('href')
                 title = link.get_text(strip=True)
                 class_ = link.get('class')
