@@ -107,6 +107,44 @@ class GeminiInterface:
                 )
             )
         return self.private_chats[node_short_name]
+
+    def summarize_pdf(self, path_to_pdf: str) -> str:
+        """
+        Summarize the content of a PDF document
+        
+        Args:
+            path_to_pdf: The file path to the PDF document
+
+        Returns:
+            A summary of the PDF content
+        """
+        try:
+            uploaded_file = self.gemini_client.files.upload(path_to_pdf)
+
+            if not uploaded_file:
+                logging.error("Failed to upload PDF file.")
+                return "Error uploading PDF file."
+
+        except Exception as e:
+            logging.error(f"Error reading PDF file: {e}")
+            return "Error reading PDF file."
+
+        try:
+            response = self.gemini_client.models.generate_content(
+                model="gemini-2.5-flash-lite-preview-06-17",
+                config=types.GenerateContentConfig(
+                    system_instruction=self.base_system_instruction,
+                    max_output_tokens=self.max_output_tokens
+                ),
+                contents=f"Summarize this PDF File in {self.max_message_length} characters or less: {uploaded_file}"
+            )
+            logging.info(f"Response: {response}")
+            return response.text
+
+        except Exception as e:
+            logging.error(f"Error summarizing PDF: {e}")
+            return "Error summarizing PDF content."
+        
     
     def generate_response(self, message: str, channel_id: int, node_short_name: Optional[str] = None) -> str:
         """

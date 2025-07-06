@@ -1,3 +1,4 @@
+import os
 import requests
 import logging
 from bs4 import BeautifulSoup
@@ -288,6 +289,36 @@ class WebScraperInterface:
         
         return new_items
     
+    def download_pdf(self, url: str, destination: str) -> Optional[str]:
+        """
+        Download a PDF file from the given URL.
+        
+        Args:
+            url: The URL of the PDF file
+            destination: Local path to save the downloaded PDF
+        Returns:
+            Optional[str]: Path to the downloaded PDF file, or None if download failed
+        """
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            
+            # Ensure the destination directory exists
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            
+            with open(destination, 'wb') as f:
+                f.write(response.content)
+            
+            logging.info(f"Downloaded PDF from {url} to {destination}")
+            return destination
+        
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error downloading PDF from '{url}': {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error downloading PDF from '{url}': {e}")
+        
+        return None
+    
     def scrape_websites_if_needed(self, 
                                  message_callback: Callable[[str, int, str], None],
                                  channel: int,
@@ -317,7 +348,12 @@ class WebScraperInterface:
                     # Send notification for each new item
                     for item in new_items:
                         # Format message based on item type
+                        pdf_path = None
                         if 'title' in item and 'url' in item and 'type' in item:
+                            # If .pdf in url, download and process it
+                            if item['url'].endswith('.pdf'):
+                                pdf_path = f"/data/{website_id}/{item['title']}.pdf"
+                                self.download_pdf(item['url'], pdf_path)
                             # Format link items
                             logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗")
                             message = f"I found new {item['type']} on Site: {website_id.replace('_', ' ').title()} 🔗\n\n"
@@ -340,8 +376,8 @@ class WebScraperInterface:
                         logging.info(f"Sending message for {website_id}: {message}")
                         # Send message
                         logging.info(message)
-                        message_callback(message, channel, destination)
-                        
+                        message_callback(message, channel, destination, pdf_path)
+
                         if log_callback:
                             log_callback(f"web-scrape-{website_id}")
         

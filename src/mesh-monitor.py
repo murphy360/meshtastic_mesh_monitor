@@ -80,6 +80,13 @@ web_scraper.add_website(
     extractor_type="twinsburg_links"
 )
 
+# Add TCSD Flyers to monitor
+web_scraper.add_website(
+    "twinsburg_school_flyers",
+    "https://www.twinsburg.k12.oh.us/flyercentral.aspx",
+    extractor_type="twinsburg_links"
+)
+
 logging.info("Starting Mesh Monitor")
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
@@ -1374,7 +1381,7 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
         
     logging.info(f"leaving send_trace_route")
 
-def send_llm_callback(message, channel, to_id):
+def send_llm_callback(message, channel, to_id, file_path=None):
     """
     Callback function to send a message to the LLM and receive a response.
     Args:
@@ -1383,7 +1390,14 @@ def send_llm_callback(message, channel, to_id):
         to_id (str): The ID of the recipient.
     """
     logging.info(f"send_llm_callback called with message: {message}, channel: {channel}, to_id: {to_id}")
-    
+
+    if file_path:
+        logging.info(f"File path provided: {file_path}")
+        # Here you can handle the file if needed, e.g., upload it or process it.
+        # For now, we will just log it.
+        pdf_summary = gemini_interface.summarize_pdf(file_path)
+        message = f"{message}\n\nSummary: {pdf_summary}"
+
     # Get the interface from the global variable
     global interface
     if interface is None:
