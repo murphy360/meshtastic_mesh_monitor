@@ -277,6 +277,9 @@ class WebScraperInterface:
             elif extractor_type == "twinsburg_links":
                 logging.info(f"Using Twinsburg links extractor for website '{website_id}'")
                 items = self._extract_twinsburg_links(soup)
+            elif extractor_type == "rock_the_park_links":
+                logging.info(f"Using Rock the Park links extractor for website '{website_id}'")
+                items = self._extract_rock_the_park_links(soup)
             elif custom_parser:
                 logging.info(f"Using custom parser for website '{website_id}'")
                 items = custom_parser(soup, css_selector)
