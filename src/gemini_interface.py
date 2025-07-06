@@ -33,6 +33,7 @@ class GeminiInterface:
             "All responses must only include the finalized message, ready for broadcast. "
             "Don't create links or URLs that weren't already provided to you in the message. "
             "You may use acronyms selectively to shorten messages, but do not overuse them. Do not write entire messages in acronyms. "
+            "If including links, ensure they are complete and functional. Never create shortened links or URLs. "
             f"All responses must be less than {self.max_message_length} characters or they will not be transmitted or received."
         )
     
