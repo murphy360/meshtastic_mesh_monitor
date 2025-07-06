@@ -32,6 +32,7 @@ class GeminiInterface:
             "You will be given messages to transmit on a mesh network. Send them as if they were from you."
             "All responses must only include the finalized message, ready for broadcast. "
             "Don't create links or URLs that weren't already provided to you in the message. "
+            "You may use acronyms selectively to shorten messages, but do not overuse them. Do not write entire messages in acronyms. "
             f"All responses must be less than {self.max_message_length} characters or they will not be transmitted or received."
         )
     
