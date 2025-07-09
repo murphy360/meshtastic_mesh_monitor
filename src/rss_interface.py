@@ -137,11 +137,10 @@ class RSSInterface:
             # Mark initial check as complete
             if is_initial_check:
                 self.initial_check_complete[feed_id] = True
-                if self.discard_initial_items and len(new_items) > 1:
-                    num_items_removed = len(new_items)-1
-                    logging.info(f"Initial check of feed '{feed_id}' complete, discarding {num_items_removed} initial items. Keeping only the first item.")
-                    new_items = new_items[0:1]  # Keep only the first item if discarding initial items
-                    logging.info(f"Reporting items: {new_items[0].get('title', 'No Title')}")
+                if self.discard_initial_items:
+                    # Discard all Items found on initial check
+                    new_items = []
+                    logging.info(f"Initial check of feed '{feed_id}' complete, discarded initial items, returning {len(new_items)} new items")
                 else:
                     logging.info(f"Initial check of feed '{feed_id}' complete, found {len(new_items)} items")
             else:

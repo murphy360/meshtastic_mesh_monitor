@@ -319,13 +319,8 @@ class WebScraperInterface:
             if is_initial_check:
                 self.initial_check_complete[website_id] = True
                 if self.discard_initial_items:
-                    # Discard all but one two items if discard_initial_items is True
-                    if len(new_items) > 1:
-                        # remove any items that are not agenda
-                        #new_items = [item for item in new_items if item.get('type') == 'pdf'] #TODO Remove this line in the future to look at more than just PDFs
-                        new_items = new_items[0:1]  # Keep only the first item
-                    
-                    logging.info(f"Initial check of website '{website_id}' complete, discarded {len(items) - 1} initial items returning {len(new_items)} new items")
+                    new_items = []
+                    logging.info(f"Initial check of website '{website_id}' complete, discarded initial items, returning {len(new_items)} new items")
                 else:
                     logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
             else:
@@ -336,7 +331,6 @@ class WebScraperInterface:
 
         except Exception as e:
             logging.error(f"Unexpected error checking website '{website_id}': {e}")
-        
         return new_items
     
     def download_pdf(self, url: str, destination: str) -> Optional[str]:
