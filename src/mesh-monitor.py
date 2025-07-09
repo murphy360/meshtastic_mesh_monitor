@@ -333,7 +333,7 @@ def onReceivePosition(packet, interface):
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
         logging.info(log_message)
-        location = find_location_by_coordinates(interface, latitude, longitude)
+        location = find_location_by_coordinates(interface, float(latitude), float(longitude))
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
         logging.info(f"Node {node_short_name} is at {location} ({latitude}, {longitude})")
