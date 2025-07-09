@@ -332,9 +332,11 @@ def onReceivePosition(packet, interface):
         latitude = packet['decoded']['position']['latitude']
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
+        logging.info(log_message)
         location = find_location_by_coordinates(interface, latitude, longitude)
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
+        logging.info(f"Node {node_short_name} is at {location} ({latitude}, {longitude})")
 
     if 'locationSource' in packet['decoded']['position']:
         location_source = packet['decoded']['position']['locationSource']
@@ -380,6 +382,7 @@ def onReceivePosition(packet, interface):
 
     # Aircraft Detection
     if is_fast_moving and is_high_altitude:
+        logging.info(f"Node {node_short_name} is fast moving and high altitude")
         # If the node is fast and high altitude, mark it as aircraft
         log_message += " - Node is fast moving and high altitude"
         
@@ -394,6 +397,7 @@ def onReceivePosition(packet, interface):
             send_llm_message(interface, user_message, public_channel_number, node['num'])
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
     elif not is_fast_moving and not is_high_altitude:
+        logging.info(f"Node {node_short_name} is not fast moving and not high altitude")
         # If the node is not fast moving and not high altitude, check if it's marked as aircraft
         if db_helper.is_aircraft(node):
             logging.info(f"Node {node_short_name} is marked as aircraft but is not fast moving or high altitude")
