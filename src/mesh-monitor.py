@@ -1078,6 +1078,7 @@ def find_location_by_coordinates(latitude, longitude):
     Returns:
         str: The location name, or "Unknown" if the location cannot be determined.
     """
+    logging.info(f"Finding location for coordinates: {latitude}, {longitude}")
     try:
         geolocator = geopy.Nominatim(user_agent="mesh-monitor", timeout=10)
         location = geolocator.reverse((latitude, longitude))
