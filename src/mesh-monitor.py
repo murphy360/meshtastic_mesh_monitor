@@ -314,6 +314,7 @@ def onReceivePosition(packet, interface):
     
     is_aircraft = False
     is_fast_moving = False
+    is_high_altitude = False
     admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
     log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
     location = "Unknown"
@@ -327,13 +328,11 @@ def onReceivePosition(packet, interface):
         logging.info(f"Packet does not contain position data")
         return
  
-    if 'latitude' in packet['decoded']['position'] and 'longitude' not in packet['decoded']['position']:
+    if 'latitude' in packet['decoded']['position'] and 'longitude' in packet['decoded']['position']:
         latitude = packet['decoded']['position']['latitude']
-
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
         location = find_location_by_coordinates(interface, latitude, longitude)
-        
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
 
@@ -348,27 +347,16 @@ def onReceivePosition(packet, interface):
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
         admin_message += f" Ground Speed: {ground_speed} m/s"
-        if ground_speed > 50:
+        if ground_speed > 150:
             is_fast_moving = True
 
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude}m"
         admin_message += f" Altitude: {altitude}m"
-        if altitude > 1000:
-            # If altitude is greater than 1000m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
-            
-            if db_helper.is_aircraft(node):
-                logging.info(f"Node {node_short_name} is already marked as aircraft")
-            else:
-                logging.info(f"Node {node_short_name} is marked as aircraft due to altitude {altitude}m")
-                is_aircraft = True
-                db_helper.set_aircraft(node, True)
-                log_message += " - Aircraft Detected"
-                admin_message += " - Aircraft Detected"
-                user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
-                send_llm_message(interface, user_message, public_channel_number, node['num'])
-      
+        if altitude > 8000:
+            is_high_altitude = True
+ 
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
         log_message += f" - Satellites in View: {sats_in_view}"
@@ -389,13 +377,33 @@ def onReceivePosition(packet, interface):
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
+
+    # Aircraft Detection
+    if is_fast_moving and is_high_altitude:
+        # If the node is fast and high altitude, mark it as aircraft
+        log_message += " - Node is fast moving and high altitude"
         
-    if is_fast_moving or is_aircraft:
-        # If the node is fast moving or an aircraft, send a message to the admin channel
-        logging.info(admin_message)
-        log_message += " - Notifying admin"
-        send_llm_message(interface, admin_message, admin_channel_number, "^all")
-    
+        if db_helper.is_aircraft(node):
+            logging.info(f"Node {node_short_name} is already marked as aircraft. No action taken.")
+        else:
+            logging.info(f"Node {node_short_name} is marked as aircraft due to altitude {altitude}m and ground speed {ground_speed}m/s")
+            db_helper.set_aircraft(node, True)
+            log_message += " - Aircraft Detected"
+            admin_message += " - Aircraft Detected"
+            user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
+            send_llm_message(interface, user_message, public_channel_number, node['num'])
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+    elif not is_fast_moving and not is_high_altitude:
+        # If the node is not fast moving and not high altitude, check if it's marked as aircraft
+        if db_helper.is_aircraft(node):
+            logging.info(f"Node {node_short_name} is marked as aircraft but is not fast moving or high altitude")
+            db_helper.set_aircraft(node, False)
+            log_message += " - Aircraft Unmarked"
+            admin_message += " - Aircraft Unmarked"
+            user_message = f"{node_short_name} Your speed and altitude indicates that you are not an aircraft. I am no longer tracking you as an aircraft. Please confirm."
+            send_llm_message(interface, user_message, public_channel_number, node['num'])
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+
     logging.info(log_message)
     
     return
