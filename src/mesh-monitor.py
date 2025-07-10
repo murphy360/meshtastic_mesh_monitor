@@ -24,6 +24,8 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 localNode = ""
 sitrep = ""
 location = ""
+TCP_SERVER = os.getenv('TCP_SERVER', 'localhost')  # Default to localhost if not set
+TCP_PORT = int(os.getenv('TCP_PORT', 4403))  # Default to 4403 if not set
 connect_timeout = 60 # seconds
 short_name = 'Monitor'  # Overwritten in onConnection
 long_name = 'Mesh Monitor'  # Overwritten in onConnection
@@ -1826,7 +1828,7 @@ heartbeat_counter = 0
 while True:
     try:
         if interface is None:
-            interface = meshtastic.tcp_interface.TCPInterface()
+            interface = meshtastic.tcp_interface.TCPInterface(hostname=TCP_SERVER, port=TCP_PORT)
     except Exception as e:
         logging.error(f"Error connecting to Meshtastic device: {e}")
         interface = None
