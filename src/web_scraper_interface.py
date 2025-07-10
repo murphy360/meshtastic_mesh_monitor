@@ -271,19 +271,14 @@ class WebScraperInterface:
             items = []
             
             if extractor_type == "links":
-                logging.info(f"Using links extractor for website '{website_id}'")
                 items = self._extract_links_and_titles(soup, css_selector)
             elif extractor_type == "twinsburg_links":
-                logging.info(f"Using Twinsburg links extractor for website '{website_id}'")
                 items = self._extract_twinsburg_links(soup)
             elif extractor_type == "rock_the_park_links":
-                logging.info(f"Using Rock the Park links extractor for website '{website_id}'")
                 items = self._extract_rock_the_park_links(soup)
             elif custom_parser:
-                logging.info(f"Using custom parser for website '{website_id}'")
                 items = custom_parser(soup, css_selector)
             else:
-                logging.info(f"Using generic content extraction for website '{website_id}'")
                 # Generic content extraction
                 if css_selector:
                     elements = soup.select(css_selector)
