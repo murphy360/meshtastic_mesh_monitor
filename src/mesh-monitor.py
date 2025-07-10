@@ -317,7 +317,7 @@ def onReceivePosition(packet, interface):
     is_fast_moving = False
     is_high_altitude = False
     admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
-    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
+    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}\n\n"
     location = "Unknown"
 
     if 'decoded' not in packet:
@@ -333,7 +333,6 @@ def onReceivePosition(packet, interface):
         latitude = packet['decoded']['position']['latitude']
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
-        logging.info(log_message)
         location = find_location_by_coordinates(latitude, longitude)
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
@@ -1069,7 +1068,7 @@ def time_since_last_heard(last_heard_time):
         return f"{int(seconds // 31536000)}y"
 
 def find_location_by_coordinates(latitude, longitude):
-    logging.info("Finding location by coordinates")
+    logging.debug("Finding location by coordinates")
     """
     Find the location by latitude and longitude coordinates.
 
@@ -1080,7 +1079,6 @@ def find_location_by_coordinates(latitude, longitude):
     Returns:
         str: The location name, or "Unknown" if the location cannot be determined.
     """
-    logging.info(f"Finding location for coordinates: {latitude}, {longitude}")
     try:
         geolocator = geopy.Nominatim(user_agent="mesh-monitor", timeout=10)
         location = geolocator.reverse((latitude, longitude))
@@ -1899,7 +1897,11 @@ while True:
         logging.error(f"Error in main loop: {e} - Trying to clean up and reconnect")
         
         if interface is not None:
-            interface.close()
+            try:
+                logging.info("Closing interface due to error")
+                interface.close()
+            except Exception as e:
+                logging.error(f"Error closing interface: {e}")
             interface = None
         continue        
             
