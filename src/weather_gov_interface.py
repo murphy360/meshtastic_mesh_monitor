@@ -100,8 +100,6 @@ class WeatherGovInterface:
                 self.forecast_hourly_url = metadata['properties']['forecastHourly']
             if 'observationStations' in metadata['properties']:
                 self.stations_url = metadata['properties']['observationStations']
-
-            logging.info(f"Updated location details: {self.city}, {self.state}")
             
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching location details: {e}")
