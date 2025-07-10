@@ -300,20 +300,11 @@ def onReceivePosition(packet, interface):
         # Ignore packets from local node
         return
     
-    channel = public_channel_number  # Default to public channel
-    if 'channel' in packet:
-        # If the packet contains a channel, use it
-        channel = packet['channel']
-    else: 
-        logging.info("onReceivePosition - No channel specified, using public channel")
-        logging.info(f"Packet: {packet}")
-    
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
     
     node = interface.nodesByNum[from_node_num]
     
-    is_aircraft = False
     is_fast_moving = False
     is_high_altitude = False
     admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
@@ -397,7 +388,6 @@ def onReceivePosition(packet, interface):
             send_llm_message(interface, user_message, public_channel_number, node['num'])
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
     elif not is_fast_moving and not is_high_altitude:
-        logging.info(f"Node {node_short_name} is not fast moving and not high altitude")
         # If the node is not fast moving and not high altitude, check if it's marked as aircraft
         if db_helper.is_aircraft(node):
             logging.info(f"Node {node_short_name} is marked as aircraft but is not fast moving or high altitude")

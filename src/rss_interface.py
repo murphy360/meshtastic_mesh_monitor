@@ -111,13 +111,12 @@ class RSSInterface:
         
         url = self.feeds[feed_id]
         new_items = []
-        is_initial_check = not self.initial_check_complete[feed_id]
         
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()           
             items = self._parse_rss(response.content)
-            logging.info(f"Parsed {len(items)} items from feed '{feed_id}'")
+            logging.debug(f"Parsed {len(items)} items from feed '{feed_id}'")
             current_items = {}
             
             # Process each item and find new ones
@@ -126,7 +125,7 @@ class RSSInterface:
                     item_id = item['guid']
                     current_items[item_id] = item
                     # Add to new_items if not already seen
-                    if item_id not in self.previous_items[feed_id]:
+                    if item_id not in self.previous_items[feed_id] and self.initial_check_complete[feed_id]:
                         new_items.append(item)
                         logging.info(f"Adding: {item}")
             
@@ -135,14 +134,9 @@ class RSSInterface:
             self.last_check_time[feed_id] = datetime.now(timezone.utc)
             
             # Mark initial check as complete
-            if is_initial_check:
+            if not self.initial_check_complete[feed_id]:
                 self.initial_check_complete[feed_id] = True
-                if self.discard_initial_items:
-                    # Discard all Items found on initial check
-                    new_items = []
-                    logging.info(f"Initial check of feed '{feed_id}' complete, discarded initial items, returning {len(new_items)} new items")
-                else:
-                    logging.info(f"Initial check of feed '{feed_id}' complete, found {len(new_items)} items")
+                logging.info(f"Initial check of feed '{feed_id}' complete, discarding {len(items)} existing items") 
             else:
                 logging.info(f"Checked feed '{feed_id}', found {len(new_items)} new items")
             
