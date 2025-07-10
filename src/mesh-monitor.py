@@ -1827,6 +1827,8 @@ heartbeat_counter = 0
 while True:
     try:
         if interface is None:
+
+            logging.info(f"Connecting to Meshtastic device with hostname {TCP_SERVER}")
             interface = meshtastic.tcp_interface.TCPInterface(hostname=TCP_SERVER)
     except Exception as e:
         logging.error(f"Error connecting to Meshtastic device: {e}")
