@@ -4,7 +4,7 @@ import time
 import geopy
 from geopy import distance
 import meshtastic
-import meshtastic.serial_interface
+import meshtastic.tcp_interface
 from meshtastic.protobuf import mesh_pb2, config_pb2, telemetry_pb2
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
@@ -1826,9 +1826,7 @@ heartbeat_counter = 0
 while True:
     try:
         if interface is None:
-            logging.info(f"Connecting to Meshtastic device on {serial_port}")
-            interface = meshtastic.serial_interface.SerialInterface(serial_port)
-            logging.info(f"Connected to Meshtastic device on {serial_port}")
+            interface = meshtastic.tcp_interface.TCPInterface()
     except Exception as e:
         logging.error(f"Error connecting to Meshtastic device: {e}")
         interface = None
