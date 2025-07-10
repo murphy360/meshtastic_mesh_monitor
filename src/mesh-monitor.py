@@ -1536,13 +1536,18 @@ def send_message(interface, message, channel, to_id):
     # Split every message into chunks of no more than 200 characters
     if len(message) > 240:
         message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
+        total_messages = len(message_chunks)
+        logging.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
+        current_chunk = 1
         for chunk in message_chunks:
-            logging.info(f"Sending chunk: {chunk}")
+            logging.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
+            chunk = f"({current_chunk}/{total_messages}) {chunk}"
             try:
                 interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
             except Exception as e:
                 logging.error(f"Error sending chunk: {e}")
                 return
+            current_chunk += 1
     else:
         logging.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
         
