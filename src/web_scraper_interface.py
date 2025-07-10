@@ -161,10 +161,10 @@ class WebScraperInterface:
 				AUGUST 16: Cocktail Johnny			</a>"
                 '''     
                            
-                logging.info(f"Processing link: {link}")
+                logging.debug(f"Processing link: {link}")
                 link_type = "event"
                 date = href.split('/')[-2]
-                logging.info(f"Extracted date: {date} from link: {href}")
+                logging.debug(f"Extracted date: {date} from link: {href}")
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
@@ -254,7 +254,6 @@ class WebScraperInterface:
         custom_parser = config['custom_parser']
         
         new_items = []
-        is_initial_check = not self.initial_check_complete[website_id]
         
         try:
             # Fetch the webpage
@@ -305,8 +304,8 @@ class WebScraperInterface:
                     current_items[item_id] = item
                     #logging.info(f"Checking item: {item_id} on website '{website_id}'")
                     # Check if this is a new item
-                    if item_id not in self.previous_items[website_id]:
-                        #logging.info(f"New item found on website '{website_id}': {item_id}")
+                    if item_id not in self.previous_items[website_id] and self.initial_check_complete[website_id]:
+                        logging.info(f"New item found on website '{website_id}': {item_id}")
                         new_items.append(item)
                 else:
                     logging.warning(f"Item on website '{website_id}' has no ID, skipping: {item}")
@@ -316,13 +315,9 @@ class WebScraperInterface:
             self.last_check_time[website_id] = datetime.now(timezone.utc)
             
             # Mark initial check as complete
-            if is_initial_check:
+            if not self.initial_check_complete[website_id]:
                 self.initial_check_complete[website_id] = True
-                if self.discard_initial_items:
-                    new_items = []
-                    logging.info(f"Initial check of website '{website_id}' complete, discarded initial items, returning {len(new_items)} new items")
-                else:
-                    logging.info(f"Initial check of website '{website_id}' complete, found {len(new_items)} items")
+                logging.info(f"Initial check of website '{website_id}', discarding {len(items)} items")
             else:
                 logging.info(f"Checked website '{website_id}', found {len(new_items)} new items")
             
