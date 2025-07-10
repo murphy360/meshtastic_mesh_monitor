@@ -29,7 +29,7 @@ class WeatherGovInterface:
         self.updated_alerts: Dict[str, Any] = {}    
         self.expired_alerts: Dict[str, Any] = {}  # Store expired alerts from previous run
         self.county = "Unknown County"
-        self.zone = "Unknown Zone"
+        self.zone_url = "Unknown Zone"
         self.city = "Unknown City"
         self.state = "Unknown State"
 
@@ -47,7 +47,7 @@ class WeatherGovInterface:
         """
 
         self.update_location_details(latitude, longitude)
-        cache_key = f"forecast_{self.zone.split('/')[-1]}"
+        cache_key = f"forecast_{self.zone_url.split('/')[-1]}"
         cached_result = self._get_from_cache(cache_key)
         
         if cached_result:
@@ -87,7 +87,7 @@ class WeatherGovInterface:
             metadata = response.json()
 
             if 'forecastZone' in metadata['properties']:
-                self.zone = metadata['properties']['forecastZone']
+                self.zone_url = metadata['properties']['forecastZone']
             if 'city' in metadata['properties']['relativeLocation']['properties']:
                 self.city = metadata['properties']['relativeLocation']['properties']['city']
             if 'state' in metadata['properties']['relativeLocation']['properties']:
@@ -115,29 +115,33 @@ class WeatherGovInterface:
         Returns:
             Dictionary containing alert data
         """   
+        log_message = f"Fetching weather alerts for {latitude}, {longitude}"
         try:
             # First get the county/zone for the location
             self.update_location_details(latitude, longitude)
-            cache_key = f"alerts_{self.zone.split('/')[-1]}"
+            zone = self.zone_url.split('/')[-1]
+            log_message += f" - Zone: {zone}"
             
-            alerts_data = self._get_from_cache(cache_key, max_age_seconds=900)  # 15 minute cache for alerts
+            alerts_data = self._get_from_cache(zone, max_age_seconds=900)  # Use Zone as cache key, 15 minute cache
 
             if not alerts_data:
-                logging.info(f"No cached alerts data for zone {self.zone}, fetching new data")
+                log_message += " - No cached data found, fetching from API"
 
                 # Now get the alerts for this zone
-                alerts_url = f"{self.base_url}/alerts/active?zone={self.zone.split('/')[-1]}"
+                alerts_url = f"{self.base_url}/alerts/active?zone={zone}"
                 response = requests.get(alerts_url, headers=self.headers)
                 response.raise_for_status()
                 alerts_data = response.json()
-                self._add_to_cache(cache_key, alerts_data, expiry_seconds=900)  # 15 minute cache
+                self._add_to_cache(zone, alerts_data, expiry_seconds=900)  # 15 minute cache
             else:
                 # If we have cached data, log it
-                logging.info(f"Using cached alerts data for zone {self.zone} ({latitude}, {longitude})")
+                log_message += " - Using cached alerts data"
 
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching alerts metadata: {e}")
             return {"error": str(e)}
+        
+        logging.info(log_message)
         
         # Now process the alerts data
         try:
