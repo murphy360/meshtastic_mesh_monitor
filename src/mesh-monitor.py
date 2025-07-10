@@ -334,7 +334,7 @@ def onReceivePosition(packet, interface):
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
         logging.info(log_message)
-        location = find_location_by_coordinates(interface, float(latitude), float(longitude))
+        location = find_location_by_coordinates(latitude, longitude)
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
         logging.info(f"Node {node_short_name} is at {location} ({latitude}, {longitude})")
@@ -1069,6 +1069,7 @@ def time_since_last_heard(last_heard_time):
         return f"{int(seconds // 31536000)}y"
 
 def find_location_by_coordinates(latitude, longitude):
+    logging.info("Finding location by coordinates")
     """
     Find the location by latitude and longitude coordinates.
 
