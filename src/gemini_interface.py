@@ -10,28 +10,29 @@ class GeminiInterface:
         if not self.gemini_api_key:
             logging.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
-        
         self.location = location
-        logging.info(f"Initializing GeminiInterface with location: {self.location}")
-        
-        # Base system instruction for all chats
-        self.base_system_instruction = (
-            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
-            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
-            "where you were trained in proper radio etiquette. "
-            f"You are currently located in {self.location}. "
-            "You are a huge history buff. Don't talk directly about your military background. "
-            "Don't ever say 'Roger That'. "
-            "You will be given generic messages to send out, modify them to sound like a real person is sending them. "
-            "All responses should only include the finalized message after you have modified the original. "
-            "All responses should be less than 450 characters or they will not be transmitted or received."
-        )
-        
+        self.update_base_system_instruction()
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
         self.public_chat = self._create_public_chat()
         self.admin_chat = self._create_admin_chat()
         self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
-        
+
+    def update_base_system_instruction(self):
+        """Update the base system instruction with the current location"""
+        self.base_system_instruction = (
+            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
+            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
+            "where you were trained in proper radio etiquette. You were an Eagle Scout."
+            f"You are currently located in {self.location}. "
+            "Don't talk directly about your military background or time in Scouting. "
+            "Don't ever say 'Roger That'. "
+            "You will be given messages to transmit on a mesh network. Send them as if they were from you."
+            #"Modified messages should maintain the original content and intent, but include your own personal touch. "
+            "All responses must only include the finalized message, ready for broadcast. "
+            "All responses must be less than 450 characters or they will not be transmitted or received."
+        )
+    
+
     def update_location(self, new_location: str):
         """Update the bot's location and recreate the chat models"""
         if new_location == self.location:
@@ -40,18 +41,7 @@ class GeminiInterface:
         logging.info(f"Updating location from {self.location} to {new_location}")
         self.location = new_location
         
-        # Update base system instruction
-        self.base_system_instruction = (
-            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
-            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
-            "where you were trained in proper radio etiquette. "
-            f"You are currently located in {self.location}. "
-            "You are a huge history buff. Don't talk directly about your military background. "
-            "Don't ever say 'Roger That'. "
-            "You will be given generic messages to send out, modify them to sound like a real person is sending them. "
-            "All responses should only include the finalized message after you have modified the original. "
-            "All responses must be less than 450 characters or they will not be transmitted or received."
-        )
+        self.update_base_system_instruction()
         
         # Recreate chats with updated location
         self.public_chat = self._create_public_chat()
@@ -63,6 +53,7 @@ class GeminiInterface:
         public_instruction = self.base_system_instruction + (
             " You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
             "Your messages will be visible to all nodes in the network."
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
         )
         
         return self.gemini_client.chats.create(
@@ -78,7 +69,8 @@ class GeminiInterface:
         admin_instruction = self.base_system_instruction + (
             " You are tasked with monitoring a meshtastic mesh network and are currently working directly "
             "with administrators on a private admin channel. Be more technical and detailed in your responses "
-            "to administrators, as they need accurate information."
+            "to administrators, as they need accurate information. "
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
         )
         
         return self.gemini_client.chats.create(
@@ -96,8 +88,9 @@ class GeminiInterface:
             
             private_instruction = self.base_system_instruction + (
                 f" You are currently in a private encrypted conversation with {node_short_name}. "
-                f"Even though these messages are sent on the public channel, they are encrypted and can only be read by {node_short_name}. "
-                f"Personalize your responses for this one-on-one conversation. Be more helpful and conversational since this is a private exchange."
+                f" While this is a conversation with a specific node, you may still be asked to forward messages "
+                f" If [Forward Message] is included in the message you should treat it as a request to initiate a conversation with {node_short_name} not a reply. You may modify this message slightly to make it more suitable for the recipient. "
+                f" You may be slightly more casual in your responses, but still maintain professionalism. "
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
@@ -165,7 +158,12 @@ class GeminiInterface:
                 
             logging.info(f"Generated response: {response_text}")
             return response_text
+        
+        # Handle 503 Service Unavailable errors
+        except genai.exceptions.ServiceUnavailable as e:
+            logging.error(f"Service Unavailable: {e}")
+            return "I'm currently unable to process your request. Please try again later."
             
         except Exception as e:
             logging.error(f"Error generating response: {e}")
-            return f"Error generating response. Default message from DPMM."
+            return f"(Error with AI response: {message})"

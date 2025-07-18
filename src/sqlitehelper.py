@@ -12,6 +12,7 @@ class SQLiteHelper:
         self.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
         self.create_table("packet_database", "key INTEGER PRIMARY KEY, packet_type TEXT, created_at TEXT, updated_at TEXT, from_node TEXT, to_node TEXT, decoded TEXT, channel TEXT")
         self.create_table("position_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node_id TEXT, latitudeI TEXT, longitudeI TEXT, altitude TEXT, time TEXT, latitude TEXT, longitude TEXT")
+        self.create_table("weather_report_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, short_report TEXT, long_report TEXT")
         # TODO Create traceroute table. 
 
     def connect(self):
@@ -118,6 +119,14 @@ class SQLiteHelper:
         now = datetime.datetime.now()
         log_string = ""
 
+        # Check if node shortname or longname has changed
+        if result:
+            existing_shortname = result[3]
+            existing_longname = result[4]
+            if shortname != existing_shortname or longname != existing_longname:
+                logging.info(f"Node {node_id} shortname or longname has changed: {existing_shortname} -> {shortname}, {existing_longname} -> {longname}")
+                
+
         # Node exists, update it
         if result: 
             new = False
@@ -139,6 +148,45 @@ class SQLiteHelper:
         self.conn.commit()
         #logging.info(log_string)
         return new
+    
+    def is_new_node(self, node):
+        """
+        Check if a node is new (not present in the database).
+
+        Args:
+            node (dict): The node data.
+
+        Returns:
+            bool: True if the node is new, False otherwise.
+        """
+        query = "SELECT * FROM node_database WHERE id = ?"
+        cursor = self.conn.execute(query, (node["user"]["id"],))
+        result = cursor.fetchone()
+        if result:
+            return False
+        else:
+            logging.info(f"Node {node['user']['id']} is new and will be added to the database")
+            return True
+    
+    def is_name_change(self, node):
+        """
+        Check if the node's shortname or longname has changed.
+
+        Args:
+            node (dict): The node data.
+
+        Returns:
+            bool: True if the name has changed, False otherwise.
+        """
+        query = "SELECT shortname, longname FROM node_database WHERE id = ?"
+        cursor = self.conn.execute(query, (node["user"]["id"],))
+        result = cursor.fetchone()
+        name_change_list = [False, "", ""]
+        if result:
+            existing_shortname, existing_longname = result
+            if existing_shortname != node["user"]["shortName"] or existing_longname != node["user"]["longName"]:
+                name_change_list = [True, existing_shortname, existing_longname]
+        return name_change_list
    
     def remove_node(self, node):
         """
@@ -269,12 +317,55 @@ class SQLiteHelper:
             query += f" WHERE {condition}"
         cursor = self.conn.execute(query)
         return cursor.fetchall()
+    
+    def write_weather_report(self, long_report, short_report):
+        """
+        Write a weather report to the database.
 
-    def create_node_table(self):
+        Args:
+            short_report (str): The short weather report.
+            long_report (str): The long weather report.
         """
-        Create a table for node database.
+        now = datetime.datetime.now()
+        created_at = now.strftime("%Y-%m-%d %H:%M:%S")
+        updated_at = created_at
+        query = "INSERT INTO weather_report_database (created_at, updated_at, short_report, long_report) VALUES (?, ?, ?, ?)"
+        self.conn.execute(query, (created_at, updated_at, short_report, long_report))
+        self.conn.commit()
+        logging.info(f"Weather report added: {short_report}")
+    
+    def get_last_weather_report(self):
         """
-        self.create_table("node_database", "id INTEGER PRIMARY KEY, shortname TEXT, longname TEXT, status TEXT, battery TEXT, lastseen TEXT, location TEXT, type TEXT, data TEXT, created_at TEXT, updated_at TEXT")
+        Get the last weather report from the database.
+
+        Returns:
+            tuple: The last weather report (created_at, short_report, long_report).
+        """
+        query = "SELECT created_at, short_report, long_report FROM weather_report_database ORDER BY created_at DESC LIMIT 1"
+        cursor = self.conn.execute(query)
+        result = cursor.fetchone()
+        if result:
+            return result
+        else:
+            logging.info("No weather reports found")
+            return None
+    
+    def get_last_weather_report_time(self):
+        """
+        Get the time of the last weather report from the database.
+
+        Returns:
+            str: The time of the last weather report in 'YYYY-MM-DD HH:MM:SS' format.
+        """
+        query = "SELECT created_at FROM weather_report_database ORDER BY created_at DESC LIMIT 1"
+        cursor = self.conn.execute(query)
+        result = cursor.fetchone()
+        if result:
+            logging.info(f"Last weather report time: {result[0]}")
+            return result[0]
+        else:
+            logging.info("No weather reports found")
+            return None
 
     def close(self):
         """

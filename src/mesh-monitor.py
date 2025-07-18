@@ -12,7 +12,8 @@ from sitrep import SITREP
 import logging
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
-from gemini_interface import GeminiInterface # type: ignore
+from gemini_interface import GeminiInterface
+from weather_gov_interface import WeatherGovInterface
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -31,6 +32,13 @@ public_channel_number = 0
 admin_channel_number = 1
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
+# Take the modulo 6 of the current hour to find how many hours back to set initial time
+last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(
+    hours=datetime.now(timezone.utc).hour % 6, 
+    minutes=datetime.now(timezone.utc).minute, 
+    seconds=datetime.now(timezone.utc).second, 
+    microseconds=datetime.now(timezone.utc).microsecond
+)  # Initialize last forecast sent time to delay the first forecast
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
@@ -39,6 +47,14 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 
 # Initialize Gemini interface
 gemini_interface = GeminiInterface()
+
+# Initialize weather interface
+weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
+
+# Add these global variables at the beginning of the file, with the other globals
+last_alert_check_time = datetime.now(timezone.utc)
+alert_check_interval = timedelta(minutes=1)  # Check for alerts every minute
+previous_alerts = None  # Store previous alerts to detect changes
 
 logging.info("Starting Mesh Monitor")
 
@@ -49,37 +65,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     Args:
         interface: The interface object representing the connection.
         topic: The topic of the connection (default: pub.AUTO_TOPIC).
-
- {
- 'num': 667704512, 
- 'user': {
- 'id': '!27cc5cc0', 
- 'longName': "Don't Panic Mesh Monitor", 
- 'shortName': 'DPMM', 
- 'macaddr': 'PIQnzFzA', 
- 'hwModel': 'T_DECK', 
- 'publicKey': 'QIx3ZIxRAdAt1Z0zWiP+89X4rlXtR9tvLrH2ZAMcehI='
- }, 
- 'position': {
- 'latitudeI': 413318362, 'longitudeI': -814774529, 'altitude': 340, 
- 'locationSource': 'LOC_MANUAL', 'groundSpeed': 0, 'groundTrack': 0, 'precisionBits': 32, 
- 'raw': 
-latitude_i: 413318362
-longitude_i: -814774529
-altitude: 340
-location_source: LOC_MANUAL
-ground_speed: 0
-ground_track: 0
-precision_bits: 32
-, 'latitude': 41.3318362, 'longitude': -81.4774529}, 
-'snr': 5.75, 
-'deviceMetrics': {
-'batteryLevel': 101, 
-'voltage': 5.102, 
-'channelUtilization': 3.9433334, 
-'airUtilTx': 0.09419444, 
-'uptimeSeconds': 186}, 
-'isFavorite': True}
 
     """
     logging.info("Connection established")
@@ -201,7 +186,7 @@ def onReceiveText(packet, interface):
             reply_to_message(interface, message_string, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
-    logging.info(f"[FUNCTION] onReceivePosition")
+    #logging.info(f"[FUNCTION] onReceivePosition")
     '''
     {'from': 3518183533, 'to': 4294967295, 'channel': 1, 
     'decoded': 
@@ -262,6 +247,8 @@ def onReceivePosition(packet, interface):
     
     localNode = interface.getNode('^local')
     from_node_num = packet['from']
+    altitude = 0
+    ground_speed = 0
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
@@ -311,19 +298,31 @@ def onReceivePosition(packet, interface):
         if location_source == 'LOC_MANUAL':
             logging.info(log_message)
             return
+    
+    if 'groundSpeed' in packet['decoded']['position']:
+        ground_speed = packet['decoded']['position']['groundSpeed']
+        log_message += f" - Ground Speed: {ground_speed} m/s"
+        admin_message += f" Ground Speed: {ground_speed} m/s"
+        if ground_speed > 50:
+            is_fast_moving = True
 
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude}m"
         admin_message += f" Altitude: {altitude}m"
-        if altitude > 900:
-            # If altitude is greater than 900m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
-            is_aircraft = True
-            set_aircraft(interface, channel, node['num'], True)
-            log_message += " - Aircraft Detected"
-            admin_message += " - Aircraft Detected"
-            user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location}. Please Confirm."
-            send_llm_message(interface, user_message, public_channel_number, '^all')
+        if altitude > 1000:
+            # If altitude is greater than 1000m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
+            
+            if db_helper.is_aircraft(node):
+                logging.info(f"Node {node_short_name} is already marked as aircraft")
+            else:
+                logging.info(f"Node {node_short_name} is marked as aircraft due to altitude {altitude}m")
+                is_aircraft = True
+                db_helper.set_aircraft(node, True)
+                log_message += " - Aircraft Detected"
+                admin_message += " - Aircraft Detected"
+                user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
+                send_llm_message(interface, user_message, public_channel_number, node['num'])
       
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
@@ -342,13 +341,6 @@ def onReceivePosition(packet, interface):
         time_str = datetime.fromtimestamp(time, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         log_message += f" - Time: {time_str}"
 
-    if 'groundSpeed' in packet['decoded']['position']:
-        ground_speed = packet['decoded']['position']['groundSpeed']
-        log_message += f" - Ground Speed: {ground_speed} m/s"
-        admin_message += f" Ground Speed: {ground_speed} m/s"
-        if ground_speed > 11:
-            is_fast_moving = True
-
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
@@ -364,7 +356,7 @@ def onReceivePosition(packet, interface):
     return
 
 def onReceiveData(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveData")
+    #logging.info(f"[FUNCTION] onReceiveData")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -377,7 +369,7 @@ def onReceiveData(packet, interface):
     logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
 def onReceiveUser(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveUser")
+    #logging.info(f"[FUNCTION] onReceiveUser")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -390,7 +382,7 @@ def onReceiveUser(packet, interface):
     logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
 
 def onReceiveTelemetry(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveTelemetry")
+    #logging.info(f"[FUNCTION] onReceiveTelemetry")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -403,7 +395,7 @@ def onReceiveTelemetry(packet, interface):
     logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
 
 def onReceiveNeighborInfo(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveNeighborInfo")
+    #logging.info(f"[FUNCTION] onReceiveNeighborInfo")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -421,7 +413,7 @@ def onReceiveNeighborInfo(packet, interface):
     return
 
 def onReceiveTraceRoute(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveTraceroute")
+    #logging.info(f"[FUNCTION] onReceiveTraceroute")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -536,7 +528,7 @@ def onReceiveTraceRoute(packet, interface):
     return
 
 def onReceiveWaypoint(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveWaypoint")
+    #logging.info(f"[FUNCTION] onReceiveWaypoint")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -598,7 +590,7 @@ def onReceiveWaypoint(packet, interface):
         send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", admin_channel_number, "^all")
 
 def onReceiveNodeInfo(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveNodeInfo")
+    #logging.info(f"[FUNCTION] onReceiveNodeInfo")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -613,7 +605,7 @@ def onReceiveNodeInfo(packet, interface):
     return
 
 def onReceiveRouting(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveRouting")
+    #logging.info(f"[FUNCTION] onReceiveRouting")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = interface.nodesByNum[from_node_num]
@@ -631,7 +623,7 @@ def onReceiveRouting(packet, interface):
     return
 
 def onReceiveRangeTest(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveRangeTest")
+    #logging.info(f"[FUNCTION] onReceiveRangeTest")
     '''
     {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': 
         {
@@ -675,7 +667,7 @@ def onReceiveRangeTest(packet, interface):
     return
 
 def onReceive(packet, interface):
-    logging.info(f"[FUNCTION] onReceive")
+    #logging.info(f"[FUNCTION] onReceive")
     """
     Handles incoming packets not specifically handled by other functions.
 
@@ -717,18 +709,33 @@ def onReceive(packet, interface):
         if "hopsAway" in node:
             log_message += f" - Hops Away: {node['hopsAway']}"
         
+
         # Check if the node is already in the database
-        new_node = db_helper.add_or_update_node(node) 
+        new_node = db_helper.is_new_node(node)
               
         if new_node:
             #send_node_info(interface) TODO Re-enable this when we have a way to send node info correctly. 
             log_message += f" - New Node Detected"
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
+            admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
             notify_admin = True 
+        else:
+            name_change_list = db_helper.is_name_change(node)
+            if name_change_list[0] == True:
+                log_message += f" - Node Name Changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}"
+                
+                private_message = f"[Forward Message. You are initiating this conversation. It is not a response.] Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
+                send_llm_message(interface, private_message, public_channel_number, from_node_num)
+                
+                admin_message = f"Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
+                send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                notify_admin = True
+
+        db_helper.add_or_update_node(node)
 
         # Check if the node is a node of interest
-        #logging.info(f"Checking if node {node_short_name} is a node of interest")
         node_of_interest = db_helper.is_node_of_interest(node)
         if node_of_interest:
             log_message += f" - Node of Interest"
@@ -743,6 +750,8 @@ def onReceive(packet, interface):
             if portnum not in portnums_handled:
                 log_message += f" - Unhandled Portnum"
                 notify_admin = True
+                admin_message = f"Unhandled Portnum: {portnum} from {node_short_name} - {node_long_name} ({from_node_num})"
+                send_llm_message(interface, admin_message, admin_channel_number, "^all")
 
             sitrep.log_packet_received(portnum)
 
@@ -754,7 +763,8 @@ def onReceive(packet, interface):
 
         if notify_admin:
             # Notify admin if required
-            send_llm_message(interface, log_message, admin_channel_number, "^all")
+            log_message += f" Reported this to the admin: {log_message}"
+            #send_llm_message(interface, log_message, admin_channel_number, "^all")
        
     except KeyError as e:
         logging.error(f"Error processing packet from {packet['from']}: {e}")
@@ -885,6 +895,7 @@ def lookup_short_name(interface, node_num):
     Returns:
         str: The short name of the node.
     """
+    #logging.info(f"Looking up short name for node number {node_num}")
     for n in interface.nodes.values():
         if n["num"] == node_num:
             return n["user"]["shortName"]
@@ -1008,6 +1019,7 @@ def find_location_by_node_num(interface, node_num):
     Returns:
         str: The location of the local node, or "Unknown" if the location cannot be determined.
     """
+    logging.info(f"Finding location for node number {node_num}")
     nodeLat, nodeLon = None, None
     for node in interface.nodes.values():
         if node["num"] == node_num:
@@ -1055,19 +1067,19 @@ def reply_to_message(interface, message, channel, to_id, from_id):
     message = message.lower()
     logging.info(f"Replying to message: {message}")
     from_node = interface.nodesByNum[from_id]
-    local_node = interface.getNode('^local')
+    local_node = interface.nodesByNum[interface.getNode('^local').nodeNum]
     #logging.info(f"From Node: {from_node}")
 
     if message == "ping":
-        node_short_name = lookup_short_name(interface, from_id)
-        local_node_short_name = lookup_short_name(interface, localNode.nodeNum)
-        location = find_location_by_node_num(interface, localNode.nodeNum)
-        distance = find_distance_between_nodes(interface, from_node['num'], localNode.nodeNum)
+        logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
+        location = find_location_by_node_num(interface, local_node['num'])
+        distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
+
         if distance != "Unknown":
             distance = round(distance, 2)
-            send_llm_message(interface, f"{node_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+            send_llm_message(interface, f"[Don't change this message too much. I like the format] {from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}. Distance: {distance} miles", channel, to_id)
         elif location != "Unknown":
-            send_llm_message(interface, f"{node_short_name} this is {local_node_short_name}, Pong from {location}", channel, to_id)
+            send_llm_message(interface, f"[Don't change this message too much. I like the format] {from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}", channel, to_id)
         else:
             send_llm_message(interface, "Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
@@ -1077,6 +1089,44 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         sitrep.update_sitrep(interface)
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
+        return
+
+    elif message == "get forecast" or message == "getforecast" or message == "forecast":
+        logging.info(f"Processing weather forecast request from {from_node['user']['shortName']} - {from_node['num']}")
+        
+        try:
+            # Setup variables for location
+            wx_lat, wx_lon = None, None
+            
+            # First try to get the location of the requesting node
+            if 'position' in from_node and 'latitude' in from_node['position'] and 'longitude' in from_node['position']:
+                logging.info(f"Requesting node has position data: {from_node['position']}")
+                wx_lat = from_node['position']['latitude']
+                wx_lon = from_node['position']['longitude']
+            # If the requesting node does not have position data, try to use the local node's position
+            elif 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
+                logging.info(f"Requesting node does not have position data, using local node's position")
+                wx_lat = local_node['position']['latitude']
+                wx_lon = local_node['position']['longitude']
+            # If neither node has position data, we cannot get a forecast
+            else:
+                logging.error("Requesting node nor Local node have position data, cannot get forecast")
+                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+                admin_message = f"Weather forecast request from {from_node['user']['shortName']} - {from_node['num']} failed due to missing position data for both requesting and local nodes."
+                send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                return
+            
+            # If we have coordinates, get and send the forecast
+            if wx_lat is not None and wx_lon is not None:
+                send_weather_forecast(interface, wx_lat, wx_lon, from_node['user']['shortName'], from_node['user']['longName'], channel)
+                sitrep.log_message_sent("weather-forecast-requested")
+            else:
+                logging.error("No valid coordinates found for weather forecast")
+                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+        
+        except Exception as e:
+            logging.error(f"Error getting weather forecast: {e}")
+            send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
         return
 
     elif "set node of interest" in message or "setnoi" in message:
@@ -1173,7 +1223,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            set_aircraft(interface, channel, node['num'], True)
+            db_helper.set_aircraft(node, True)
+            send_llm_message(interface, f"Node {node_short_name} is now set as an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-set")
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -1183,7 +1235,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            set_aircraft(interface, channel, node['num'], False)
+            db_helper.set_aircraft(node, False)
+            send_llm_message(interface, f"Node {node_short_name} is no longer set as an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-removed")
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
@@ -1272,26 +1326,6 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
         
     logging.info(f"leaving send_trace_route")
 
-def set_aircraft(interface, channel, node_num, is_aircraft=True):
-    """
-    Set a node as an aircraft or remove it from the aircraft list.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        channel (int): The channel to send the message to.
-        node_num (int): The number of the node to set as an aircraft.
-        is_aircraft (bool): Whether to set the node as an aircraft or remove it.
-    """
-    logging.info(f"Setting node {node_num} as {'aircraft' if is_aircraft else 'not aircraft'}")
-    node = interface.nodesByNum.get(node_num)
-    if not node:
-        logging.error(f"Node {node_num} not found in the mesh network.")
-        return
-
-    db_helper.set_aircraft(node, is_aircraft)
-    action = "set" if is_aircraft else "removed"
-    send_llm_message(interface, f"Node {node['user']['shortName']} has been {action} as an aircraft.", channel, "^all")
-
 def send_llm_message(interface, message, channel, to_id):
     """
     Send a message to the LLM and receive a response.
@@ -1305,21 +1339,26 @@ def send_llm_message(interface, message, channel, to_id):
     try:
         # Get node short name if to_id is not "^all"
         node_short_name = None
-        if to_id != "^all" and not to_id.startswith("^"):
+        response_text = "No response generated by the AI model."
+
+        # if to_id is "^all", we will send the message to all nodes (if it's an int, we will send it to that node)
+        if isinstance(to_id, int):
             try:
                 node = interface.nodesByNum[to_id]
                 node_short_name = node['user']['shortName']
+                response_text = gemini_interface.generate_response(message, channel, node_short_name)
             except:
                 logging.warning(f"Could not get short name for node {to_id}")
-        
-        # Generate response using Gemini interface
-        response_text = gemini_interface.generate_response(message, channel)
+        else:
+            logging.info(f"Sending message to all nodes: {message}")
+            # Generate response using Gemini interface
+            response_text = gemini_interface.generate_response(message, channel)
         
         if response_text:
             message = response_text
             logging.info(f"Generated response: {message}")
         else:
-            logging.error("No response generated by the AI model.")
+            logging.error("No response generated by the AI model. Sending original message.")
         
         send_message(interface, message, channel, to_id)
             
@@ -1351,7 +1390,13 @@ def send_message(interface, message, channel, to_id):
         
         try:
             interface.sendText(message, channelIndex=channel, destinationId=to_id)
+        
+
         except Exception as e:
+            if e == "Data payload too big":
+                logging.error("Message too long to send. Please shorten the message.")
+                send_llm_message(interface, f"[Message too long to send. Please shorten to less than 400 characters] {message}.", channel, to_id)
+                return
             logging.error(f"Error sending message: {e}")
             return
         node_name = to_id
@@ -1433,8 +1478,149 @@ def send_node_info(interface, node_num):
         send_llm_message(interface, f"Error sending node info to node {node_num}: {e}", admin_channel_number, "^all")
         return
     
-    
+def send_weather_forecast_if_needed(interface, channel):
+    """
+    Check if a weather forecast needs to be sent and send it if necessary.
 
+    Args:
+        interface: The interface to interact with the mesh network.
+        latitude (float): The latitude of the location.
+        longitude (float): The longitude of the location.
+        node_short_name (str): The short name of the node to send the forecast to.
+        node_long_name (str): The long name of the node to send the forecast to.
+        channel (int): The channel to send the message to.
+    """
+    global last_forecast_sent_time
+    
+    # Get local node's position for weather forecast
+    local_node_info = interface.getMyNodeInfo()
+    if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
+        logging.debug("Can't send forecast: Local node has no position information")
+        return
+    wx_lat = local_node_info['position']['latitude']
+    wx_lon = local_node_info['position']['longitude']
+    node_short_name = local_node_info['user']['shortName']
+    node_long_name = local_node_info['user']['longName']
+    # Check if we have already sent a forecast recently
+    now = datetime.now(timezone.utc)
+    if now - last_forecast_sent_time < timedelta(minutes=360): # 6 hours
+        #logging.info("Weather forecast already sent recently, skipping.")
+        return
+    
+    # Update last forecast sent time
+    last_forecast_sent_time = now
+    
+    # Send the weather forecast
+    logging.info(f"Sending weather forecast for {node_short_name} ({node_long_name}) at {wx_lat}, {wx_lon}")
+    try:
+        send_weather_forecast(interface, wx_lat, wx_lon, node_short_name, node_long_name, channel)
+        logging.info("Weather forecast sent successfully.")
+    except Exception as e:
+        logging.error(f"Error sending weather forecast: {e}")
+    
+def send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, channel):
+    """
+    Send a weather forecast for a specified node.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        latitude (float): The latitude of the location.
+        longitude (float): The longitude of the location.
+        node_short_name (str): The short name of the node to send the forecast to.
+        node_long_name (str): The long name of the node to send the forecast to.
+        channel (int): The channel to send the message to.
+    """
+    try:
+        
+        forecast_text = weather_interface.get_forecast_string(latitude, longitude)
+        
+        if not forecast_text:
+            logging.error("No forecast data available.")
+            return
+        
+        message = f"Weather forecast for {node_short_name} ({node_long_name}) in :\n\n{forecast_text}"
+        
+        #db_helper.write_weather_report(forecast_data, forecast_text)
+        
+        send_llm_message(interface, message, channel, "^all")
+        
+    except Exception as e:
+        logging.error(f"Error sending weather forecast: {e}")
+
+def send_weather_alerts_if_needed(interface, channel):
+    """
+    Check for weather alerts at the local node's location and broadcast any new alerts.
+    
+    Args:
+        interface: The interface to interact with the mesh network.
+    """
+    logging.info("Checking for weather alerts")
+    try:
+        # Get local node's position for weather alerts
+        local_node_info = interface.getMyNodeInfo()
+        
+        if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
+            logging.debug("Can't check for alerts: Local node has no position information")
+            return
+            
+        wx_lat = local_node_info['position']['latitude']
+        wx_lon = local_node_info['position']['longitude']
+        
+        # Update weather alerts
+        weather_interface.update_alerts(wx_lat, wx_lon)
+
+        # Check for expired alerts first
+        expired_alerts = weather_interface.get_expired_alerts()
+        if expired_alerts is not None and len(expired_alerts) > 0:
+            logging.info(f"Found {len(expired_alerts)} expired weather alerts")
+            
+            expired_message = f"The following weather alerts are no longer active:\n"
+            for alert_id, alert_data in expired_alerts.items():
+                expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
+
+            # Send to specified channel
+            send_llm_message(interface, expired_message, channel, "^all")
+            sitrep.log_message_sent("weather-alert-expired")
+
+
+        # Check for updated alerts
+        updated_alerts = weather_interface.get_updated_alerts()
+        if updated_alerts is not None and len(updated_alerts) > 0:
+            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
+            
+            for alert_id, alert_data in updated_alerts.items():
+                alert_message = f"⚠️ UPDATED WEATHER ALERT ⚠️\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
+                sitrep.log_message_sent("weather-alert-updated")
+
+        # Check for new alerts
+        new_alerts = weather_interface.get_new_alerts()
+        if new_alerts is not None and len(new_alerts) > 0:
+            logging.info(f"Found {len(new_alerts)} new weather alerts")
+            logging.info(f"{new_alerts}")
+            
+            for alert_id, alert_data in new_alerts.items():
+                alert_message = f"⚠️ NEW WEATHER ALERT ⚠️\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
+                sitrep.log_message_sent("weather-alert-new")
+        
+        weather_interface.clear_alerts()  # Clear alerts after processing
+
+    except Exception as e:
+        logging.error(f"Error checking for weather alerts: {e}")
+    
 
 # Main loop
 logging.info("Starting Main Loop")
@@ -1476,9 +1662,9 @@ while True:
     try:
         
         node_info = interface.getMyNodeInfo()
-        interface.sendHeartbeat()
-        
+
         # Increment heartbeat counter
+        interface.sendHeartbeat()
         heartbeat_counter += 1
         
         # Check if heartbeat counter has reached the threshold
@@ -1490,6 +1676,12 @@ while True:
             heartbeat_counter = 0  # Reset after sending the warning
             continue  # Skip the rest of the loop and try to reconnect
     
+        # Check for weather alerts
+        send_weather_alerts_if_needed(interface, public_channel_number)
+
+        # Check if we need to send a weather forecast
+        send_weather_forecast_if_needed(interface, public_channel_number)
+        
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
 
@@ -1506,6 +1698,7 @@ while True:
             Public Key: {node_info['user']['publicKey']}\n \
             Connection Timeout: {connect_timeout}\n      \
             Heartbeat Counter: {heartbeat_counter}\n      \
+            Last Weather Forecast Sent: {last_forecast_sent_time}\n      \
         **************************************************************\n    \
         **************************************************************\n\n ")
 

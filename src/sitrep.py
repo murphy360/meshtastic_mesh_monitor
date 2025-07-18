@@ -390,7 +390,7 @@ class SITREP:
                     if "altitude" in node["position"]:
                         altitude = node["position"]["altitude"]
                     if "precisionBits" in node["position"]:
-                        logging.info(f"Node {node['user']['shortName']} has precisionBits: {node['position']['precisionBits']}")
+                        #logging.info(f"Node {node['user']['shortName']} has precisionBits: {node['position']['precisionBits']}")
                         precision_bits = node["position"]["precisionBits"]
                 
                 if "lastHeard" in node:
