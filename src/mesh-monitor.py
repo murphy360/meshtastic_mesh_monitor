@@ -1572,7 +1572,7 @@ def send_message(interface, message, channel, to_id):
             node_name = lookup_short_name(interface, to_id)
         logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
-def send_thumbs_up_reply(interface, reply_to_id, original_message_id):
+def send_thumbs_up_reply(interface, destination_id, original_message_id):
     """
     Send a thumbs up reaction to a message.
 
@@ -1581,7 +1581,7 @@ def send_thumbs_up_reply(interface, reply_to_id, original_message_id):
         reply_to_id (int): The ID of the recipient node.
         original_message_id (str, optional): The ID of the original message to react to. Defaults to None.
     """
-    logging.info(f"Sending thumbs up to node {reply_to_id} with original message ID {original_message_id}")
+    logging.info(f"Sending thumbs up to node {destination_id} with original message ID {original_message_id}")
     try:
         
         
@@ -1591,16 +1591,17 @@ def send_thumbs_up_reply(interface, reply_to_id, original_message_id):
         data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
         # Set the payload to the thumbs up emoji encoded as bytes
         data_message.payload = "👍".encode('utf-8') # Encode the emoji as bytes
+        data_message.emoji = True # This flag indicates that this is an emoji reaction
+        data_message.reply_id = original_message_id # Set the reply ID to the original message ID
 
         # Send the Data message as a reply/reaction
         # The 'parentMessageId' is crucial for it to appear as a reaction in the mobile app.
         # The 'destinationId' should be the sender of the original message.
         # The 'wantAck' flag requests an acknowledgment from the recipient.
-        print(f"Sending 👍 reaction (via sendData proto) to node {reply_to_id} for message ID {original_message_id}...")
+        print(f"Sending 👍 reaction (via sendData proto) to node {destination_id} for message ID {original_message_id}...")
         interface.sendData(
             data_message,
-            destinationId=reply_to_id,
-            replyId=original_message_id,
+            destinationId=destination_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
         logging.info("Thumbs up sent successfully")
