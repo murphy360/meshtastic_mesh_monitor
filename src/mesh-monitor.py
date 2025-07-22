@@ -1584,7 +1584,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         reply_to_id (int): The ID of the recipient node.
         original_message_id (str, optional): The ID of the original message to react to. Defaults to None.
     """
-    logging.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
+    logging.info(f"Sending thumbs up to node {from_id} with original message ID {original_message_id}")
     try:
         
         
@@ -1602,11 +1602,11 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         # The 'parentMessageId' is crucial for it to appear as a reaction in the mobile app.
         # The 'destinationId' should be the sender of the original message.
         # The 'wantAck' flag requests an acknowledgment from the recipient.
-        print(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
+        print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
         interface.sendData(
             data_message,
             portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
-            destinationId=to_id,
+            destinationId=from_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
         
