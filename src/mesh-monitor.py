@@ -1593,8 +1593,8 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         # Set the port number to TEXT_MESSAGE_APP for text messages
         data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
         # Set the payload to the thumbs up emoji
-        data_message.payload = "Got it".encode('utf-8')
-        data_message.emoji = False # This flag indicates that this is an emoji reaction
+        data_message.payload = "👍"
+        data_message.emoji = True # This flag indicates that this is an emoji reaction
         data_message.reply_id = original_message_id # Set the reply ID to the original message ID
         data_message.bitfield = 0 # Set the bitfield to 0, as we are not using any special flags here
 
@@ -1605,7 +1605,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
         logging.info(data_message)
         sent_packet = interface.sendData(
-            data_message,
+            data_message.encode('utf-8'),
             channelIndex=channel,
             portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
             destinationId=to_id,
