@@ -1604,17 +1604,11 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         # The 'wantAck' flag requests an acknowledgment from the recipient.
         print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
         logging.info(data_message)
-        mesh_packet = mesh_pb2.MeshPacket()
-        mesh_packet.channel = channel
-        mesh_packet.decoded = data_message
-        mesh_packet.id = interface.generatePacketId()
-        mesh_packet.priority = meshtastic.packet_pb2.MeshPacket.Priority.Value("RELIABLE")
-        
-        sent_packet = interface._sendPacket(
-            mesh_packet,
+        sent_packet = interface.sendData(
+            data_message,
+            channelIndex=channel,
+            portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
             destinationId=to_id,
-            hop_limit=3, # Set hop limit to 3 for the reaction
-            
             wantAck=False # Request an acknowledgment for the reaction
         )
 
