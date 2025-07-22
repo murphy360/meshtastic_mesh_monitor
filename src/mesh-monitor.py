@@ -1600,6 +1600,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
             emoji=True,
             reply_id=original_message_id,
             bitfield=0,
+            source= interface.localNode.nodeNum,
             payload="👍".encode('utf-8')
         )      
 
