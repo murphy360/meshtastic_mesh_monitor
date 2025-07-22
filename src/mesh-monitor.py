@@ -1588,14 +1588,16 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
     """
     logging.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
     try:
-
+        encoded_string = "👍".encode()
+        logging.info(f"Encoded thumbs up: {encoded_string}")
         # Create a Data message protobuf for the reaction
         data_message = mesh_pb2.Data(
             #portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
             emoji=True,
             reply_id=original_message_id,
             bitfield=0,
-            payload="\360\237\221\215".encode('utf-8')  # Unicode for thumbs up emoji
+            # encode payload as bytes
+            payload=encoded_string
         )
 
         logging.info(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
