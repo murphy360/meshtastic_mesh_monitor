@@ -213,6 +213,7 @@ def onReceiveText(packet, interface):
         bitfield = packet['decoded']['bitfield']
         message_bytes = packet['decoded']['payload']
         message_string = message_bytes.decode('utf-8')
+        message_id = packet['id']
         logging.info(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
     else:
         logging.info(f"Packet does not contain decoded data")
@@ -226,10 +227,10 @@ def onReceiveText(packet, interface):
         elif 'channel' in packet: # Message sent to a channel
             logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
             channelId = int(packet['channel'])
-            reply_to_message(interface, message_string, channelId, "^all", from_node_num)
+            reply_to_message(interface, message_string, message_id, channelId, "^all", from_node_num)
         elif packet['toId'] == "^all": # Message sent to all nodes
             logging.info(f"Message broadcast to all nodes from {packet['from']}")
-            reply_to_message(interface, message_string, 0, "^all", from_node_num)
+            reply_to_message(interface, message_string, message_id, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
     #logging.info(f"[FUNCTION] onReceivePosition")
@@ -1128,7 +1129,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
     send_message(interface, response_text, channel, from_id)
     
     
-def reply_to_message(interface, message, channel, to_id, from_id):
+def reply_to_message(interface, message, message_id, channel, to_id, from_id):
     """
     Reply to a received message.
 
@@ -1149,6 +1150,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
         location = find_location_by_node_num(interface, local_node['num'])
         distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
+        send_thumbs_up_reply(interface, from_id, message_id)
 
         if distance != "Unknown":
             distance = round(distance, 2)
@@ -1569,6 +1571,41 @@ def send_message(interface, message, channel, to_id):
         if to_id != "^all":
             node_name = lookup_short_name(interface, to_id)
         logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
+
+def send_thumbs_up_reply(interface, reply_to_id, original_message_id):
+    """
+    Send a thumbs up reaction to a message.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        reply_to_id (int): The ID of the recipient node.
+        original_message_id (str, optional): The ID of the original message to react to. Defaults to None.
+    """
+    logging.info(f"Sending thumbs up to node {reply_to_id} with original message ID {original_message_id}")
+    try:
+        
+        
+        # Create a Data message protobuf for the reaction
+        data_message = mesh_pb2.Data()
+        # Set the port number to TEXT_MESSAGE_APP for text messages
+        data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
+        # Set the payload to the thumbs up emoji encoded as bytes
+        data_message.payload = "👍".encode('utf-8') # Encode the emoji as bytes
+
+        # Send the Data message as a reply/reaction
+        # The 'parentMessageId' is crucial for it to appear as a reaction in the mobile app.
+        # The 'destinationId' should be the sender of the original message.
+        # The 'wantAck' flag requests an acknowledgment from the recipient.
+        print(f"Sending 👍 reaction (via sendData proto) to node {reply_to_id} for message ID {original_message_id}...")
+        interface.sendData(
+            data_message,
+            destinationId=reply_to_id,
+            parentMessageId=original_message_id,
+            wantAck=False # Request an acknowledgment for the reaction
+        )
+        logging.info("Thumbs up sent successfully")
+    except Exception as e:
+        logging.error(f"Error sending thumbs up: {e}")
 
 def send_telemetry_request(interface, node_num):
     """
