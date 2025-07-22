@@ -1605,7 +1605,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
         logging.info(data_message)
         mesh_packet = mesh_pb2.MeshPacket()
-        mesh_packet.channelIndex = channel
+        mesh_packet.channel = channel
         mesh_packet.decoded = data_message
         mesh_packet.id = interface.generatePacketId()
         mesh_packet.priority = meshtastic.packet_pb2.MeshPacket.Priority.Value("RELIABLE")
