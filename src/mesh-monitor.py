@@ -1150,7 +1150,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
         location = find_location_by_node_num(interface, local_node['num'])
         distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
-        send_thumbs_up_reply(interface, from_id, message_id)
+        send_thumbs_up_reply(interface, channel, message_id)
 
         if distance != "Unknown":
             distance = round(distance, 2)
@@ -1604,6 +1604,7 @@ def send_thumbs_up_reply(interface, destination_id, original_message_id):
             destinationId=destination_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
+        
         logging.info("Thumbs up sent successfully")
     except Exception as e:
         logging.error(f"Error sending thumbs up: {e}")
