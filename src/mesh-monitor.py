@@ -1153,7 +1153,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
         location = find_location_by_node_num(interface, local_node['num'])
         distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
-        send_thumbs_up_reply(interface, channel, message_id)
+        send_thumbs_up_reply(interface, channel, message_id, to_id, from_id)
 
         if distance != "Unknown":
             distance = round(distance, 2)
@@ -1575,7 +1575,7 @@ def send_message(interface, message, channel, to_id):
             node_name = lookup_short_name(interface, to_id)
         logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
-def send_thumbs_up_reply(interface, destination_id, original_message_id):
+def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id):
     """
     Send a thumbs up reaction to a message.
 
@@ -1584,27 +1584,29 @@ def send_thumbs_up_reply(interface, destination_id, original_message_id):
         reply_to_id (int): The ID of the recipient node.
         original_message_id (str, optional): The ID of the original message to react to. Defaults to None.
     """
-    logging.info(f"Sending thumbs up to node {destination_id} with original message ID {original_message_id}")
+    logging.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
     try:
         
         
         # Create a Data message protobuf for the reaction
         data_message = mesh_pb2.Data()
         # Set the port number to TEXT_MESSAGE_APP for text messages
-        data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
+        #data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
         # Set the payload to the thumbs up emoji encoded as bytes
         data_message.payload = "👍".encode('utf-8') # Encode the emoji as bytes
         data_message.emoji = True # This flag indicates that this is an emoji reaction
         data_message.reply_id = original_message_id # Set the reply ID to the original message ID
+        data_message.bitfield = 0 # Set the bitfield to 0, as we are not using any special flags here
 
         # Send the Data message as a reply/reaction
         # The 'parentMessageId' is crucial for it to appear as a reaction in the mobile app.
         # The 'destinationId' should be the sender of the original message.
         # The 'wantAck' flag requests an acknowledgment from the recipient.
-        print(f"Sending 👍 reaction (via sendData proto) to node {destination_id} for message ID {original_message_id}...")
+        print(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
         interface.sendData(
             data_message,
-            destinationId=destination_id,
+            portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            destinationId=to_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
         
