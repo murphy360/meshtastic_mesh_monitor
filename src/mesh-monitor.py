@@ -219,6 +219,9 @@ def onReceiveText(packet, interface):
         logging.info(f"Packet does not contain decoded data")
         return
 
+    if message_string == "👍":
+        logging.info(packet)
+
     if 'toId' in packet:
         to_id = packet['to']
         if to_id == localNode.nodeNum: # Message sent directly to local node
