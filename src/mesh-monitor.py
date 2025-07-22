@@ -1152,9 +1152,10 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
 
     if message == "ping":
         logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
+        send_thumbs_up_reply(interface, channel, message_id, to_id)
         location = find_location_by_node_num(interface, local_node['num'])
         distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
-        send_thumbs_up_reply(interface, channel, message_id, to_id)
+        
 
         if distance != "Unknown":
             distance = round(distance, 2)
@@ -1587,6 +1588,10 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
         to_id (str): The ID of the recipient. 'all' for all nodes, or a specific node ID.
     """
     logging.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
+
+    send_message(interface, "👍", channel, to_id)
+
+    '''
     try:
         encoded_string = "👍".encode()
         logging.info(f"Encoded thumbs up: {encoded_string}")
@@ -1611,16 +1616,10 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
             wantAck=False # Don't request an acknowledgment for the reaction
         )
 
-        interface.sendText(
-            "👍",
-            channelIndex=channel,
-            destinationId=to_id,
-            replyId=original_message_id
-        )
-
         logging.info(f"{sent_packet}")
     except Exception as e:
         logging.error(f"Error sending thumbs up: {e}")
+        '''
 
 def send_telemetry_request(interface, node_num):
     """
