@@ -1595,7 +1595,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
             emoji=True,
             reply_id=original_message_id,
             bitfield=0,
-            text="👍"
+            payload="\360\237\221\215",  # Unicode for thumbs up emoji
         )      
 
         logging.info(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
