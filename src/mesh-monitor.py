@@ -1593,11 +1593,11 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
         # Create a Data message protobuf for the reaction
         data_message = mesh_pb2.Data(
             #portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
-            emoji=True,
+            payload=encoded_string,
             reply_id=original_message_id,
-            bitfield=0,
-            # encode payload as bytes
-            payload=encoded_string
+            emoji=True,
+            source=interface.localNode.nodeNum,
+            bitfield=0
         )
 
         logging.info(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
