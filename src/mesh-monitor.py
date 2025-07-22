@@ -1591,7 +1591,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         # Create a Data message protobuf for the reaction
         data_message = mesh_pb2.Data()
         # Set the port number to TEXT_MESSAGE_APP for text messages
-        #data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
+        data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
         # Set the payload to the thumbs up emoji encoded as bytes
         data_message.payload = "👍".encode('utf-8') # Encode the emoji as bytes
         data_message.emoji = True # This flag indicates that this is an emoji reaction
