@@ -1591,7 +1591,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
 
         # Create a Data message protobuf for the reaction
         data_message = mesh_pb2.Data(
-            portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            #portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
             emoji=True,
             reply_id=original_message_id,
             bitfield=0,
@@ -1604,7 +1604,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
             data_message,
             destinationId=to_id,
             channelIndex=channel,
-            #portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
             wantResponse=False,  # No response needed for reactions
             wantAck=False # Don't request an acknowledgment for the reaction
         )
