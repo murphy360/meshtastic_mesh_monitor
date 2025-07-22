@@ -1154,7 +1154,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
         location = find_location_by_node_num(interface, local_node['num'])
         distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
-        send_thumbs_up_reply(interface, channel, message_id, to_id, from_id)
+        send_thumbs_up_reply(interface, channel, message_id, to_id)
 
         if distance != "Unknown":
             distance = round(distance, 2)
@@ -1576,23 +1576,18 @@ def send_message(interface, message, channel, to_id):
             node_name = lookup_short_name(interface, to_id)
         logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
-def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id):
+def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
     """
     Send a thumbs up reaction to a message.
 
     Args:
         interface: The interface to interact with the mesh network.
-        reply_to_id (int): The ID of the recipient node.
-        original_message_id (str, optional): The ID of the original message to react to. Defaults to None.
+        channel (int): The channel to send the message to.
+        original_message_id (str, optional): The ID of the original message to react to.
+        to_id (str): The ID of the recipient. 'all' for all nodes, or a specific node ID.
     """
-    logging.info(f"Sending thumbs up to node {from_id} with original message ID {original_message_id}")
+    logging.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
     try:
-        
-        #ensure original_message_id is fixed32 
-        if not isinstance(original_message_id, int):
-            logging.error(f"Original message ID is not an integer: {original_message_id}")
-            # convert to fixed32
-            original_message_id = int(original_message_id)
 
         # Create a Data message protobuf for the reaction
         data_message = mesh_pb2.Data(
@@ -1600,17 +1595,16 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
             emoji=True,
             reply_id=original_message_id,
             bitfield=0,
-            source= interface.localNode.nodeNum,
             payload="👍".encode('utf-8')
         )      
 
-        logging.info(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
+        logging.info(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
         logging.info(data_message)
         sent_packet = interface.sendData(
             data_message,
             destinationId=to_id,
             channelIndex=channel,
-            portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            #portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
             wantResponse=False,  # No response needed for reactions
             wantAck=False # Don't request an acknowledgment for the reaction
         )
