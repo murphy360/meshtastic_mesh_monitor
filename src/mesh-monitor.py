@@ -1240,7 +1240,9 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 logging.info(f"Removing node {node['user']['shortName']} - {node['num']}")
                 log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
                 db_helper.remove_node(node)
-                local_node.removeNode(node['num'])
+                if node['num'] in interface.nodesByNum:
+                    local_node = interface.getNode('^local')
+                    local_node.removeNode(node['num'])
                 try:
                     deleted_node = lookup_node(interface, node_short_name)
                     if deleted_node:
