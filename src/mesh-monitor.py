@@ -1561,8 +1561,8 @@ def send_message(interface, message, channel, to_id):
         logging.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
         
         try:
-            interface.sendText(message, channelIndex=channel, destinationId=to_id)
-        
+            sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
+            logging.info(f"Sent message: {sent_message}")
 
         except Exception as e:
             if "Data payload too big" in str(e):
