@@ -6,6 +6,7 @@ from geopy import distance
 import meshtastic
 import meshtastic.tcp_interface
 from meshtastic.protobuf import mesh_pb2, config_pb2, telemetry_pb2
+from meshtastic import BROADCAST_NUM
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
@@ -1589,26 +1590,20 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         
         
         # Create a Data message protobuf for the reaction
-        data_message = mesh_pb2.Data()
-        # Set the port number to TEXT_MESSAGE_APP for text messages
-        data_message.portnum = meshtastic.portnums_pb2.TEXT_MESSAGE_APP
-        # Set the payload to the thumbs up emoji
-        data_message.payload = "👍"
-        data_message.emoji = True # This flag indicates that this is an emoji reaction
-        data_message.reply_id = original_message_id # Set the reply ID to the original message ID
-        data_message.bitfield = 0 # Set the bitfield to 0, as we are not using any special flags here
+        data_message = mesh_pb2.Data(
+            portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            payload="👍".encode('utf-8'),
+            emoji=True,
+            reply_id=original_message_id,
+            bitfield=0
+        )      
 
-        # Send the Data message as a reply/reaction
-        # The 'parentMessageId' is crucial for it to appear as a reaction in the mobile app.
-        # The 'destinationId' should be the sender of the original message.
-        # The 'wantAck' flag requests an acknowledgment from the recipient.
-        print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
+        logging.info(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
         logging.info(data_message)
         sent_packet = interface.sendData(
-            data_message.encode('utf-8'),
-            channelIndex=channel,
+            data_message,
+            destinationId=BROADCAST_NUM,
             portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
-            destinationId=to_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
 
