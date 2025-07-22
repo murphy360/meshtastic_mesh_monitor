@@ -1611,6 +1611,13 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
             wantAck=False # Don't request an acknowledgment for the reaction
         )
 
+        interface.sendText(
+            "👍",
+            channelIndex=channel,
+            destinationId=to_id,
+            replyId=original_message_id
+        )
+
         logging.info(f"{sent_packet}")
     except Exception as e:
         logging.error(f"Error sending thumbs up: {e}")
