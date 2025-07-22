@@ -1605,8 +1605,9 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
         interface.sendData(
             data_message,
+            channelIndex=channel,
             portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
-            destinationId=channel,
+            #destinationId=from_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
         
