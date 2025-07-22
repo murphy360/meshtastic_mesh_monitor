@@ -1588,7 +1588,12 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
     logging.info(f"Sending thumbs up to node {from_id} with original message ID {original_message_id}")
     try:
         
-        
+        #ensure original_message_id is fixed32 
+        if not isinstance(original_message_id, int):
+            logging.error(f"Original message ID is not an integer: {original_message_id}")
+            # convert to fixed32
+            original_message_id = int(original_message_id)
+
         # Create a Data message protobuf for the reaction
         data_message = mesh_pb2.Data(
             portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
@@ -1602,8 +1607,9 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         logging.info(data_message)
         sent_packet = interface.sendData(
             data_message,
-            destinationId=BROADCAST_NUM,
+            channelIndex=channel,
             portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            destinationId=to_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
 
