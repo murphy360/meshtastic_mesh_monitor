@@ -1603,16 +1603,16 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         # The 'destinationId' should be the sender of the original message.
         # The 'wantAck' flag requests an acknowledgment from the recipient.
         print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
-        logging.info(data_message)
-        interface.sendData(
+        #logging.info(data_message)
+        sent_packet = interface.sendData(
             data_message,
             channelIndex=channel,
             portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
             #destinationId=from_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
-        
-        logging.info("Thumbs up sent successfully")
+
+        logging.info(f"{sent_packet}")
     except Exception as e:
         logging.error(f"Error sending thumbs up: {e}")
 
