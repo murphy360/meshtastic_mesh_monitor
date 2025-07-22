@@ -1603,7 +1603,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id, from_id
         # The 'destinationId' should be the sender of the original message.
         # The 'wantAck' flag requests an acknowledgment from the recipient.
         print(f"Sending 👍 to {from_id} for message ID {original_message_id}...")
-        #logging.info(data_message)
+        logging.info(data_message)
         sent_packet = interface.sendData(
             data_message,
             channelIndex=channel,
