@@ -1600,7 +1600,7 @@ def send_thumbs_up_reply(interface, reply_to_id, original_message_id):
         interface.sendData(
             data_message,
             destinationId=reply_to_id,
-            parentMessageId=original_message_id,
+            replyId=original_message_id,
             wantAck=False # Request an acknowledgment for the reaction
         )
         logging.info("Thumbs up sent successfully")
