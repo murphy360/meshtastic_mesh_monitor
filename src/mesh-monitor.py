@@ -1241,6 +1241,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
                 db_helper.remove_node(node)
                 if node['num'] in interface.nodesByNum:
+                    logging.info(f"Removing node {node['user']['shortName']} - {node['num']} from interface")
                     local_node = interface.getNode('^local')
                     local_node.removeNode(node['num'])
                 try:
