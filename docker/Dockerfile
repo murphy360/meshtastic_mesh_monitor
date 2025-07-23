@@ -13,8 +13,14 @@ COPY requirements.txt /app/requirements.txt
 # Install Python packages from requirements.txt
 RUN pip3 install --no-cache-dir -r /app/requirements.txt
 
-# Copy only files in src directory to /app
-COPY src/ /app
+# Copy the entire src directory structure to /app
+COPY src/ /app/
+
+# Copy configuration files to /app/config
+COPY config/ /app/config/
+
+# Create data and logs directories
+RUN mkdir -p /app/data /app/logs
 
 # Set the working directory
 WORKDIR /app

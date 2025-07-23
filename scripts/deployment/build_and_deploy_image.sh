@@ -1,6 +1,8 @@
 #!/bin/bash
 
-image_name="meshtastic_mesh_monitor"
+image_name="# Build the docker image
+print_section "Building the docker image..."
+docker build -f docker/Dockerfile -t $image_name .htastic_mesh_monitor"
 
 # Argument check (Accepts branch name as an argument, defaults to main)
 branch=${1:-main}

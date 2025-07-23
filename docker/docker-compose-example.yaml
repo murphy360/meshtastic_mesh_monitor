@@ -1,6 +1,8 @@
 services:
   mesh-monitor:
-    image: meshtastic_mesh_monitor
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: meshtastic_mesh_monitor
     environment:
       - RADIO_IP=192.168.68.73
@@ -9,5 +11,7 @@ services:
       - 8080:8080
     volumes:
       - ~/mesh-monitor/data:/data
+      - ~/mesh-monitor/config:/app/config
+      - ~/mesh-monitor/logs:/app/logs
     devices:
       - /dev/ttyACM1:/dev/ttyUSB0

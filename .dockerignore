@@ -1,0 +1,34 @@
+# Ignore files that shouldn't be copied to Docker context
+.git
+.gitignore
+*.md
+.vscode
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.DS_Store
+.mypy_cache
+
+# Ignore archive and test directories for production builds
+archive/
+tests/
+
+# Ignore local data and logs
+data/*.db
+logs/*.log
+
+# Ignore local configuration (use mounted volumes instead)
+config/config.json
