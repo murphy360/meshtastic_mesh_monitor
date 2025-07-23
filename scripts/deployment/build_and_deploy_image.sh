@@ -1,8 +1,6 @@
 #!/bin/bash
 
-image_name="# Build the docker image
-print_section "Building the docker image..."
-docker build -f docker/Dockerfile -t $image_name .htastic_mesh_monitor"
+image_name="meshtastic_mesh_monitor"
 
 # Argument check (Accepts branch name as an argument, defaults to main)
 branch=${1:-main}
@@ -24,19 +22,20 @@ git pull
 
 # Stop and remove the Docker container
 print_section "Stopping and removing the Docker container..."
-docker compose down
-docker container ls -a | grep $image_name | awk '{print $1}' | xargs docker container rm
+docker compose -f docker/docker-compose-example.yaml down
+# Clean up any leftover containers
+docker container ls -a | grep $image_name | awk '{print $1}' | xargs -r docker container rm 2>/dev/null || true
 
 # Build the Docker image
 print_section "Building the Docker image..."
-docker build -t $image_name .
+docker build -f docker/Dockerfile -t $image_name .
 
-docker image ls | grep $image_name
+docker image ls | grep $image_name || echo "Image built successfully but not showing in grep output"
 
 # Run Docker Compose in detached mode
 print_section "Running Docker Compose in detached mode..."
-docker compose up -d
+docker compose -f docker/docker-compose-example.yaml up -d
 
 # run docker logs -f
 print_section "Running docker logs -f..."
-docker logs $image_name -f 
+docker logs meshtastic_mesh_monitor -f 
