@@ -7,31 +7,75 @@ import xml.etree.ElementTree as ET
 class RSSInterface:
     """Interface for accessing and monitoring RSS feeds."""
     
-    def __init__(self, discard_initial_items: bool = True):
+    def __init__(self, discard_initial_items: bool = True, config_manager=None):
         """
         Initialize the RSS interface.
         
         Args:
             discard_initial_items: If True, items found on first check will be 
                                   stored but not reported as new
+            config_manager: ConfigManager instance for loading feed configuration
         """
-        self.feeds = {
-            "twinsburg_calendar": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=58&CID=All-calendar.xml",
-            "twinsburg_news": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=65&CID=All-0"
-        }
+        self.config_manager = config_manager
+        self.feeds = {}
+        self.feed_intervals = {}  # Store custom check intervals per feed
         self.last_check_time = {}
-        self.check_interval = timedelta(hours=1)  # Check feeds every hour by default
+        self.check_interval = timedelta(hours=1)  # Default check interval
         self.previous_items = {}  # Store previous items to detect changes
         self.initial_check_complete = {}  # Track whether initial check is complete
         self.discard_initial_items = discard_initial_items
         
-        # Initialize last check time and previous items for each feed
-        for feed_id in self.feeds:
+        # Initialize config manager if not provided
+        if self.config_manager is None:
+            from config_manager import ConfigManager
+            self.config_manager = ConfigManager()
+        
+        # Load feeds from configuration
+        self._load_feeds_from_config()
+        
+        logging.info(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
+
+    def _load_feeds_from_config(self):
+        """Load RSS feeds from configuration manager."""
+        if self.config_manager:
+            try:
+                enabled_feeds = self.config_manager.get_enabled_rss_feeds()
+                for feed_config in enabled_feeds:
+                    feed_id = feed_config.get("id")
+                    feed_url = feed_config.get("url")
+                    check_interval_hours = feed_config.get("check_interval_hours", 1)
+                    
+                    if feed_id and feed_url:
+                        self.feeds[feed_id] = feed_url
+                        self.feed_intervals[feed_id] = timedelta(hours=check_interval_hours)
+                        self.last_check_time[feed_id] = datetime.now(timezone.utc) - self.feed_intervals[feed_id]
+                        self.previous_items[feed_id] = {}
+                        self.initial_check_complete[feed_id] = False
+                        logging.info(f"Loaded RSS feed: {feed_config.get('name', feed_id)} ({feed_id})")
+                    else:
+                        logging.warning(f"Invalid feed configuration: missing id or url - {feed_config}")
+            except Exception as e:
+                logging.error(f"Error loading feeds from configuration: {e}")
+                self._load_default_feeds()
+        else:
+            logging.warning("No configuration manager provided, using default feeds")
+            self._load_default_feeds()
+    
+    def _load_default_feeds(self):
+        """Load default RSS feeds if configuration is not available."""
+        default_feeds = {
+            "twinsburg_calendar": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=58&CID=All-calendar.xml",
+            "twinsburg_news": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=65&CID=All-0"
+        }
+        
+        for feed_id, feed_url in default_feeds.items():
+            self.feeds[feed_id] = feed_url
+            self.feed_intervals[feed_id] = self.check_interval
             self.last_check_time[feed_id] = datetime.now(timezone.utc) - self.check_interval
             self.previous_items[feed_id] = {}
             self.initial_check_complete[feed_id] = False
             
-        logging.info(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={discard_initial_items})")
+        logging.info(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
 
     def add_feed(self, feed_id: str, url: str):
         """
@@ -159,7 +203,8 @@ class RSSInterface:
         now = datetime.now(timezone.utc)
         
         for feed_id, last_check in self.last_check_time.items():
-            if now - last_check >= self.check_interval:
+            feed_interval = self.feed_intervals.get(feed_id, self.check_interval)
+            if now - last_check >= feed_interval:
                 logging.info(f"Checking feed '{feed_id}' for updates")
                 new_items = self.check_feed(feed_id)
                 

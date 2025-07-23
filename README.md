@@ -42,9 +42,30 @@ To run the mesh monitor, follow these steps:
 
 ## Configuration
 
-The mesh monitor can be configured using environment variables. The following environment variables are available:
+The mesh monitor can be configured using environment variables and a configuration file:
 
-- `RADIO_IP`: The IP address of the Meshtastic device.
+### Environment Variables
+- `CONNECTION_TYPE`: Connection type - either `tcp` (default) or `serial`
+- `TCP_SERVER`: The hostname/IP address of the Meshtastic device (default: `meshtastic.local`)
+- `SERIAL_PORT`: The serial port path (default: `/dev/ttyUSB0`)
+
+### RSS Feeds and Web Scrapers
+RSS feeds and web scrapers are configured through a `config.json` file. See [CONFIGURATION.md](CONFIGURATION.md) for detailed instructions.
+
+Example config.json:
+```json
+{
+  "rss_feeds": [
+    {
+      "id": "example_feed",
+      "name": "Example News Feed",
+      "url": "https://example.com/rss.xml",
+      "enabled": true,
+      "check_interval_hours": 1
+    }
+  ]
+}
+```
 
 ## Logging
 

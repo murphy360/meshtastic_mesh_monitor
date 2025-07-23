@@ -10,22 +10,61 @@ import re
 class WebScraperInterface:
     """Interface for scraping websites and monitoring for changes."""
     
-    def __init__(self, discard_initial_items: bool = True):
+    def __init__(self, discard_initial_items: bool = True, config_manager=None):
         """
         Initialize the web scraper interface.
         
         Args:
             discard_initial_items: If True, items found on first check will be 
                                   stored but not reported as new
+            config_manager: ConfigManager instance for loading scraper configuration
         """
+        self.config_manager = config_manager
         self.websites = {}  # Dict to store website configurations
+        self.website_intervals = {}  # Store custom check intervals per website
         self.last_check_time = {}
         self.check_interval = timedelta(hours=1)  # Check websites every hour by default
         self.previous_items = {}  # Store previous content to detect changes
         self.initial_check_complete = {}  # Track whether initial check is complete
         self.discard_initial_items = discard_initial_items
         
-        logging.info(f"Web Scraper Interface initialized (discard_initial_items={discard_initial_items})")
+        # Load websites from configuration if config manager is provided
+        if self.config_manager is None:
+            from config_manager import ConfigManager
+            self.config_manager = ConfigManager()
+        
+        self._load_websites_from_config()
+        
+        logging.info(f"Web Scraper Interface initialized with {len(self.websites)} websites (discard_initial_items={discard_initial_items})")
+
+    def _load_websites_from_config(self):
+        """Load website scrapers from configuration manager."""
+        if self.config_manager:
+            try:
+                enabled_scrapers = self.config_manager.get_enabled_web_scrapers()
+                for scraper_config in enabled_scrapers:
+                    scraper_id = scraper_config.get("id")
+                    scraper_url = scraper_config.get("url")
+                    check_interval_hours = scraper_config.get("check_interval_hours", 1)
+                    extractor_type = scraper_config.get("extractor_type", "generic")
+                    css_selector = scraper_config.get("css_selector")
+                    
+                    if scraper_id and scraper_url:
+                        self.add_website(
+                            scraper_id,
+                            scraper_url,
+                            css_selector=css_selector,
+                            extractor_type=extractor_type
+                        )
+                        # Set custom check interval for this website
+                        self.website_intervals[scraper_id] = timedelta(hours=check_interval_hours)
+                        logging.info(f"Loaded web scraper: {scraper_config.get('name', scraper_id)} ({scraper_id})")
+                    else:
+                        logging.warning(f"Invalid scraper configuration: missing id or url - {scraper_config}")
+            except Exception as e:
+                logging.error(f"Error loading scrapers from configuration: {e}")
+        else:
+            logging.warning("No configuration manager provided for web scrapers")
     
     def add_website(self, website_id: str, url: str, css_selector: str = None, 
                    extractor_type: str = "generic", custom_parser: Callable = None):
@@ -45,7 +84,11 @@ class WebScraperInterface:
             'extractor_type': extractor_type,
             'custom_parser': custom_parser
         }
-        self.last_check_time[website_id] = datetime.now(timezone.utc) - self.check_interval
+        # Set default interval if not already set
+        if website_id not in self.website_intervals:
+            self.website_intervals[website_id] = self.check_interval
+        
+        self.last_check_time[website_id] = datetime.now(timezone.utc) - self.website_intervals[website_id]
         self.previous_items[website_id] = {}
         self.initial_check_complete[website_id] = False
         logging.info(f"Added website to monitor: {website_id} - {url} - {extractor_type}")
@@ -375,7 +418,8 @@ class WebScraperInterface:
         
         for website_id, config in self.websites.items():
             # Only check if interval has elapsed
-            if now - self.last_check_time[website_id] >= self.check_interval:
+            website_interval = self.website_intervals.get(website_id, self.check_interval)
+            if now - self.last_check_time[website_id] >= website_interval:
                 new_items = self.check_website(website_id)
                 if new_items:
                     result[website_id] = new_items
