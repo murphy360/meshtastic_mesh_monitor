@@ -47,6 +47,7 @@ class SITREP:
             self.sitrep_time = self.sitrep_time.replace(minute=0, second=0, microsecond=0)
         self.update_nodes_of_interest_from_db()
         self.update_aircraft_tracks_from_db()
+        self.update_connections_from_database()
         sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
         node = self.lookup_node_by_short_name(interface, self.shortName)
         self.lines = []
@@ -94,6 +95,61 @@ class SITREP:
         
         #logging.info(f"Extra Connections: {self.extra_connections}")
         return
+
+    def update_connections_from_database(self):
+        """
+        Update extra_connections dictionary with data from the traceroute database.
+        This ensures the mesh data file includes all known connections from traceroute data.
+        """
+        try:
+            # Clear existing extra connections to avoid stale data
+            self.extra_connections = {}
+            
+            # Get all node connections from the database
+            connections = self.dbHelper.get_node_connections()
+            
+            logging.info(f"Loading {len(connections)} connections from database")
+            
+            for conn in connections:
+                node1 = conn[3]  # node1 column
+                node2 = conn[4]  # node2 column
+                connection_type = conn[5]  # connection_type column
+                last_seen = conn[7]  # last_seen column
+                
+                # Only include recent connections (within last 24 hours)
+                if self._is_recent_connection(last_seen):
+                    self.add_extra_connection(node1, node2)
+                    logging.debug(f"Added connection from database: {node1} <-> {node2} ({connection_type})")
+            
+            logging.info(f"Updated extra_connections with {len(self.extra_connections)} nodes from database")
+            
+        except Exception as e:
+            logging.error(f"Error updating connections from database: {e}")
+
+    def _is_recent_connection(self, last_seen_str):
+        """
+        Check if a connection is recent (within last 24 hours).
+        
+        Args:
+            last_seen_str (str): Timestamp string in format 'YYYY-MM-DD HH:MM:SS'
+            
+        Returns:
+            bool: True if connection is recent, False otherwise
+        """
+        try:
+            if not last_seen_str:
+                return False
+                
+            last_seen = datetime.datetime.strptime(last_seen_str, '%Y-%m-%d %H:%M:%S')
+            now = datetime.datetime.now()
+            time_diff = now - last_seen
+            
+            # Consider connections from last 24 hours as recent
+            return time_diff.total_seconds() < (24 * 60 * 60)
+            
+        except Exception as e:
+            logging.error(f"Error parsing timestamp {last_seen_str}: {e}")
+            return False
 
     def add_node_of_interest(self, node_short_name):
         self.nodes_of_interest.append(node_short_name)

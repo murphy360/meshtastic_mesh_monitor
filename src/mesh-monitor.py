@@ -537,6 +537,22 @@ def onReceiveTraceRoute(packet, interface):
     route_full = route_to + route_back
     sitrep.add_trace(route_full)
     
+    # Store traceroute data in database
+    originator_name = originator_node.get('user', {}).get('shortName', 'Unknown') if isinstance(originator_node, dict) else str(originator_node)
+    destination_name = traced_node.get('user', {}).get('shortName', 'Unknown') if isinstance(traced_node, dict) else str(traced_node)
+    
+    db_helper.store_traceroute(
+        originator_name,
+        destination_name, 
+        route_to,
+        route_back,
+        snr_towards,
+        snr_back
+    )
+    
+    # Update node connections in database
+    db_helper.update_node_connections(route_to, route_back, snr_towards, snr_back)
+    
     # Tell admin what the traceroute is
     logging.info(f"Traceroute: {message_string}")
     send_message(interface, message_string, admin_channel_number, "^all")
