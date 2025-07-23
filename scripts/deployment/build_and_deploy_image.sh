@@ -34,7 +34,7 @@ docker image ls | grep $image_name || echo "Image built successfully but not sho
 
 # Run Docker Compose in detached mode
 print_section "Running Docker Compose in detached mode..."
-docker compose -f docker/docker-compose-example.yaml up -d
+docker compose up -d
 
 # run docker logs -f
 print_section "Running docker logs -f..."
