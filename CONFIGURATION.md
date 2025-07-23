@@ -1,6 +1,17 @@
-# Configuration Guide
+# Configuration Reference
 
-The Mesh Monitor now supports configuration through a JSON file instead of hardcoding feeds and scrapers in the source code. Configuration is loaded automatically when interfaces are initialized.
+This is a detailed configuration reference. For a quick start, see the main [README.md](README.md).
+
+## Quick Setup
+
+1. Copy the example configuration:
+   ```bash
+   cp config.json.example config.json
+   ```
+
+2. Edit `config.json` with your feeds and settings
+
+3. Start the monitor - configuration loads automatically
 
 ## Automatic Configuration Loading
 
