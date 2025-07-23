@@ -1,0 +1,55 @@
+{
+  "rss_feeds": [
+    {
+      "id": "twinsburg_calendar",
+      "name": "Twinsburg Calendar",
+      "url": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=58&CID=All-calendar.xml",
+      "enabled": true,
+      "check_interval_hours": 1
+    },
+    {
+      "id": "twinsburg_news",
+      "name": "Twinsburg News",
+      "url": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=65&CID=All-0",
+      "enabled": true,
+      "check_interval_hours": 1
+    }
+  ],
+  "web_scrapers": [
+    {
+      "id": "twinsburg_school_agendas_minutes",
+      "name": "Twinsburg School Agendas & Minutes",
+      "url": "https://www.twinsburg.k12.oh.us/agendasandminutes.aspx",
+      "extractor_type": "twinsburg_links",
+      "enabled": true
+    },
+    {
+      "id": "twinsburg_school_broadcasts",
+      "name": "Twinsburg School Broadcasts", 
+      "url": "https://www.twinsburg.k12.oh.us/broadcasts.aspx",
+      "extractor_type": "twinsburg_links",
+      "enabled": true
+    },
+    {
+      "id": "twinsburg_school_flyers",
+      "name": "TCSD Flyers",
+      "url": "https://www.twinsburg.k12.oh.us/flyercentral.aspx",
+      "extractor_type": "twinsburg_links",
+      "enabled": true
+    },
+    {
+      "id": "twinsburg_city_document_center",
+      "name": "Twinsburg City Document Center",
+      "url": "https://www.mytwinsburg.com/DocumentCenter/",
+      "extractor_type": "twinsburg_links",
+      "enabled": true
+    },
+    {
+      "id": "twinsburg_rock_the_park",
+      "name": "Rock the Park Concert",
+      "url": "https://rocktheparkconcert.com/",
+      "extractor_type": "rock_the_park_links",
+      "enabled": true
+    }
+  ]
+}

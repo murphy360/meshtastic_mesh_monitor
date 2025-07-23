@@ -13,7 +13,9 @@ class SQLiteHelper:
         self.create_table("packet_database", "key INTEGER PRIMARY KEY, packet_type TEXT, created_at TEXT, updated_at TEXT, from_node TEXT, to_node TEXT, decoded TEXT, channel TEXT")
         self.create_table("position_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node_id TEXT, latitudeI TEXT, longitudeI TEXT, altitude TEXT, time TEXT, latitude TEXT, longitude TEXT")
         self.create_table("weather_report_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, short_report TEXT, long_report TEXT")
-        # TODO Create traceroute table. 
+        self.create_table("traceroute_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, originator_node TEXT, destination_node TEXT, route_to TEXT, route_back TEXT, snr_to TEXT, snr_back TEXT, hop_count INTEGER")
+        self.create_table("node_connections", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node1 TEXT, node2 TEXT, connection_type TEXT, snr REAL, last_seen TEXT, hop_count INTEGER") 
+
 
     def connect(self):
         """
@@ -366,6 +368,252 @@ class SQLiteHelper:
         else:
             logging.info("No weather reports found")
             return None
+
+    def store_traceroute(self, originator_node, destination_node, route_to, route_back, snr_to, snr_back):
+        """
+        Store traceroute data in the database.
+        
+        Args:
+            originator_node (str): Short name of the node that initiated the trace
+            destination_node (str): Short name of the destination node
+            route_to (list): List of node short names in the route to destination
+            route_back (list): List of node short names in the route back
+            snr_to (list): List of SNR values for route to destination
+            snr_back (list): List of SNR values for route back
+        """
+        try:
+            route_to_str = " -> ".join([node.get('user', {}).get('shortName', str(node)) if isinstance(node, dict) else str(node) for node in route_to])
+            route_back_str = " -> ".join([node.get('user', {}).get('shortName', str(node)) if isinstance(node, dict) else str(node) for node in route_back])
+            snr_to_str = ",".join([str(snr) for snr in snr_to])
+            snr_back_str = ",".join([str(snr) for snr in snr_back])
+            hop_count = len(route_to) + len(route_back) - 1  # Subtract 1 to avoid double counting the destination/originator
+            
+            now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            self.insert_data("traceroute_database", (
+                None,  # key (auto-increment)
+                now,   # created_at
+                now,   # updated_at
+                originator_node,
+                destination_node,
+                route_to_str,
+                route_back_str,
+                snr_to_str,
+                snr_back_str,
+                hop_count
+            ))
+            
+            logging.info(f"Stored traceroute from {originator_node} to {destination_node} with {hop_count} hops")
+            
+        except Exception as e:
+            logging.error(f"Error storing traceroute data: {e}")
+
+    def update_node_connections(self, route_to, route_back, snr_to, snr_back):
+        """
+        Update node connections based on traceroute data.
+        
+        Args:
+            route_to (list): List of nodes in the route to destination
+            route_back (list): List of nodes in the route back
+            snr_to (list): List of SNR values for route to destination
+            snr_back (list): List of SNR values for route back
+        """
+        try:
+            now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Process route_to connections
+            for i in range(len(route_to) - 1):
+                node1 = route_to[i]
+                node2 = route_to[i + 1]
+                
+                node1_name = node1.get('user', {}).get('shortName', str(node1)) if isinstance(node1, dict) else str(node1)
+                node2_name = node2.get('user', {}).get('shortName', str(node2)) if isinstance(node2, dict) else str(node2)
+                
+                snr_value = snr_to[i] if i < len(snr_to) else None
+                hop_count = i + 1
+                
+                self._upsert_connection(node1_name, node2_name, "traceroute_to", snr_value, now, hop_count)
+            
+            # Process route_back connections  
+            for i in range(len(route_back) - 1):
+                node1 = route_back[i]
+                node2 = route_back[i + 1]
+                
+                node1_name = node1.get('user', {}).get('shortName', str(node1)) if isinstance(node1, dict) else str(node1)
+                node2_name = node2.get('user', {}).get('shortName', str(node2)) if isinstance(node2, dict) else str(node2)
+                
+                snr_value = snr_back[i] if i < len(snr_back) else None
+                hop_count = i + 1
+                
+                self._upsert_connection(node1_name, node2_name, "traceroute_back", snr_value, now, hop_count)
+                
+            logging.info(f"Updated node connections from traceroute data")
+            
+        except Exception as e:
+            logging.error(f"Error updating node connections: {e}")
+
+    def _upsert_connection(self, node1, node2, connection_type, snr, timestamp, hop_count):
+        """
+        Insert or update a node connection record.
+        
+        Args:
+            node1 (str): First node short name
+            node2 (str): Second node short name
+            connection_type (str): Type of connection (traceroute_to, traceroute_back, etc.)
+            snr (float): Signal-to-noise ratio
+            timestamp (str): Timestamp of the connection
+            hop_count (int): Number of hops in this connection
+        """
+        try:
+            # Check if connection already exists
+            existing = self.query_data("node_connections", "*", f"node1 = '{node1}' AND node2 = '{node2}' AND connection_type = '{connection_type}'")
+            
+            if existing:
+                # Update existing connection
+                self.update_data("node_connections", 
+                               f"snr = {snr}, last_seen = '{timestamp}', hop_count = {hop_count}, updated_at = '{timestamp}'",
+                               f"node1 = '{node1}' AND node2 = '{node2}' AND connection_type = '{connection_type}'")
+            else:
+                # Insert new connection
+                self.insert_data("node_connections", (
+                    None,  # key (auto-increment)
+                    timestamp,  # created_at
+                    timestamp,  # updated_at
+                    node1,
+                    node2,
+                    connection_type,
+                    snr,
+                    timestamp,  # last_seen
+                    hop_count
+                ))
+                
+        except Exception as e:
+            logging.error(f"Error upserting connection between {node1} and {node2}: {e}")
+
+    def get_node_connections(self, node_name=None):
+        """
+        Get node connections from the database.
+        
+        Args:
+            node_name (str, optional): If provided, get connections for this specific node
+            
+        Returns:
+            list: List of connection records
+        """
+        try:
+            if node_name:
+                return self.query_data("node_connections", "*", f"node1 = '{node_name}' OR node2 = '{node_name}'")
+            else:
+                return self.query_data("node_connections", "*")
+        except Exception as e:
+            logging.error(f"Error getting node connections: {e}")
+            return []
+
+    def get_recent_traceroutes(self, limit=10):
+        """
+        Get recent traceroute records from the database.
+        
+        Args:
+            limit (int): Maximum number of records to return
+            
+        Returns:
+            list: List of traceroute records
+        """
+        try:
+            return self.query_data("traceroute_database", "*", "", f"ORDER BY created_at DESC LIMIT {limit}")
+        except Exception as e:
+            logging.error(f"Error getting recent traceroutes: {e}")
+            return []
+
+    def get_network_topology(self):
+        """
+        Get network topology information based on traceroute data.
+        
+        Returns:
+            dict: Network topology with nodes and connections
+        """
+        try:
+            connections = self.get_node_connections()
+            nodes = set()
+            edges = []
+            
+            for conn in connections:
+                node1 = conn[3]  # node1 column
+                node2 = conn[4]  # node2 column
+                snr = conn[6]    # snr column
+                connection_type = conn[5]  # connection_type column
+                last_seen = conn[7]  # last_seen column
+                
+                nodes.add(node1)
+                nodes.add(node2)
+                edges.append({
+                    'from': node1,
+                    'to': node2,
+                    'snr': snr,
+                    'type': connection_type,
+                    'last_seen': last_seen
+                })
+            
+            return {
+                'nodes': list(nodes),
+                'connections': edges,
+                'total_nodes': len(nodes),
+                'total_connections': len(edges)
+            }
+            
+        except Exception as e:
+            logging.error(f"Error getting network topology: {e}")
+            return {'nodes': [], 'connections': [], 'total_nodes': 0, 'total_connections': 0}
+
+    def get_node_connectivity_stats(self, node_name):
+        """
+        Get connectivity statistics for a specific node.
+        
+        Args:
+            node_name (str): Short name of the node
+            
+        Returns:
+            dict: Connectivity statistics
+        """
+        try:
+            connections = self.get_node_connections(node_name)
+            
+            direct_connections = set()
+            avg_snr = 0
+            total_snr_values = 0
+            recent_activity = None
+            
+            for conn in connections:
+                other_node = conn[4] if conn[3] == node_name else conn[3]  # Get the other node
+                direct_connections.add(other_node)
+                
+                if conn[6] is not None:  # SNR value
+                    avg_snr += float(conn[6])
+                    total_snr_values += 1
+                
+                # Track most recent activity
+                if recent_activity is None or conn[7] > recent_activity:
+                    recent_activity = conn[7]
+            
+            avg_snr = avg_snr / total_snr_values if total_snr_values > 0 else 0
+            
+            return {
+                'node_name': node_name,
+                'direct_connections': list(direct_connections),
+                'connection_count': len(direct_connections),
+                'average_snr': round(avg_snr, 2),
+                'last_activity': recent_activity
+            }
+            
+        except Exception as e:
+            logging.error(f"Error getting connectivity stats for {node_name}: {e}")
+            return {
+                'node_name': node_name,
+                'direct_connections': [],
+                'connection_count': 0,
+                'average_snr': 0,
+                'last_activity': None
+            }
 
     def close(self):
         """

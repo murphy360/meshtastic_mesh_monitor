@@ -4,8 +4,9 @@ import time
 import geopy
 from geopy import distance
 import meshtastic
-import meshtastic.serial_interface
+import meshtastic.tcp_interface
 from meshtastic.protobuf import mesh_pb2, config_pb2, telemetry_pb2
+from meshtastic import BROADCAST_NUM
 from sqlitehelper import SQLiteHelper
 from pubsub import pub
 from sitrep import SITREP
@@ -14,6 +15,8 @@ from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from gemini_interface import GeminiInterface
 from weather_gov_interface import WeatherGovInterface
+from rss_interface import RSSInterface
+from web_scraper_interface import WebScraperInterface
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
@@ -22,6 +25,7 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s'
 localNode = ""
 sitrep = ""
 location = ""
+TCP_SERVER = os.getenv('TCP_SERVER', 'meshtastic.local')  # Default to meshtastic.local if not set
 connect_timeout = 60 # seconds
 short_name = 'Monitor'  # Overwritten in onConnection
 long_name = 'Mesh Monitor'  # Overwritten in onConnection
@@ -30,6 +34,7 @@ sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
 public_channel_number = 0
 admin_channel_number = 1
+active_health_alerts = {}
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 # Take the modulo 6 of the current hour to find how many hours back to set initial time
@@ -55,6 +60,12 @@ weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
 last_alert_check_time = datetime.now(timezone.utc)
 alert_check_interval = timedelta(minutes=1)  # Check for alerts every minute
 previous_alerts = None  # Store previous alerts to detect changes
+
+# Initialize RSS interface (config manager will be initialized internally)
+rss_interface = RSSInterface()
+
+# Initialize web scraper interface (config manager will be initialized internally)
+web_scraper = WebScraperInterface(discard_initial_items=True)
 
 logging.info("Starting Mesh Monitor")
 
@@ -167,10 +178,14 @@ def onReceiveText(packet, interface):
         bitfield = packet['decoded']['bitfield']
         message_bytes = packet['decoded']['payload']
         message_string = message_bytes.decode('utf-8')
+        message_id = packet['id']
         logging.info(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
     else:
         logging.info(f"Packet does not contain decoded data")
         return
+
+    if message_string == "👍":
+        logging.info(packet)
 
     if 'toId' in packet:
         to_id = packet['to']
@@ -180,10 +195,10 @@ def onReceiveText(packet, interface):
         elif 'channel' in packet: # Message sent to a channel
             logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
             channelId = int(packet['channel'])
-            reply_to_message(interface, message_string, channelId, "^all", from_node_num)
+            reply_to_message(interface, message_string, message_id, channelId, "^all", from_node_num)
         elif packet['toId'] == "^all": # Message sent to all nodes
             logging.info(f"Message broadcast to all nodes from {packet['from']}")
-            reply_to_message(interface, message_string, 0, "^all", from_node_num)
+            reply_to_message(interface, message_string, message_id, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
     #logging.info(f"[FUNCTION] onReceivePosition")
@@ -254,23 +269,15 @@ def onReceivePosition(packet, interface):
         # Ignore packets from local node
         return
     
-    channel = public_channel_number  # Default to public channel
-    if 'channel' in packet:
-        # If the packet contains a channel, use it
-        channel = packet['channel']
-    else: 
-        logging.info("onReceivePosition - No channel specified, using public channel")
-        logging.info(f"Packet: {packet}")
-    
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
     
     node = interface.nodesByNum[from_node_num]
     
-    is_aircraft = False
     is_fast_moving = False
+    is_high_altitude = False
     admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
-    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}"
+    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}\n\n"
     location = "Unknown"
 
     if 'decoded' not in packet:
@@ -279,16 +286,14 @@ def onReceivePosition(packet, interface):
         return
 
     if 'position' not in packet['decoded']:
-        logging.info(f"Packet does not contain position data")
+        logging.info(f"Position Packet does not contain position data")
         return
  
-    if 'latitude' in packet['decoded']['position'] and 'longitude' not in packet['decoded']['position']:
+    if 'latitude' in packet['decoded']['position'] and 'longitude' in packet['decoded']['position']:
         latitude = packet['decoded']['position']['latitude']
-
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
-        location = find_location_by_coordinates(interface, latitude, longitude)
-        
+        location = find_location_by_coordinates(latitude, longitude)
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
 
@@ -303,27 +308,16 @@ def onReceivePosition(packet, interface):
         ground_speed = packet['decoded']['position']['groundSpeed']
         log_message += f" - Ground Speed: {ground_speed} m/s"
         admin_message += f" Ground Speed: {ground_speed} m/s"
-        if ground_speed > 50:
+        if ground_speed > 150:
             is_fast_moving = True
 
     if 'altitude' in packet['decoded']['position']:
         altitude = packet['decoded']['position']['altitude']
         log_message += f" - Altitude: {altitude}m"
         admin_message += f" Altitude: {altitude}m"
-        if altitude > 1000:
-            # If altitude is greater than 1000m, assume it's an aircraft. Average altitude for ground nodes is 300m in NE Ohio. TODO: Make this configurable.
-            
-            if db_helper.is_aircraft(node):
-                logging.info(f"Node {node_short_name} is already marked as aircraft")
-            else:
-                logging.info(f"Node {node_short_name} is marked as aircraft due to altitude {altitude}m")
-                is_aircraft = True
-                db_helper.set_aircraft(node, True)
-                log_message += " - Aircraft Detected"
-                admin_message += " - Aircraft Detected"
-                user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
-                send_llm_message(interface, user_message, public_channel_number, node['num'])
-      
+        if altitude > 8000:
+            is_high_altitude = True
+ 
     if 'satsInView' in packet['decoded']['position']:
         sats_in_view = packet['decoded']['position']['satsInView']
         log_message += f" - Satellites in View: {sats_in_view}"
@@ -344,13 +338,35 @@ def onReceivePosition(packet, interface):
     if 'groundTrack' in packet['decoded']['position']:
         ground_track = packet['decoded']['position']['groundTrack']
         log_message += f" - Ground Track: {ground_track} degrees"
+
+    # Aircraft Detection
+    if is_fast_moving and is_high_altitude:
+        logging.info(f"Node {node_short_name} is fast moving and high altitude")
+        # If the node is fast and high altitude, mark it as aircraft
+        log_message += " - Node is fast moving and high altitude"
         
-    if is_fast_moving or is_aircraft:
-        # If the node is fast moving or an aircraft, send a message to the admin channel
-        logging.info(admin_message)
-        log_message += " - Notifying admin"
-        send_llm_message(interface, admin_message, admin_channel_number, "^all")
-    
+        if db_helper.is_aircraft(node):
+            logging.info(f"Node {node_short_name} is already marked as aircraft. No action taken.")
+        else:
+            logging.info(f"Node {node_short_name} is marked as aircraft due to altitude {altitude}m and ground speed {ground_speed}m/s")
+            db_helper.set_aircraft(node, True)
+            log_message += " - Aircraft Detected"
+            admin_message += " - Aircraft Detected"
+            user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
+            send_llm_message(interface, user_message, public_channel_number, node['num'])
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+    elif not is_fast_moving and not is_high_altitude:
+        # If the node is not fast moving and not high altitude, check if it's marked as aircraft
+        if db_helper.is_aircraft(node):
+            logging.info(f"Node {node_short_name} is marked as aircraft but is not fast moving or high altitude")
+            send_node_info(interface)
+            db_helper.set_aircraft(node, False)
+            log_message += " - Aircraft Unmarked"
+            admin_message += " - Aircraft Unmarked"
+            user_message = f"{node_short_name} Your speed and altitude indicates that you are not an aircraft. I am no longer tracking you as an aircraft. Please confirm."
+            send_llm_message(interface, user_message, public_channel_number, node['num'])
+            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+
     logging.info(log_message)
     
     return
@@ -521,6 +537,22 @@ def onReceiveTraceRoute(packet, interface):
 
     route_full = route_to + route_back
     sitrep.add_trace(route_full)
+    
+    # Store traceroute data in database
+    originator_name = originator_node.get('user', {}).get('shortName', 'Unknown') if isinstance(originator_node, dict) else str(originator_node)
+    destination_name = traced_node.get('user', {}).get('shortName', 'Unknown') if isinstance(traced_node, dict) else str(traced_node)
+    
+    db_helper.store_traceroute(
+        originator_name,
+        destination_name, 
+        route_to,
+        route_back,
+        snr_towards,
+        snr_back
+    )
+    
+    # Update node connections in database
+    db_helper.update_node_connections(route_to, route_back, snr_towards, snr_back)
     
     # Tell admin what the traceroute is
     logging.info(f"Traceroute: {message_string}")
@@ -714,7 +746,7 @@ def onReceive(packet, interface):
         new_node = db_helper.is_new_node(node)
               
         if new_node:
-            #send_node_info(interface) TODO Re-enable this when we have a way to send node info correctly. 
+            send_node_info(interface)
             log_message += f" - New Node Detected"
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
@@ -825,6 +857,9 @@ def check_node_health(interface, node):
     """
     Check the health of a node and send warnings if necessary.
 
+    This function accesses and modifies the global variable `active_health_alerts`
+    to track and manage health alerts for nodes.
+
     Args:
         interface: The interface to interact with the mesh network.
         node (dict): The node data.
@@ -838,10 +873,35 @@ def check_node_health(interface, node):
     if "batteryLevel" in node["deviceMetrics"]:
         #logging.info(f"Checking battery level of node {node['user']['shortName']}")
         battery_level = node["deviceMetrics"]["batteryLevel"]
-        if battery_level < 20:
-            logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
-            send_message(interface, f"Warning: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")             
-                
+        if battery_level < 5:
+            # prevent sending multiple critical alerts in a short time
+            alert_key = f"critical_battery_{node['num']}"
+            if alert_key not in active_health_alerts:
+                active_health_alerts[alert_key] = datetime.now(timezone.utc)
+                logging.info(f"Critical Battery Alert: {node['user']['shortName']} - {battery_level}%")
+                send_message(interface, f"Critical Alert: {node['user']['shortName']} has a critical battery level ({battery_level}%)", admin_channel_number, "^all")
+        elif battery_level < 10:
+            if f"battery_{node['num']}_warning" not in active_health_alerts:
+                active_health_alerts[f"battery_{node['num']}_warning"] = datetime.now(timezone.utc)
+                logging.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
+                send_message(interface, f"Low Battery Warning: {node['user']['shortName']} has a low battery level ({battery_level}%)", admin_channel_number, "^all")
+        elif battery_level < 20:
+            if f"battery_{node['num']}_notification" not in active_health_alerts:
+                active_health_alerts[f"battery_{node['num']}_notification"] = datetime.now(timezone.utc)
+                logging.info(f"Low Battery Notification: {node['user']['shortName']} - {battery_level}%")
+                send_message(interface, f"Notification: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")
+        elif battery_level > 50:
+            logging.info(f"Battery level is returning to normal for node {node['user']['shortName']} - {battery_level}%")
+            # Clear any active alerts for this node
+            send_llm_callback = False
+            for key in list(active_health_alerts.keys()):
+                if key.startswith(f"battery_{node['num']}"):
+                    send_llm_callback = True
+                    del active_health_alerts[key]
+            if send_llm_callback:
+                logging.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
+                send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
+
 def lookup_nodes(interface, node_generic_identifier):
     """
     Lookup nodes by their short name, long name, number, or user ID.
@@ -983,6 +1043,7 @@ def time_since_last_heard(last_heard_time):
         return f"{int(seconds // 31536000)}y"
 
 def find_location_by_coordinates(latitude, longitude):
+    logging.debug("Finding location by coordinates")
     """
     Find the location by latitude and longitude coordinates.
 
@@ -1053,7 +1114,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
     send_message(interface, response_text, channel, from_id)
     
     
-def reply_to_message(interface, message, channel, to_id, from_id):
+def reply_to_message(interface, message, message_id, channel, to_id, from_id):
     """
     Reply to a received message.
 
@@ -1072,9 +1133,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
 
     if message == "ping":
         logging.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
+        #send_thumbs_up_reply(interface, channel, message_id, to_id)
         location = find_location_by_node_num(interface, local_node['num'])
         distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
-
+        
         if distance != "Unknown":
             distance = round(distance, 2)
             send_llm_message(interface, f"[Don't change this message too much. I like the format] {from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}. Distance: {distance} miles", channel, to_id)
@@ -1165,7 +1227,10 @@ def reply_to_message(interface, message, channel, to_id, from_id):
                 logging.info(f"Removing node {node['user']['shortName']} - {node['num']}")
                 log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
                 db_helper.remove_node(node)
-                local_node.removeNode(node['num'])
+                if node['num'] in interface.nodesByNum:
+                    logging.info(f"Removing node {node['user']['shortName']} - {node['num']} from interface")
+                    local_node = interface.getNode('^local')
+                    local_node.removeNode(node['num'])
                 try:
                     deleted_node = lookup_node(interface, node_short_name)
                     if deleted_node:
@@ -1208,7 +1273,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             sitrep.log_message_sent("node-traced")
-            hop_limit = 1
+            hop_limit = 2
             if "hopsAway" in node:
                 hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
@@ -1248,7 +1313,7 @@ def reply_to_message(interface, message, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             send_llm_message(interface, f"Requesting node Info for {node_short_name}", channel, to_id)
-            send_node_info(interface, node_short_name)
+            send_node_info(interface)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send node info request.", channel, to_id)
     
@@ -1326,6 +1391,86 @@ def send_trace_route(interface, node_num, channel, hop_limit=1):
         
     logging.info(f"leaving send_trace_route")
 
+def send_llm_callback(message, channel, to_id, file_path=None, url=None):
+    """
+    Callback function to send a message to the LLM and receive a response.
+    Args:
+        message (str): The message to send.
+        channel (int): The channel to send the message to.
+        to_id (str): The ID of the recipient.
+    """
+    logging.info(f"send_llm_callback called with message: {message}, channel: {channel}, to_id: {to_id}")
+
+    if file_path:
+        logging.info(f"File path provided: {file_path}")
+        # Here you can handle the file if needed, e.g., upload it or process it.
+        # For now, we will just log it.
+        pdf_summary = gemini_interface.summarize_pdf(file_path)
+        message = f"{message}\nSummary: {pdf_summary}"
+
+    # Get the interface from the global variable
+    global interface
+    if interface is None:
+        logging.error("Interface is not initialized. Cannot send LLM callback.")
+        return
+    
+    # If a URL is provided, use the send_llm_message_with_url function
+    if url:
+        logging.info(f"URL provided: {url}")
+        send_llm_message_with_url(interface, message, channel, to_id, url)
+    else:
+        logging.info("No URL provided, using send_llm_message function")
+        # Use the send_llm_message function to send the message
+        send_llm_message(interface, message, channel, to_id)
+
+def send_llm_message_with_url(interface, message, channel, to_id, url):
+    """
+    Send a message to the LLM with a URL and receive a response.
+    Args:
+        interface: The interface to interact with the mesh network.
+        message (str): The message to send.
+        channel (int): The channel to send the message to.
+        to_id (str): The ID of the recipient.
+        url (str): The URL to append to the message.
+    """
+    logging.info(f"send_llm_message_with_url called with message: {message}, channel: {channel}, to_id: {to_id}, url: {url}")
+
+    # Generate response using Gemini interface
+    response_text = gemini_interface.generate_response(message, channel)
+
+    if response_text:
+        # Append the URL to the response text
+        response_text += f"\n\nLink: {url}"
+        logging.info(f"Generated response with URL: {response_text}")
+    else:
+        logging.error("No response generated by the AI model. Sending original message.")
+        response_text = message + f"\n\nLink: {url}"
+
+    send_message(interface, response_text, channel, to_id)
+
+
+def send_llm_message(interface, message, channel, to_id):
+    """
+    Send a message to the LLM and receive a response.
+    Args:
+        interface: The interface to interact with the mesh network.
+        message (str): The message to send.
+        channel (int): The channel to send the message to.
+        to_id (str): The ID of the recipient.
+    """
+    logging.info(f"send_llm_message called with message: {message}, channel: {channel}, to_id: {to_id}")
+
+    # Generate response using Gemini interface
+    response_text = gemini_interface.generate_response(message, channel)
+    
+    if response_text:
+        logging.info(f"Generated response: {response_text}")
+    else:
+        logging.error("No response generated by the AI model. Sending original message.")
+        response_text = message
+
+    send_message(interface, response_text, channel, to_id)
+
 def send_llm_message(interface, message, channel, to_id):
     """
     Send a message to the LLM and receive a response.
@@ -1356,7 +1501,6 @@ def send_llm_message(interface, message, channel, to_id):
         
         if response_text:
             message = response_text
-            logging.info(f"Generated response: {message}")
         else:
             logging.error("No response generated by the AI model. Sending original message.")
         
@@ -1375,27 +1519,32 @@ def send_message(interface, message, channel, to_id):
         channel (int): The channel to send the message to.
         to_id (str): The ID of the recipient.
     """
-    # Split every message into chunks of no more than 450 characters
-    if len(message) > 450:
-        message_chunks = [message[i:i + 450] for i in range(0, len(message), 450)]
+    # Split every message into chunks of no more than 200 characters
+    if len(message) > 240:
+        message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
+        total_messages = len(message_chunks)
+        logging.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
+        current_chunk = 1
         for chunk in message_chunks:
-            logging.info(f"Sending chunk: {chunk}")
+            logging.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
+            chunk = f"({current_chunk}/{total_messages}) {chunk}"
             try:
                 interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
             except Exception as e:
                 logging.error(f"Error sending chunk: {e}")
                 return
+            current_chunk += 1
     else:
-        logging.info(f"Sending message: {message} to channel {channel} and node {to_id}")
+        logging.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
         
         try:
-            interface.sendText(message, channelIndex=channel, destinationId=to_id)
-        
+            sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
+            logging.info(f"Sent message: {sent_message}")
 
         except Exception as e:
-            if e == "Data payload too big":
+            if "Data payload too big" in str(e):
                 logging.error("Message too long to send. Please shorten the message.")
-                send_llm_message(interface, f"[Message too long to send. Please shorten to less than 400 characters] {message}.", channel, to_id)
+                send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
                 return
             logging.error(f"Error sending message: {e}")
             return
@@ -1403,6 +1552,50 @@ def send_message(interface, message, channel, to_id):
         if to_id != "^all":
             node_name = lookup_short_name(interface, to_id)
         logging.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
+
+def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
+    """
+    Send a thumbs up reaction to a message.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        channel (int): The channel to send the message to.
+        original_message_id (str, optional): The ID of the original message to react to.
+        to_id (str): The ID of the recipient. 'all' for all nodes, or a specific node ID.
+    """
+    logging.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
+
+    send_message(interface, "👍", channel, to_id)
+
+    '''
+    try:
+        encoded_string = "👍".encode()
+        logging.info(f"Encoded thumbs up: {encoded_string}")
+        # Create a Data message protobuf for the reaction
+        data_message = mesh_pb2.Data(
+            #portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            payload=encoded_string,
+            reply_id=original_message_id,
+            emoji=True,
+            source=interface.localNode.nodeNum,
+            bitfield=0
+        )
+
+        logging.info(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
+        logging.info(data_message)
+        sent_packet = interface.sendData(
+            data_message,
+            destinationId=to_id,
+            channelIndex=channel,
+            portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
+            wantResponse=False,  # No response needed for reactions
+            wantAck=False # Don't request an acknowledgment for the reaction
+        )
+
+        logging.info(f"{sent_packet}")
+    except Exception as e:
+        logging.error(f"Error sending thumbs up: {e}")
+        '''
 
 def send_telemetry_request(interface, node_num):
     """
@@ -1439,8 +1632,8 @@ def send_position_request(interface, node_num):
         #send_llm_message(interface, f"Error sending position request to node {node_num}: {e}", admin_channel_number, "^all")
 
 
-def send_node_info(interface, node_num):
-    logging.info(f"Sending node info to node {node_num} on public channel {public_channel_number}")
+def send_node_info(interface):
+    logging.info(f"Sending node info on public channel {public_channel_number}")
                  
     """
     Send node information to a specified node.
@@ -1554,7 +1747,6 @@ def send_weather_alerts_if_needed(interface, channel):
     Args:
         interface: The interface to interact with the mesh network.
     """
-    logging.info("Checking for weather alerts")
     try:
         # Get local node's position for weather alerts
         local_node_info = interface.getMyNodeInfo()
@@ -1582,6 +1774,51 @@ def send_weather_alerts_if_needed(interface, channel):
             send_llm_message(interface, expired_message, channel, "^all")
             sitrep.log_message_sent("weather-alert-expired")
 
+
+        # Check for updated alerts
+        updated_alerts = weather_interface.get_updated_alerts()
+        if updated_alerts is not None and len(updated_alerts) > 0:
+            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
+            
+            for alert_id, alert_data in updated_alerts.items():
+                alert_message = f"UPDATED WEATHER ALERT\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+                alert_message += f"Onset: {alert_data['onset']}\n"
+                alert_message += f"Expires: {alert_data['expires']}\n"
+                alert_message += f"Description: {alert_data['description']}\n"
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
+                sitrep.log_message_sent("weather-alert-updated")
+
+        # Check for new alerts
+        new_alerts = weather_interface.get_new_alerts()
+        if new_alerts is not None and len(new_alerts) > 0:
+            logging.info(f"Found {len(new_alerts)} new weather alerts")
+            logging.info(f"{new_alerts}")
+            
+            for alert_id, alert_data in new_alerts.items():
+                alert_message = f"NEW WEATHER ALERT\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}\n"
+                alert_message += f"Onset: {alert_data['onset']}\n"
+                alert_message += f"Expires: {alert_data['expires']}\n"
+                alert_message += f"Description: {alert_data['description']}\n"
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
+                sitrep.log_message_sent("weather-alert-new")
+        
+        weather_interface.clear_alerts()  # Clear alerts after processing
+
+    except Exception as e:
+        logging.error(f"Error checking for weather alerts: {e}")
+    
 
         # Check for updated alerts
         updated_alerts = weather_interface.get_updated_alerts()
@@ -1650,9 +1887,9 @@ heartbeat_counter = 0
 while True:
     try:
         if interface is None:
-            logging.info(f"Connecting to Meshtastic device on {serial_port}")
-            interface = meshtastic.serial_interface.SerialInterface(serial_port)
-            logging.info(f"Connected to Meshtastic device on {serial_port}")
+
+            logging.info(f"Connecting to Meshtastic device with hostname {TCP_SERVER}")
+            interface = meshtastic.tcp_interface.TCPInterface(hostname=TCP_SERVER)
     except Exception as e:
         logging.error(f"Error connecting to Meshtastic device: {e}")
         interface = None
@@ -1677,16 +1914,32 @@ while True:
             continue  # Skip the rest of the loop and try to reconnect
     
         # Check for weather alerts
-        send_weather_alerts_if_needed(interface, public_channel_number)
+        send_weather_alerts_if_needed(interface, admin_channel_number)
 
         # Check if we need to send a weather forecast
-        send_weather_forecast_if_needed(interface, public_channel_number)
+        send_weather_forecast_if_needed(interface, admin_channel_number)
+
         
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
 
         # Used by meshtastic_mesh_visualizer to display nodes on a map
         sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
+
+        # Check rss feed
+        rss_interface.check_feeds_if_needed(
+            message_callback=send_llm_callback,
+            channel=admin_channel_number,
+            destination="^all"
+        )
+
+        # Check for website updates
+        web_scraper.scrape_websites_if_needed(
+            send_llm_callback,
+            admin_channel_number,  # or public_channel_number if you prefer
+            "^all",
+            sitrep.log_message_sent
+        )
 
         logging.info(f"\n\n \
         **************************************************************\n    \
@@ -1706,7 +1959,11 @@ while True:
         logging.error(f"Error in main loop: {e} - Trying to clean up and reconnect")
         
         if interface is not None:
-            interface.close()
+            try:
+                logging.info("Closing interface due to error")
+                interface.close()
+            except Exception as e:
+                logging.error(f"Error closing interface: {e}")
             interface = None
         continue        
             

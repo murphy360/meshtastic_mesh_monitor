@@ -11,6 +11,8 @@ class GeminiInterface:
             logging.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
         self.location = location
+        self.max_message_length = 200  # Maximum message length for transmission
+        self.max_output_tokens = 70  # Maximum output tokens for responses
         self.update_base_system_instruction()
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
         self.public_chat = self._create_public_chat()
@@ -21,15 +23,15 @@ class GeminiInterface:
         """Update the base system instruction with the current location"""
         self.base_system_instruction = (
             "You are an AI named DPMM (Don't Panic Mesh Monitor). "
-            "You are a knowledgeable and professional radio enthusiast with a background in the United States Navy "
-            "where you were trained in proper radio etiquette. You were an Eagle Scout."
+            "You are a knowledgeable and professional radio enthusiast. "
             f"You are currently located in {self.location}. "
-            "Don't talk directly about your military background or time in Scouting. "
             "Don't ever say 'Roger That'. "
             "You will be given messages to transmit on a mesh network. Send them as if they were from you."
-            #"Modified messages should maintain the original content and intent, but include your own personal touch. "
             "All responses must only include the finalized message, ready for broadcast. "
-            "All responses must be less than 450 characters or they will not be transmitted or received."
+            "You may use acronyms selectively to shorten messages, but do not write entire messages in acronyms. "
+            "Don't create links or URLs that weren't already provided to you in the message. "
+            "If including links, ensure they are complete and functional. Never create shortened links or URLs. Do wrap them in quotes if they are not already wrapped to ensure they are treated as a single link. "
+            f"All responses must be less than {self.max_message_length} characters or they will not be transmitted or received."
         )
     
 
@@ -51,33 +53,37 @@ class GeminiInterface:
     def _create_public_chat(self):
         """Create a chat for public channel communications"""
         public_instruction = self.base_system_instruction + (
-            " You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
-            "Your messages will be visible to all nodes in the network."
-            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
+            "You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
+
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
+            "Do not label responses with 'Public Channel' or similar tags."
+
         )
         
         return self.gemini_client.chats.create(
-            model='gemini-2.0-flash-001',
+            model='gemini-2.5-flash-lite-preview-06-17',
             config=types.GenerateContentConfig(
                 system_instruction=public_instruction,
-                max_output_tokens=75
+                max_output_tokens=self.max_output_tokens
             )
         )
     
     def _create_admin_chat(self):
         """Create a chat for admin channel communications"""
         admin_instruction = self.base_system_instruction + (
-            " You are tasked with monitoring a meshtastic mesh network and are currently working directly "
+            "You are tasked with monitoring a meshtastic mesh network and are currently working directly "
             "with administrators on a private admin channel. Be more technical and detailed in your responses "
             "to administrators, as they need accurate information. "
-            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message."
+            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
+            "Do not label responses with 'Admin Channel' or similar tags."
+
         )
         
         return self.gemini_client.chats.create(
-            model='gemini-2.0-flash-001',
+            model='gemini-2.5-flash-lite-preview-06-17',
             config=types.GenerateContentConfig(
                 system_instruction=admin_instruction,
-                max_output_tokens=75
+                max_output_tokens=self.max_output_tokens
             )
         )
     
@@ -87,20 +93,55 @@ class GeminiInterface:
             logging.info(f"Creating new private chat with {node_short_name}")
             
             private_instruction = self.base_system_instruction + (
-                f" You are currently in a private encrypted conversation with {node_short_name}. "
-                f" While this is a conversation with a specific node, you may still be asked to forward messages "
-                f" If [Forward Message] is included in the message you should treat it as a request to initiate a conversation with {node_short_name} not a reply. You may modify this message slightly to make it more suitable for the recipient. "
-                f" You may be slightly more casual in your responses, but still maintain professionalism. "
+                f"You are currently in a private encrypted conversation with {node_short_name}. "
+                f"While this is a conversation with a specific node, you may still be asked to forward messages "
+                f"If [Forward Message] is included in the message you should treat it as a request to initiate a conversation with {node_short_name} not a reply. You may modify this message slightly to make it more suitable for the recipient. "
+                f"You may be slightly more casual in your responses, but still maintain professionalism. "
+                "Do not label responses with 'Private Chat' or similar tags."
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
-                model='gemini-2.0-flash-001',
+                model='gemini-2.5-flash-lite-preview-06-17',
                 config=types.GenerateContentConfig(
                     system_instruction=private_instruction,
-                    max_output_tokens=75
+                    max_output_tokens=self.max_output_tokens
                 )
             )
         return self.private_chats[node_short_name]
+
+    def summarize_pdf(self, path_to_pdf: str) -> str:
+        """
+        Summarize the content of a PDF document
+        
+        Args:
+            path_to_pdf: The file path to the PDF document
+
+        Returns:
+            A summary of the PDF content
+        """
+        try:
+            uploaded_file = self.gemini_client.files.upload(file=path_to_pdf)
+
+            if not uploaded_file:
+                logging.error("Failed to upload PDF file.")
+                return "Error uploading PDF file."
+
+        except Exception as e:
+            logging.error(f"Error reading PDF file: {e}")
+            return "Error reading PDF file."
+
+        try:
+            response = self.gemini_client.models.generate_content(
+                model="gemini-2.5-flash-lite-preview-06-17",
+                contents=[f"Summarize this PDF File in {self.max_message_length} characters or less", uploaded_file]
+            )
+            logging.info(f"Response: {response}")
+            return response.text
+
+        except Exception as e:
+            logging.error(f"Error summarizing PDF: {e}")
+            return "Error summarizing PDF content."
+        
     
     def generate_response(self, message: str, channel_id: int, node_short_name: Optional[str] = None) -> str:
         """
@@ -143,10 +184,10 @@ class GeminiInterface:
                 )
                 
                 response = self.gemini_client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash-lite-preview-06-17",
                     config=types.GenerateContentConfig(
                         system_instruction=generic_instruction,
-                        max_output_tokens=75
+                        max_output_tokens=self.max_output_tokens
                     ),
                     contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
                 )

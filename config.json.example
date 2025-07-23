@@ -1,0 +1,44 @@
+{
+  "rss_feeds": [
+    {
+      "id": "twinsburg_calendar",
+      "name": "Twinsburg Calendar",
+      "url": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=58&CID=All-calendar.xml",
+      "enabled": true,
+      "check_interval_hours": 2
+    },
+    {
+      "id": "twinsburg_news",
+      "name": "Twinsburg News",
+      "url": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=65&CID=All-0",
+      "enabled": true,
+      "check_interval_hours": 1
+    },
+    {
+      "id": "tech_news",
+      "name": "Tech News",
+      "url": "https://feeds.feedburner.com/TechCrunch",
+      "enabled": false,
+      "check_interval_hours": 4
+    }
+  ],
+  "web_scrapers": [
+    {
+      "id": "twinsburg_school_agendas",
+      "name": "Twinsburg School Agendas & Minutes",
+      "url": "https://www.twinsburg.k12.oh.us/agendasandminutes.aspx",
+      "extractor_type": "twinsburg_links",
+      "enabled": true,
+      "check_interval_hours": 24
+    },
+    {
+      "id": "example_website",
+      "name": "Example News Site",
+      "url": "https://example.com/news",
+      "extractor_type": "links",
+      "css_selector": ".news-item",
+      "enabled": false,
+      "check_interval_hours": 12
+    }
+  ]
+}

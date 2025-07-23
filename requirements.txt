@@ -3,3 +3,4 @@ geopy
 folium
 flask
 google-genai
+beautifulsoup4
