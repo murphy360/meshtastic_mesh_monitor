@@ -359,6 +359,7 @@ def onReceivePosition(packet, interface):
         # If the node is not fast moving and not high altitude, check if it's marked as aircraft
         if db_helper.is_aircraft(node):
             logging.info(f"Node {node_short_name} is marked as aircraft but is not fast moving or high altitude")
+            send_node_info(interface)
             db_helper.set_aircraft(node, False)
             log_message += " - Aircraft Unmarked"
             admin_message += " - Aircraft Unmarked"
@@ -745,7 +746,7 @@ def onReceive(packet, interface):
         new_node = db_helper.is_new_node(node)
               
         if new_node:
-            #send_node_info(interface) TODO Re-enable this when we have a way to send node info correctly. 
+            send_node_info(interface)
             log_message += f" - New Node Detected"
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
@@ -1313,7 +1314,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         node = lookup_node(interface, node_short_name)
         if node:
             send_llm_message(interface, f"Requesting node Info for {node_short_name}", channel, to_id)
-            send_node_info(interface, node_short_name)
+            send_node_info(interface)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send node info request.", channel, to_id)
     
@@ -1633,8 +1634,8 @@ def send_position_request(interface, node_num):
         #send_llm_message(interface, f"Error sending position request to node {node_num}: {e}", admin_channel_number, "^all")
 
 
-def send_node_info(interface, node_num):
-    logging.info(f"Sending node info to node {node_num} on public channel {public_channel_number}")
+def send_node_info(interface):
+    logging.info(f"Sending node info on public channel {public_channel_number}")
                  
     """
     Send node information to a specified node.
