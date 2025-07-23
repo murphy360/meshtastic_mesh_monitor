@@ -30,7 +30,7 @@ class WebScraperInterface:
         
         # Load websites from configuration if config manager is provided
         if self.config_manager is None:
-            from ..config.config_manager import ConfigManager
+            from config.config_manager import ConfigManager
             self.config_manager = ConfigManager()
         
         self._load_websites_from_config()
