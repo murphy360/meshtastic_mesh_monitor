@@ -48,6 +48,7 @@ class WeatherGovInterface:
 
         self.update_location_details(latitude, longitude)
         cache_key = f"forecast_{self.zone_url.split('/')[-1]}"
+
         cached_result = self._get_from_cache(cache_key)
         
         if cached_result:
@@ -143,6 +144,7 @@ class WeatherGovInterface:
         
         logging.info(log_message)
         
+
         # Now process the alerts data
         try:
             self.current_alerts: Dict[str, Any] = {}

@@ -16,6 +16,7 @@ class SQLiteHelper:
         self.create_table("traceroute_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, originator_node TEXT, destination_node TEXT, route_to TEXT, route_back TEXT, snr_to TEXT, snr_back TEXT, hop_count INTEGER")
         self.create_table("node_connections", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node1 TEXT, node2 TEXT, connection_type TEXT, snr REAL, last_seen TEXT, hop_count INTEGER") 
 
+
     def connect(self):
         """
         Check if the SQLite database exists and connect to it.

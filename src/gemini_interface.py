@@ -19,7 +19,6 @@ class GeminiInterface:
         self.admin_chat = self._create_admin_chat()
         self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
 
-
     def update_base_system_instruction(self):
         """Update the base system instruction with the current location"""
         self.base_system_instruction = (
@@ -55,9 +54,10 @@ class GeminiInterface:
         """Create a chat for public channel communications"""
         public_instruction = self.base_system_instruction + (
             "You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
-            "Your messages will be visible to all nodes in the network."
+
             "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
             "Do not label responses with 'Public Channel' or similar tags."
+
         )
         
         return self.gemini_client.chats.create(
@@ -76,6 +76,7 @@ class GeminiInterface:
             "to administrators, as they need accurate information. "
             "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
             "Do not label responses with 'Admin Channel' or similar tags."
+
         )
         
         return self.gemini_client.chats.create(

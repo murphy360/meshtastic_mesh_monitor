@@ -1137,7 +1137,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         location = find_location_by_node_num(interface, local_node['num'])
         distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
         
-
         if distance != "Unknown":
             distance = round(distance, 2)
             send_llm_message(interface, f"[Don't change this message too much. I like the format] {from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}. Distance: {distance} miles", channel, to_id)
@@ -1471,7 +1470,6 @@ def send_llm_message(interface, message, channel, to_id):
         response_text = message
 
     send_message(interface, response_text, channel, to_id)
-
 
 def send_llm_message(interface, message, channel, to_id):
     """
@@ -1822,6 +1820,45 @@ def send_weather_alerts_if_needed(interface, channel):
         logging.error(f"Error checking for weather alerts: {e}")
     
 
+        # Check for updated alerts
+        updated_alerts = weather_interface.get_updated_alerts()
+        if updated_alerts is not None and len(updated_alerts) > 0:
+            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
+            
+            for alert_id, alert_data in updated_alerts.items():
+                alert_message = f"⚠️ UPDATED WEATHER ALERT ⚠️\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
+                sitrep.log_message_sent("weather-alert-updated")
+
+        # Check for new alerts
+        new_alerts = weather_interface.get_new_alerts()
+        if new_alerts is not None and len(new_alerts) > 0:
+            logging.info(f"Found {len(new_alerts)} new weather alerts")
+            logging.info(f"{new_alerts}")
+            
+            for alert_id, alert_data in new_alerts.items():
+                alert_message = f"⚠️ NEW WEATHER ALERT ⚠️\n"
+                alert_message += f"Type: {alert_data['event']}\n"
+                alert_message += f"Severity: {alert_data['severity']}\n"
+                alert_message += f"Urgency: {alert_data['urgency']}\n"
+                alert_message += f"{alert_data['headline']}"
+
+                # Send to specified channel
+                send_llm_message(interface, alert_message, channel, "^all")
+                sitrep.log_message_sent("weather-alert-new")
+        
+        weather_interface.clear_alerts()  # Clear alerts after processing
+
+    except Exception as e:
+        logging.error(f"Error checking for weather alerts: {e}")
+    
+
 # Main loop
 logging.info("Starting Main Loop")
 
@@ -1881,6 +1918,7 @@ while True:
 
         # Check if we need to send a weather forecast
         send_weather_forecast_if_needed(interface, admin_channel_number)
+
         
         # Send a routine sitrep every 24 hours at 00:00 UTC        
         sitrep.send_sitrep_if_new_day(interface)
