@@ -2,14 +2,25 @@ import os
 import logging
 from google import genai
 from google.genai import types # type: ignore
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
+from core.base_interfaces import BaseInterface
 
-class GeminiInterface:
-    def __init__(self, location: str = "Unknown Location"):
+class GeminiInterface(BaseInterface):
+    def __init__(self, location: str = "Unknown Location", config_manager=None):
+        """
+        Initialize the Gemini AI interface.
+        
+        Args:
+            location: Current location for context
+            config_manager: ConfigManager instance for loading configuration
+        """
+        super().__init__(config_manager=config_manager, cache_duration_seconds=0)  # No caching for AI responses
+        
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not self.gemini_api_key:
             logging.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
+        
         self.location = location
         self.max_message_length = 200  # Maximum message length for transmission
         self.max_output_tokens = 70  # Maximum output tokens for responses
@@ -208,3 +219,32 @@ class GeminiInterface:
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             return f"(Error with AI response: {message})"
+
+    def test_connection(self) -> bool:
+        """Test if the interface can connect to the Gemini API."""
+        try:
+            # Try a simple request to test connectivity
+            response = self.gemini_client.models.generate_content(
+                model=genai.GenerativeModel(
+                    model_name="gemini-2.0-flash-exp",
+                    system_instruction="Test connection",
+                    max_output_tokens=5
+                ),
+                contents="Hello"
+            )
+            return response is not None
+        except Exception as e:
+            self.logger.error(f"Connection test failed: {e}")
+            return False
+
+    def get_status(self) -> Dict[str, Any]:
+        """Get the current status of the Gemini interface."""
+        return {
+            "interface_type": "GeminiInterface",
+            "location": self.location,
+            "max_message_length": self.max_message_length,
+            "max_output_tokens": self.max_output_tokens,
+            "has_api_key": bool(self.gemini_api_key),
+            "private_chats_count": len(self.private_chats),
+            "connection_status": self.test_connection()
+        }

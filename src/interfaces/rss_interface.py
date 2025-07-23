@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
 import logging
 import requests
-from typing import Dict, List
+from typing import Dict, List, Any
 import xml.etree.ElementTree as ET
+from core.base_interfaces import FeedInterface
 
-class RSSInterface:
+class RSSInterface(FeedInterface):
     """Interface for accessing and monitoring RSS feeds."""
     
     def __init__(self, discard_initial_items: bool = True, config_manager=None):
@@ -16,19 +17,15 @@ class RSSInterface:
                                   stored but not reported as new
             config_manager: ConfigManager instance for loading feed configuration
         """
-        self.config_manager = config_manager
-        self.feeds = {}
-        self.feed_intervals = {}  # Store custom check intervals per feed
-        self.last_check_time = {}
-        self.check_interval = timedelta(hours=1)  # Default check interval
-        self.previous_items = {}  # Store previous items to detect changes
-        self.initial_check_complete = {}  # Track whether initial check is complete
-        self.discard_initial_items = discard_initial_items
+        super().__init__(
+            config_manager=config_manager,
+            cache_duration_seconds=3600,  # Cache feed content for 1 hour
+            default_poll_interval_seconds=3600,  # Poll every hour by default
+            discard_initial_items=discard_initial_items
+        )
         
-        # Initialize config manager if not provided
-        if self.config_manager is None:
-            from ..config.config_manager import ConfigManager
-            self.config_manager = ConfigManager()
+        # RSS-specific attributes that extend the base class
+        self.check_interval = timedelta(hours=1)  # Default check interval (kept for compatibility)
         
         # Load feeds from configuration
         self._load_feeds_from_config()
@@ -46,11 +43,13 @@ class RSSInterface:
                     check_interval_hours = feed_config.get("check_interval_hours", 1)
                     
                     if feed_id and feed_url:
-                        self.feeds[feed_id] = feed_url
-                        self.feed_intervals[feed_id] = timedelta(hours=check_interval_hours)
-                        self.last_check_time[feed_id] = datetime.now(timezone.utc) - self.feed_intervals[feed_id]
-                        self.previous_items[feed_id] = {}
-                        self.initial_check_complete[feed_id] = False
+                        # Use the base class method to add the feed
+                        self.add_feed(feed_id, feed_url, check_interval_hours * 3600)  # Convert to seconds
+                        
+                        # Initialize RSS-specific tracking using base class attributes
+                        self.last_poll_time[feed_id] = datetime.now(timezone.utc) - timedelta(hours=check_interval_hours)
+                        self.previous_data[feed_id] = {}  # Use base class previous_data instead of previous_items
+                        
                         logging.info(f"Loaded RSS feed: {feed_config.get('name', feed_id)} ({feed_id})")
                     else:
                         logging.warning(f"Invalid feed configuration: missing id or url - {feed_config}")
@@ -60,7 +59,7 @@ class RSSInterface:
         else:
             logging.warning("No configuration manager provided, using default feeds")
             self._load_default_feeds()
-    
+
     def _load_default_feeds(self):
         """Load default RSS feeds if configuration is not available."""
         default_feeds = {
@@ -69,30 +68,23 @@ class RSSInterface:
         }
         
         for feed_id, feed_url in default_feeds.items():
-            self.feeds[feed_id] = feed_url
-            self.feed_intervals[feed_id] = self.check_interval
-            self.last_check_time[feed_id] = datetime.now(timezone.utc) - self.check_interval
-            self.previous_items[feed_id] = {}
-            self.initial_check_complete[feed_id] = False
+            # Use base class method to add feeds
+            self.add_feed(feed_id, feed_url, 3600)  # 1 hour interval in seconds
+            self.last_poll_time[feed_id] = datetime.now(timezone.utc) - self.check_interval
             
-        logging.info(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
+        logging.info(f"RSS Interface initialized with {len(self.feeds)} default feeds")
 
-    def add_feed(self, feed_id: str, url: str):
+    def parse_feed(self, feed_content: str) -> List[Dict[str, str]]:
         """
-        Add a new RSS feed to monitor.
+        Parse RSS feed content and return list of items.
         
         Args:
-            feed_id: A unique identifier for this feed
-            url: The URL of the RSS feed
+            feed_content: Raw RSS feed content as string
+            
+        Returns:
+            List of dictionaries containing parsed RSS items
         """
-        if feed_id in self.feeds:
-            logging.warning(f"Feed ID '{feed_id}' already exists, updating URL")
-        
-        self.feeds[feed_id] = url
-        self.last_check_time[feed_id] = datetime.now(timezone.utc) - self.check_interval
-        self.previous_items[feed_id] = {}
-        self.initial_check_complete[feed_id] = False
-        logging.info(f"Added RSS feed: {feed_id} - {url}")
+        return self._parse_rss(feed_content.encode('utf-8'))
 
     def _parse_rss(self, content: bytes) -> List[Dict[str, str]]:
         """
@@ -169,13 +161,13 @@ class RSSInterface:
                     item_id = item['guid']
                     current_items[item_id] = item
                     # Add to new_items if not already seen
-                    if item_id not in self.previous_items[feed_id] and self.initial_check_complete[feed_id]:
+                    if item_id not in self.previous_data[feed_id] and self.initial_check_complete[feed_id]:
                         new_items.append(item)
                         logging.info(f"Adding: {item}")
             
-            # Update previous items
-            self.previous_items[feed_id] = current_items
-            self.last_check_time[feed_id] = datetime.now(timezone.utc)
+            # Update previous items using base class attribute
+            self.previous_data[feed_id] = current_items
+            self.last_poll_time[feed_id] = datetime.now(timezone.utc)
             
             # Mark initial check as complete
             if not self.initial_check_complete[feed_id]:
@@ -220,3 +212,42 @@ class RSSInterface:
                         message_callback(message, channel, destination)
                 else:
                     logging.info(f"No new items found in feed '{feed_id}'")
+
+    def poll_for_updates(self) -> Dict[str, Any]:
+        """
+        Poll all feeds for updates.
+        
+        Returns:
+            Dictionary containing update information
+        """
+        updates = {}
+        for feed_id in self.feeds:
+            if self._should_poll(feed_id):
+                try:
+                    new_items = self.check_feed(feed_id)
+                    updates[feed_id] = {
+                        "success": True,
+                        "new_items": new_items,
+                        "count": len(new_items)
+                    }
+                    self._update_poll_time(feed_id)
+                except Exception as e:
+                    updates[feed_id] = {
+                        "success": False,
+                        "error": str(e),
+                        "count": 0
+                    }
+        return updates
+
+    def test_connection(self) -> bool:
+        """Test if the interface can connect to at least one feed."""
+        if not self.feeds:
+            return False
+        
+        # Test the first feed
+        first_feed_id = next(iter(self.feeds))
+        try:
+            response = requests.get(self.feeds[first_feed_id], timeout=10)
+            return response.status_code == 200
+        except Exception:
+            return False

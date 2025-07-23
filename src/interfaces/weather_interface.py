@@ -4,25 +4,32 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 import time
+from core.base_interfaces import APIInterface
 
-class WeatherGovInterface:
+class WeatherGovInterface(APIInterface):
     """Interface for accessing the National Weather Service (weather.gov) API."""
     
-    def __init__(self, user_agent: str = "MeshtasticMeshMonitor/1.0"):
+    def __init__(self, user_agent: str = "MeshtasticMeshMonitor/1.0", config_manager=None):
         """
         Initialize the weather.gov interface.
         
         Args:
             user_agent: Identifier for API requests (weather.gov requires a unique identifier)
+            config_manager: ConfigManager instance for loading configuration
         """
-        self.base_url = "https://api.weather.gov"
-        self.headers = {
+        headers = {
             "User-Agent": user_agent,
             "Accept": "application/geo+json"
         }
-        self.cache = {}
-        self.cache_expiry = {}
-        self.default_cache_seconds = 3600  # 1 hour default cache
+        super().__init__(
+            base_url="https://api.weather.gov",
+            config_manager=config_manager,
+            cache_duration_seconds=3600,  # 1 hour default cache
+            default_headers=headers,
+            rate_limit_delay=0.5  # Be respectful to weather.gov
+        )
+        
+        # Weather-specific attributes
         self.previous_alerts: Dict[str, Any] = {}  # Store previous alerts to detect changes
         self.current_alerts: Dict[str, Any] = {}
         self.new_alerts: Dict[str, Any] = {}
@@ -49,24 +56,27 @@ class WeatherGovInterface:
         self.update_location_details(latitude, longitude)
         cache_key = f"forecast_{self.zone_url.split('/')[-1]}"
 
-        cached_result = self._get_from_cache(cache_key)
+        cached_result = self._get_cached_data(cache_key)
         
         if cached_result:
             #logging.info(f"Using cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
             return cached_result
             
         try:
-
-            # Now get the actual forecast
-            response = requests.get(self.forecast_url, headers=self.headers)
-            response.raise_for_status()
+            # Now get the actual forecast using the base class method
+            endpoint = self.forecast_url.replace(self.base_url, "").lstrip("/")
+            response = self._make_request(endpoint)
             
-            forecast_data = response.json()
-            self._add_to_cache(cache_key, forecast_data)
-            logging.info(f"Cached new forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
-            return forecast_data
+            if response.get("success"):
+                forecast_data = response["data"]
+                self._cache_data(cache_key, forecast_data)
+                logging.info(f"Cached new forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
+                return forecast_data
+            else:
+                logging.error(f"Error fetching forecast: {response.get('error', 'Unknown error')}")
+                return {"error": response.get('error', 'Unknown error')}
             
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logging.error(f"Error fetching forecast: {e}")
             return {"error": str(e)}
     
@@ -419,23 +429,28 @@ class WeatherGovInterface:
         
         return summary
     
-    def _add_to_cache(self, key: str, data: Any, expiry_seconds: int = None) -> None:
-        """Add data to the cache with expiration time"""
-        if expiry_seconds is None:
-            expiry_seconds = self.default_cache_seconds
-            
-        self.cache[key] = data
-        self.cache_expiry[key] = time.time() + expiry_seconds
+    def test_connection(self) -> bool:
+        """Test if the interface can connect to the weather service."""
+        try:
+            response = self._make_request("/")
+            return response.get("success", False)
+        except Exception:
+            return False
     
-    def _get_from_cache(self, key: str, max_age_seconds: int = None) -> Optional[Any]:
-        """Get data from cache if it exists and hasn't expired"""
-        if key in self.cache and key in self.cache_expiry:
-            if max_age_seconds is not None:
-                # Use the provided max age
-                if time.time() < self.cache_expiry[key]:
-                    return self.cache[key]
-            else:
-                # Use the expiry time set when the item was cached
-                if time.time() < self.cache_expiry[key]:
-                    return self.cache[key]
-        return None
+    def get_status(self) -> Dict[str, Any]:
+        """Get the current status of the weather interface."""
+        return {
+            "interface_type": "WeatherGovInterface",
+            "base_url": self.base_url,
+            "county": self.county,
+            "city": self.city,
+            "state": self.state,
+            "zone_url": self.zone_url,
+            "cache_entries": len(self.cache),
+            "alert_counts": {
+                "current": len(self.current_alerts),
+                "new": len(self.new_alerts),
+                "updated": len(self.updated_alerts),
+                "expired": len(self.expired_alerts)
+            }
+        }
