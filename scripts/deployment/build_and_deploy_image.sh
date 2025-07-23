@@ -39,4 +39,4 @@ docker compose up -d
 
 # run docker logs -f
 print_section "Running docker logs -f..."
-docker logs -f $image_name
+docker logs $image_name -f 
