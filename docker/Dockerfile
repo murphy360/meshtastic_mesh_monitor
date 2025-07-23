@@ -19,5 +19,5 @@ COPY src/ /app
 # Set the working directory
 WORKDIR /app
 
-# Run mesh-monitor.py on startup
-CMD ["python3", "mesh-monitor.py"]
+# Run main.py on startup
+CMD ["python3", "main.py"]
