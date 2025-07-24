@@ -4,7 +4,7 @@ import logging
 from typing import Dict, List, Any
 
 class ConfigManager:
-    """Manages configuration for the mesh monitor application."""
+    """Manages configuration for the mesh monitor application ."""
     
     def __init__(self, config_file_path: str = None):
         """
