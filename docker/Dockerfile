@@ -25,5 +25,8 @@ RUN mkdir -p /app/data /app/logs
 # Set the working directory
 WORKDIR /app
 
+# Set Python path to include the app directory
+ENV PYTHONPATH=/app
+
 # Run main.py on startup
 CMD ["python3", "main.py"]

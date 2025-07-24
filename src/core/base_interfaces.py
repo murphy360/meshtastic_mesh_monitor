@@ -8,16 +8,13 @@ for interfaces that interact with external services like APIs, feeds, etc.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta, timezone
-
 import logging
 import json
 import time
 import sys
 import os
 import requests
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config'))) # Ensure config is in path
-from config.config_manager import ConfigManager  # Adjust import based on your project structure
-#from config_manager import ConfigManager
+from config.config_manager import ConfigManager
 
 
 class BaseInterface(ABC):
@@ -54,7 +51,7 @@ class BaseInterface(ABC):
             print(f"Path: {path}")
 
         try:
-            self.config_manager = config_manager.ConfigManager()
+            self.config_manager = ConfigManager()
         except Exception as e:
             self.logger.warning(f"Failed to initialize ConfigManager: {e}")
             self.config_manager = None
