@@ -390,11 +390,12 @@ def onReceiveData(packet, interface):
     logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
 def onReceiveUser(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
+    
+    logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
