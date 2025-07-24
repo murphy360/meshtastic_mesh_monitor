@@ -1945,17 +1945,17 @@ while True:
         )
 
         logging.info(f"\n\n \
-        **************************************************************\n    \
-        **************************************************************\n\n  \
-            Main Loop - Node Info:\n      \
-            Interface Serial Port: {serial_port}\n      \
-            Interface Node Number: {node_info['num']}\n      \
-            Interface Node Short Name: {node_info['user']['shortName']}\n      \
-            Public Key: {node_info['user']['publicKey']}\n      \
-            Connection Timeout: {connect_timeout}\n      \
-            Heartbeat Counter: {heartbeat_counter}\n      \
-            Last Weather Forecast Sent: {last_forecast_sent_time}\n      \
-        **************************************************************\n    \
+        **************************************************************\n \
+        **************************************************************\n\n \
+            Main Loop - Node Info:\n \
+            Interface TCP Server: {TCP_SERVER}\n \
+            Interface Node Number: {node_info['num']}\n \
+            Interface Node Short Name: {node_info['user']['shortName']}\n \
+            Public Key: {node_info['user']['publicKey']}\n \
+            Connection Timeout: {connect_timeout}\n \
+            Heartbeat Counter: {heartbeat_counter}\n \
+            Last Weather Forecast Sent: {last_forecast_sent_time}\n \
+        **************************************************************\n \
         **************************************************************\n\n ")
 
     except Exception as e:
