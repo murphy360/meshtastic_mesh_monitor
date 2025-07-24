@@ -16,9 +16,6 @@ RUN pip3 install --no-cache-dir -r /app/requirements.txt
 # Copy the entire src directory structure to /app
 COPY src/ /app/
 
-# Copy configuration files to /app/config_files (separate from Python config module)
-COPY config/ /app/config_files/
-
 # Copy Docker entrypoint script
 COPY docker/entrypoint.py /app/entrypoint.py
 
