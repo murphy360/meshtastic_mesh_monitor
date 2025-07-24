@@ -725,6 +725,11 @@ def onReceive(packet, interface):
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
+    if node is None:
+        logging.warning(f"Node data not found for {from_node_num}, skipping packet processing")
+        logging.warning(packet)
+        return
+    
     localNode = interface.getNode('^local')
 
     global public_channel_number, admin_channel_number
@@ -1120,13 +1125,25 @@ def find_location_by_node_num(interface, node_num):
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
     node = lookup_node(interface, from_id)
-    short_name = node['user']['shortName']
-    logging.info(f"Short name: {short_name}")
+    response_text = ""
+    short_name = from_id
+    if node is None:
+        response_text = "I'm sorry, I couldn't find your user information. I am an auto-responder and I can only respond to ping and direct messages."
+        logging.warning(f"Node not found for from_id {from_id}, sending default response")
+        send_message(interface, response_text, channel, from_id)
+        return
+    
+    if 'user' in node and 'shortName' in node['user']:
+        # If the node has a user field, use the short name from there
+        logging.info(f"Node found: {node['user']['shortName']} - {node['num']}")
+        short_name = node['user']['shortName']
+  
 
     response_text = gemini_interface.generate_response(message, channel, short_name)
     if not response_text:
         response_text = "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while! Try sending ping on LongFast."
-    logging.info(f"Response: {response_text}")
+    
+    logging.debug(f"Response: {response_text}")
     send_message(interface, response_text, channel, from_id)
     
     
