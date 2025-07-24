@@ -19,14 +19,17 @@ COPY src/ /app/
 # Copy configuration files to /app/config_files (separate from Python config module)
 COPY config/ /app/config_files/
 
+# Copy Docker entrypoint script
+COPY docker/entrypoint.py /app/entrypoint.py
+
 # Create data and logs directories
 RUN mkdir -p /app/data /app/logs
 
 # Set the working directory
 WORKDIR /app
 
-# Set Python path to include the app directory
+# Set Python path to include the app directory  
 ENV PYTHONPATH=/app
 
-# Run main.py on startup
-CMD ["python3", "main.py"]
+# Use our custom entrypoint that ensures proper Python path
+CMD ["python3", "entrypoint.py"]
