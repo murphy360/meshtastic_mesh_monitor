@@ -23,9 +23,17 @@ class Node:
 
         
         self.lastHeard = packet["rxTime"]
-        self.historical_rssi.append(packet["rxSnr"])
-        self.historical_snr.append(packet["rxSnr"])
-        self.add_position_update(packet["decoded"]["position"])
+        # Fix the RSSI/SNR mix-up
+        if "rxRssi" in packet:
+            self.historical_rssi.append(packet["rxRssi"])
+        if "rxSnr" in packet:
+            self.historical_snr.append(packet["rxSnr"])
+        
+        # Only add position if it exists and has valid data
+        if "decoded" in packet and "position" in packet["decoded"]:
+            position = packet["decoded"]["position"]
+            if position and any(key in position for key in ["latitude", "longitude", "lat", "lon"]):
+                self.add_position_update(position)
 
     def get_activity(self):
         return self.historical_rssi
@@ -56,7 +64,7 @@ class Node:
         self.lastReceivedPacket = lastReceivedPacket
 
     def add_position_update(self, position_update):
-        self.position_updates.append(position_update)
+        self.historical_positions.append(position_update)
 
     def get_position_updates(self):
-        return self.position_updates
+        return self.historical_positions
