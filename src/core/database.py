@@ -8,6 +8,7 @@ logger = get_logger(__name__)
 
 class SQLiteHelper:
     def __init__(self, db_name):
+        self.logger = get_logger(self.__class__.__name__)
         self.db_name = db_name
         self.connect()
         self.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
