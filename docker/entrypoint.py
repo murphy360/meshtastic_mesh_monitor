@@ -26,6 +26,11 @@ if os.path.exists('/app/core'):
 else:
     print("No /app/core directory found!")
 
+if os.path.exists('/app/config_files'):
+    print(f"Contents of /app/config_files: {os.listdir('/app/config_files')}")
+else:
+    print("No /app/config_files directory found!")
+
 # Ensure /app is in the Python path
 if '/app' not in sys.path:
     sys.path.insert(0, '/app')
