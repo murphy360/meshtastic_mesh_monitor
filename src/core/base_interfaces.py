@@ -14,7 +14,7 @@ import time
 import sys
 import os
 import requests
-from config.config_manager import ConfigManager
+from ..config.config_manager import ConfigManager
 
 
 class BaseInterface(ABC):

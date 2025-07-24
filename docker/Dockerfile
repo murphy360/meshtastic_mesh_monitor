@@ -16,9 +16,6 @@ RUN pip3 install --no-cache-dir -r /app/requirements.txt
 # Copy the entire src directory structure to /app
 COPY src/ /app/
 
-# Copy configuration files to /app/config
-COPY config/ /app/config/
-
 # Create data and logs directories
 RUN mkdir -p /app/data /app/logs
 
