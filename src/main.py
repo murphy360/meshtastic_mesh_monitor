@@ -17,9 +17,14 @@ from interfaces.gemini_interface import GeminiInterface
 from interfaces.weather_interface import WeatherGovInterface
 from interfaces.rss_interface import RSSInterface
 from interfaces.web_scraper_interface import WebScraperInterface
+from utils.logger import setup_logging, get_logger
 
-# Configure logging
-logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
+# Initialize unified logging system
+setup_logging()
+logger = get_logger(__name__)
+
+# Keep logging import for backward compatibility with existing code
+import logging
 
 # Global variables
 localNode = ""

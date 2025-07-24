@@ -40,5 +40,14 @@
       "enabled": false,
       "check_interval_hours": 12
     }
-  ]
+  ],
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "to_file": true,
+    "console": true,
+    "file_max_size_mb": 10,
+    "backup_count": 5,
+    "environment_preset": "production"
+  }
 }

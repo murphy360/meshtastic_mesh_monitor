@@ -10,6 +10,7 @@ This document summarizes the key improvements made to the Meshtastic Mesh Monito
 ✅ **File-Based Config**: All feeds and scrapers in `config.json`  
 ✅ **Backward Compatibility**: Environment variables `RSS_FEED_*` still work  
 ✅ **Per-Feed Intervals**: Custom check frequencies for each feed/scraper  
+✅ **Unified Logging**: Configurable logging system for development and production  
 
 ## Technical Architecture
 
@@ -17,6 +18,7 @@ This document summarizes the key improvements made to the Meshtastic Mesh Monito
 - **Automatic Loading**: Configuration loads on interface initialization without manual setup
 - **Flexible Configuration**: JSON file with environment variable fallbacks
 - **Extensible Design**: Easy to add new feeds, scrapers, and monitoring capabilities
+- **Unified Logging**: Centralized logging configuration with environment-based presets
 
 ## Usage Pattern
 

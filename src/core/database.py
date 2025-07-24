@@ -1,9 +1,10 @@
 import datetime
 import sqlite3
-import logging
+import logging  # Backward compatibility
+from utils.logger import get_logger
 
-# Configure logging
-logging.basicConfig(format='%(asctime)s - %(filename)s:%(lineno)d - %(message)s', level=logging.INFO)
+# Get logger instance
+logger = get_logger(__name__)
 
 class SQLiteHelper:
     def __init__(self, db_name):

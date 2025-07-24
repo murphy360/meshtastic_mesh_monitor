@@ -162,3 +162,71 @@ class ConfigManager:
         """Reload configuration from the file."""
         self.config = self._load_config()
         logging.info("Configuration reloaded")
+    
+    def get_logging_config(self) -> Dict[str, Any]:
+        """Get logging configuration settings."""
+        default_logging_config = {
+            "level": "INFO",
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "to_file": True,
+            "console": True,
+            "file_max_size_mb": 10,
+            "backup_count": 5,
+            "environment_preset": "production"
+        }
+        
+        return self.config.get("logging", default_logging_config)
+    
+    def update_logging_config(self, **kwargs):
+        """Update logging configuration settings."""
+        if "logging" not in self.config:
+            self.config["logging"] = {}
+        
+        self.config["logging"].update(kwargs)
+        self._save_config()
+        logging.info("Logging configuration updated")
+    
+    def apply_logging_preset(self, preset: str = "production"):
+        """Apply a logging preset configuration."""
+        presets = {
+            "development": {
+                "level": "DEBUG",
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s",
+                "to_file": True,
+                "console": True,
+                "file_max_size_mb": 50,
+                "backup_count": 10
+            },
+            "production": {
+                "level": "INFO",
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                "to_file": True,
+                "console": True,
+                "file_max_size_mb": 10,
+                "backup_count": 5
+            },
+            "testing": {
+                "level": "WARNING",
+                "format": "%(levelname)s: %(message)s",
+                "to_file": True,
+                "console": False,
+                "file_max_size_mb": 5,
+                "backup_count": 3
+            },
+            "debug": {
+                "level": "DEBUG",
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(process)d - %(thread)d - %(message)s",
+                "to_file": True,
+                "console": True,
+                "file_max_size_mb": 100,
+                "backup_count": 20
+            }
+        }
+        
+        if preset in presets:
+            self.config["logging"] = presets[preset].copy()
+            self.config["logging"]["environment_preset"] = preset
+            self._save_config()
+            logging.info(f"Applied logging preset: {preset}")
+        else:
+            logging.warning(f"Unknown logging preset: {preset}")
