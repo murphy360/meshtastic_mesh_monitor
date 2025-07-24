@@ -1,6 +1,7 @@
 import base64
 import os
 import time
+import threading
 import geopy
 from geopy import distance
 import meshtastic
@@ -37,6 +38,7 @@ long_name = 'Mesh Monitor'  # Overwritten in onConnection
 db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
 sitrep = SITREP(localNode, short_name, long_name, db_helper)
 initial_connect = True
+initial_node_discovery_complete = False  # Track when initial node discovery is done
 public_channel_number = 0
 admin_channel_number = 1
 active_health_alerts = {}
@@ -112,6 +114,14 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     if initial_connect:
         initial_connect = False
         send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", admin_channel_number, "^all")
+        # Set a timer to mark initial node discovery as complete after a few seconds
+        def mark_discovery_complete():
+            global initial_node_discovery_complete
+            initial_node_discovery_complete = True
+            logging.info("🔄 Initial node discovery period complete - onNodeUpdate logs will now be shown")
+        
+        timer = threading.Timer(10.0, mark_discovery_complete)  # 10 seconds should be enough for initial discovery
+        timer.start()
     else:
         send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
 
@@ -122,11 +132,15 @@ def onDisconnect(interface):
     Args:
         interface: The interface object representing the connection.
     """
+    global initial_node_discovery_complete
+    
+    # Reset the flag so we suppress logs on reconnect
+    initial_node_discovery_complete = False
     
     logging.info(f"\n\n \
             **************************************************************\n \
             **************************************************************\n\n \
-                Disconnected from {serial_port}\n\n \
+                Disconnected from {TCP_SERVER}\n\n \
             **************************************************************\n \
             **************************************************************\n\n ")
     try:
@@ -141,7 +155,6 @@ def onDisconnect(interface):
     
 
 def onNodeUpdate(node, interface):
-    logging.info(f"[FUNCTION] onNodeUpdate")
     """
     Handle the event when a node is updated.
 
@@ -149,13 +162,20 @@ def onNodeUpdate(node, interface):
         node (dict): The node data.
         interface: The interface object that is connected to the Meshtastic device.
     """
-
-    logging.info(f"\n\n \
-            **************************************************************\n \
-            **************************************************************\n\n \
-                Node {node['user']['shortName']} updated.\n\n \
-            **************************************************************\n \
-            **************************************************************\n\n ")
+    global initial_node_discovery_complete
+    
+    # Only log node updates after initial discovery period is complete
+    if initial_node_discovery_complete:
+        logging.info(f"[FUNCTION] onNodeUpdate")
+        logging.info(f"\n\n \
+                **************************************************************\n \
+                **************************************************************\n\n \
+                    Node {node['user']['shortName']} updated.\n\n \
+                **************************************************************\n \
+                **************************************************************\n\n ")
+    else:
+        # During initial discovery, just log at debug level
+        logging.debug(f"Initial discovery: Node {node['user']['shortName']} found")
 
     db_helper.add_or_update_node(node)
 
