@@ -8,7 +8,7 @@ for interfaces that interact with external services like APIs, feeds, etc.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta, timezone
-from ..config.config_manager import ConfigManager
+from ..config import config_manager
 import logging
 import json
 import time
@@ -52,7 +52,7 @@ class BaseInterface(ABC):
             print(f"Path: {path}")
 
         try:
-            self.config_manager = ConfigManager()
+            self.config_manager = config_manager.ConfigManager()
         except Exception as e:
             self.logger.warning(f"Failed to initialize ConfigManager: {e}")
             self.config_manager = None
