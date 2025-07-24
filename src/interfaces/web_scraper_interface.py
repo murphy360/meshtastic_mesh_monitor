@@ -6,6 +6,8 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Callable, Any, Optional, Tuple
 import time
 import re
+import sys
+from config.config_manager import ConfigManager
 
 class WebScraperInterface:
     """Interface for scraping websites and monitoring for changes."""
@@ -30,7 +32,6 @@ class WebScraperInterface:
         
         # Load websites from configuration if config manager is provided
         if self.config_manager is None:
-            from config.config_manager import ConfigManager
             self.config_manager = ConfigManager()
         
         self._load_websites_from_config()

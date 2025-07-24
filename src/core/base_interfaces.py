@@ -7,10 +7,14 @@ for interfaces that interact with external services like APIs, feeds, etc.
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import json
 import time
+import sys
+import os
+import requests
+from config.config_manager import ConfigManager
 
 
 class BaseInterface(ABC):
@@ -42,10 +46,9 @@ class BaseInterface(ABC):
     def _initialize_config_manager(self):
         """Initialize config manager - can be overridden by subclasses."""
         try:
-            from config.config_manager import ConfigManager
             self.config_manager = ConfigManager()
-        except ImportError:
-            self.logger.warning("ConfigManager not available")
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize ConfigManager: {e}")
             self.config_manager = None
     
     def _is_cache_valid(self, cache_key: str) -> bool:
@@ -140,7 +143,6 @@ class PollingInterface(BaseInterface):
         
         # Make both timezone-aware or both timezone-naive for comparison
         if last_poll.tzinfo is not None and now.tzinfo is None:
-            from datetime import timezone
             now = now.replace(tzinfo=timezone.utc)
         elif last_poll.tzinfo is None and now.tzinfo is not None:
             now = now.replace(tzinfo=None)
@@ -151,7 +153,6 @@ class PollingInterface(BaseInterface):
         """Update the last poll time for the given key."""
         # Use the same timezone as existing entries if they exist
         if poll_key in self.last_poll_time and self.last_poll_time[poll_key].tzinfo is not None:
-            from datetime import timezone
             self.last_poll_time[poll_key] = datetime.now(timezone.utc)
         else:
             self.last_poll_time[poll_key] = datetime.now()
@@ -247,7 +248,8 @@ class APIInterface(BaseInterface):
             Dictionary containing response data or error information
         """
         try:
-            import requests
+            if requests is None:
+                raise ImportError("requests library is not available")
             
             # Enforce rate limiting
             self._enforce_rate_limit()
