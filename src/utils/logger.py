@@ -40,22 +40,8 @@ class MeshMonitorLogger:
             log_file_backup_count: Number of backup log files to keep
             enable_console: Whether to enable console logging
         """
-        # print all directories in sys.path
-        for path in sys.path:
-            print(f"Path: {path}")
-            if path == '/app':
-                # iterate over directories in /app
-                for subdir in os.listdir('/app'):
-                    subdir_path = os.path.join('/app', subdir)
-                    if os.path.isdir(subdir_path):
-                        print(f"  Subdirectory: {subdir_path}")
-                        if subdir == 'config' or subdir == 'core':
-                            # print all files in config and core directories
-                            for file in os.listdir(subdir_path):
-                                file_path = os.path.join(subdir_path, file)
-                                if os.path.isfile(file_path):
-                                    print(f"    File: {file_path}")
-                break
+        
+
 
         if self._configured:
             return self.logger
