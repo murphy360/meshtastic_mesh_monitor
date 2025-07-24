@@ -194,8 +194,8 @@ class RSSInterface(FeedInterface):
         """
         now = datetime.now(timezone.utc)
         
-        for feed_id, last_check in self.last_check_time.items():
-            feed_interval = self.feed_intervals.get(feed_id, self.check_interval)
+        for feed_id, last_check in self.last_poll_time.items():
+            feed_interval = self.poll_intervals.get(feed_id, self.default_poll_interval)
             if now - last_check >= feed_interval:
                 logging.info(f"Checking feed '{feed_id}' for updates")
                 new_items = self.check_feed(feed_id)

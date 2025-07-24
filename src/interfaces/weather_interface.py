@@ -92,10 +92,14 @@ class WeatherGovInterface(APIInterface):
         and stores them in the instance variables.
         """
         try:
-            points_url = f"{self.base_url}/points/{latitude},{longitude}"
-            response = requests.get(points_url, headers=self.headers)
-            response.raise_for_status()
-            metadata = response.json()
+            points_endpoint = f"/points/{latitude},{longitude}"
+            response = self._make_request(points_endpoint)
+            
+            if not response.get("success"):
+                logging.error(f"Error fetching location details: {response.get('error', 'Unknown error')}")
+                return
+                
+            metadata = response["data"]
 
             if 'forecastZone' in metadata['properties']:
                 self.zone_url = metadata['properties']['forecastZone']
@@ -133,17 +137,21 @@ class WeatherGovInterface(APIInterface):
             zone = self.zone_url.split('/')[-1]
             log_message += f" - Zone: {zone}"
             
-            alerts_data = self._get_from_cache(zone, max_age_seconds=900)  # Use Zone as cache key, 15 minute cache
+            alerts_data = self._get_cached_data(zone)  # Use Zone as cache key
 
             if not alerts_data:
                 log_message += " - No cached data found, fetching from API"
 
                 # Now get the alerts for this zone
-                alerts_url = f"{self.base_url}/alerts/active?zone={zone}"
-                response = requests.get(alerts_url, headers=self.headers)
-                response.raise_for_status()
-                alerts_data = response.json()
-                self._add_to_cache(zone, alerts_data, expiry_seconds=900)  # 15 minute cache
+                alerts_endpoint = f"/alerts/active?zone={zone}"
+                response = self._make_request(alerts_endpoint)
+                
+                if response.get("success"):
+                    alerts_data = response["data"]
+                    self._cache_data(zone, alerts_data, 900)  # 15 minute cache
+                else:
+                    logging.error(f"Error fetching alerts: {response.get('error', 'Unknown error')}")
+                    return []
             else:
                 # If we have cached data, log it
                 log_message += " - Using cached alerts data"
@@ -259,7 +267,7 @@ class WeatherGovInterface(APIInterface):
             Dictionary containing current conditions data
         """
         cache_key = f"conditions_{latitude}_{longitude}"
-        cached_result = self._get_from_cache(cache_key, max_age_seconds=1800)  # 30 minute cache
+        cached_result = self._get_cached_data(cache_key)
         if cached_result:
             return cached_result
             
@@ -267,22 +275,30 @@ class WeatherGovInterface(APIInterface):
             self.update_location_details(latitude, longitude)
             
             # Get the list of stations
-            response = requests.get(self.stations_url, headers=self.headers)
-            response.raise_for_status()
+            stations_endpoint = self.stations_url.replace(self.base_url, "").lstrip("/")
+            response = self._make_request(stations_endpoint)
             
-            stations_data = response.json()
+            if not response.get("success"):
+                logging.error(f"Error fetching stations: {response.get('error', 'Unknown error')}")
+                return {"error": response.get('error', 'Unknown error')}
+                
+            stations_data = response["data"]
+            
             if len(stations_data['features']) == 0:
                 return {"error": "No observation stations found for this location"}
                 
             # Get observations from the first station
             station_id = stations_data['features'][0]['properties']['stationIdentifier']
-            observations_url = f"{self.base_url}/stations/{station_id}/observations/latest"
+            observations_endpoint = f"/stations/{station_id}/observations/latest"
             
-            response = requests.get(observations_url, headers=self.headers)
-            response.raise_for_status()
+            obs_response = self._make_request(observations_endpoint)
             
-            conditions_data = response.json()
-            self._add_to_cache(cache_key, conditions_data, expiry_seconds=1800)  # 30 minute cache
+            if not obs_response.get("success"):
+                logging.error(f"Error fetching observations: {obs_response.get('error', 'Unknown error')}")
+                return {"error": obs_response.get('error', 'Unknown error')}
+            
+            conditions_data = obs_response["data"]
+            self._cache_data(cache_key, conditions_data, 1800)  # 30 minute cache
             return conditions_data
             
         except requests.exceptions.RequestException as e:
