@@ -1,5 +1,6 @@
 import base64
 import os
+import sys
 import time
 import threading
 import geopy
@@ -19,6 +20,11 @@ from interfaces.weather_interface import WeatherGovInterface
 from interfaces.rss_interface import RSSInterface
 from interfaces.web_scraper_interface import WebScraperInterface
 from utils.logger import setup_logging, get_logger
+
+
+# print all directories in sys.path
+for path in sys.path:
+    print(f"Path: {path}")
 
 # Initialize unified logging system
 setup_logging()
