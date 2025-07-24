@@ -7,7 +7,7 @@ from typing import Dict, List, Callable, Any, Optional, Tuple
 import time
 import re
 import sys
-from ..config.config_manager import ConfigManager
+from config.config_manager import ConfigManager
 
 class WebScraperInterface:
     """Interface for scraping websites and monitoring for changes."""

@@ -16,6 +16,9 @@ RUN pip3 install --no-cache-dir -r /app/requirements.txt
 # Copy the entire src directory structure to /app
 COPY src/ /app/
 
+# Copy configuration files to /app/config_files (separate from Python config module)
+COPY config/ /app/config_files/
+
 # Create data and logs directories
 RUN mkdir -p /app/data /app/logs
 
@@ -24,6 +27,9 @@ WORKDIR /app
 
 # Set Python path to include the app directory
 ENV PYTHONPATH=/app
+
+# For debugging: list the directory structure in /app
+RUN echo "=== Contents of /app ===" && ls -la /app && echo "=== Contents of /app/config ===" && ls -la /app/config 2>/dev/null || echo "No /app/config directory found"
 
 # Run main.py on startup
 CMD ["python3", "main.py"]
