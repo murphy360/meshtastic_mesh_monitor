@@ -163,7 +163,7 @@ def onReceiveText(packet, interface):
     logging.info(f"[FUNCTION] onReceiveText")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
     channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
     if 'channel' in packet:
@@ -277,7 +277,7 @@ def onReceivePosition(packet, interface):
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
     
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     
     is_fast_moving = False
     is_high_altitude = False
@@ -377,10 +377,10 @@ def onReceivePosition(packet, interface):
     return
 
 def onReceiveData(packet, interface):
-    #logging.info(f"[FUNCTION] onReceiveData")
+    logging.info(f"[FUNCTION] onReceiveData")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -390,10 +390,10 @@ def onReceiveData(packet, interface):
     logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
 def onReceiveUser(packet, interface):
-    #logging.info(f"[FUNCTION] onReceiveUser")
+    logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -406,7 +406,7 @@ def onReceiveTelemetry(packet, interface):
     #logging.info(f"[FUNCTION] onReceiveTelemetry")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -419,7 +419,7 @@ def onReceiveNeighborInfo(packet, interface):
     #logging.info(f"[FUNCTION] onReceiveNeighborInfo")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -437,7 +437,7 @@ def onReceiveTraceRoute(packet, interface):
     #logging.info(f"[FUNCTION] onReceiveTraceroute")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -452,15 +452,15 @@ def onReceiveTraceRoute(packet, interface):
     route_back = []
     snr_back = []
     message_string = ""
-    originator_node = interface.nodesByNum[packet['from']]
-    traced_node = interface.nodesByNum[packet['to']]
+    originator_node = lookup_node(interface,packet['from'])
+    traced_node = lookup_node(interface,packet['to'])
     global last_trace_time, public_channel_number
 
     logging.info(f"Trace Route Packet: {trace}")
     
     if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
-        originator_node = interface.nodesByNum[packet['to']] # Originator should be local node
-        traced_node = interface.nodesByNum[packet['from']] # Traced node should be the node that was traced originally
+        originator_node = lookup_node(interface, packet['to']) # Originator should be local node
+        traced_node = lookup_node(interface, packet['from']) # Traced node should be the node that was traced originally
         
         # set last_trace_time for the traced node
         last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
@@ -473,7 +473,7 @@ def onReceiveTraceRoute(packet, interface):
         if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
             logging.info(f"ROUTE BACK:  {trace['routeBack']}")
             for hop in trace['routeBack']:
-                node = interface.nodesByNum[hop]
+                node = lookup_node(interface, hop)
                 logging.info(f"Adding node {node['user']['shortName']} to route back")
                 route_back.append(node)
         route_back.append(originator_node) # Add the originator node to the route back (local node)
@@ -499,12 +499,12 @@ def onReceiveTraceRoute(packet, interface):
         if 'routeTo' in trace:
             logging.info(f"ROUTE TO:  {trace['routeTo']}")
             for hop in trace['routeTo']:
-                node = interface.nodesByNum[hop]
+                node = lookup_node(interface, hop)
                 route_to.append(node)
         elif 'route' in trace: # If routeTo is not present, use route
             logging.info(f"ROUTE:  {trace['route']}")
             for hop in trace['route']:
-                node = interface.nodesByNum[hop]
+                node = lookup_node(interface, hop)
                 if node:
                     route_to.append(node)
                 else:
@@ -568,7 +568,7 @@ def onReceiveWaypoint(packet, interface):
     #logging.info(f"[FUNCTION] onReceiveWaypoint")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -630,7 +630,7 @@ def onReceiveNodeInfo(packet, interface):
     #logging.info(f"[FUNCTION] onReceiveNodeInfo")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -645,7 +645,7 @@ def onReceiveRouting(packet, interface):
     #logging.info(f"[FUNCTION] onReceiveRouting")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     if localNode.nodeNum == from_node_num:
@@ -691,7 +691,7 @@ def onReceiveRangeTest(packet, interface):
     '''
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     sequence = packet['decoded']['text'].split(" ")[1]
     localNode = interface.getNode('^local')
 
@@ -724,7 +724,7 @@ def onReceive(packet, interface):
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
-    node = interface.nodesByNum[from_node_num]
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
 
     global public_channel_number, admin_channel_number
@@ -1108,7 +1108,7 @@ def find_location_by_node_num(interface, node_num):
 
 def reply_to_direct_message(interface, message, channel, from_id):
     logging.info(f"Replying to direct message: {message}")
-    node = interface.nodesByNum[from_id]
+    node = lookup_node(interface, from_id)
     short_name = node['user']['shortName']
     logging.info(f"Short name: {short_name}")
 
@@ -1132,8 +1132,8 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
     """
     message = message.lower()
     logging.info(f"Replying to message: {message}")
-    from_node = interface.nodesByNum[from_id]
-    local_node = interface.nodesByNum[interface.getNode('^local').nodeNum]
+    from_node = lookup_node(interface, from_id)
+    local_node = lookup_node(interface, interface.getNode('^local').nodeNum)
     #logging.info(f"From Node: {from_node}")
 
     if message == "ping":
@@ -1494,7 +1494,8 @@ def send_llm_message(interface, message, channel, to_id):
         # if to_id is "^all", we will send the message to all nodes (if it's an int, we will send it to that node)
         if isinstance(to_id, int):
             try:
-                node = interface.nodesByNum[to_id]
+
+                node = lookup_node(interface, to_id)
                 node_short_name = node['user']['shortName']
                 response_text = gemini_interface.generate_response(message, channel, node_short_name)
             except:
@@ -1891,7 +1892,6 @@ heartbeat_counter = 0
 while True:
     try:
         if interface is None:
-
             logging.info(f"Connecting to Meshtastic device with hostname {TCP_SERVER}")
             interface = meshtastic.tcp_interface.TCPInterface(hostname=TCP_SERVER)
     except Exception as e:
@@ -1901,7 +1901,6 @@ while True:
         continue
 
     try:
-        
         node_info = interface.getMyNodeInfo()
 
         # Increment heartbeat counter
