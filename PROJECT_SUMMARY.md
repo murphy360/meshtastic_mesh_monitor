@@ -37,10 +37,10 @@ web_scraper = WebScraperInterface() # Auto-loads config.json
 - **CONFIGURATION.md**: Detailed configuration reference
 - **config.json.example**: Example configuration file users can copy
 - **example_config_usage.py**: Test script for validating configuration
-- **src/config_manager.py**: Configuration management module
-- **src/rss_interface.py**: RSS monitoring with auto-config loading  
-- **src/web_scraper_interface.py**: Web scraping with auto-config loading
-- **src/mesh-monitor.py**: Main application (simplified, no manual config)
+- **src/config/config_manager.py**: Configuration management module
+- **src/interfaces/rss_interface.py**: RSS monitoring with auto-config loading  
+- **src/interfaces/web_scraper_interface.py**: Web scraping with auto-config loading
+- **src/main.py**: Main application entry point (simplified, no manual config)
 
 For detailed usage instructions, see [README.md](README.md).
 

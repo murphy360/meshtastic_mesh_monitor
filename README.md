@@ -14,7 +14,7 @@ A comprehensive monitoring system for Meshtastic mesh networks that provides RSS
 
 ## Quick Start
 
-### Docker Installation (Raspberry Pi 4 64bit)
+### Docker Installation (Recommended)
 
 ```bash
 # Install Docker
@@ -31,24 +31,51 @@ sudo systemctl enable docker
    cd meshtastic_mesh_monitor
    ```
 
-2. **Create configuration** (see [Configuration](#configuration) section):
+2. **Set up configuration directories**:
    ```bash
-   cp config.json.example config.json
-   # Edit config.json with your feeds and settings
+   mkdir -p ~/mesh-monitor/{data,config,logs}
+   cp config/config.json.example ~/mesh-monitor/config/config.json
+   # Edit ~/mesh-monitor/config/config.json with your settings
    ```
 
-3. **Build and run**:
+3. **Build and run with Docker Compose**:
    ```bash
-   # Quick deployment script
-   ./build_and_deploy.sh
-   
-   # Or manually:
-   docker build -t meshtastic_mesh_monitor .
-   docker run -d --name meshtastic_mesh_monitor \
-     -v $(pwd)/config.json:/app/config.json \
-     -v $(pwd)/data:/data \
-     meshtastic_mesh_monitor
+   cd docker
+   docker-compose -f docker-compose-example.yaml up --build
    ```
+
+   **Or use the deployment script**:
+   ```bash
+   ./scripts/deployment/build_and_deploy_image.sh
+   ```
+
+## Project Architecture
+
+The mesh monitor uses a clean, modular architecture:
+
+```
+src/
+├── main.py                    # Application entry point
+├── config/                    # Configuration management
+│   ├── config_manager.py     # Centralized config handling
+│   └── __init__.py
+├── core/                      # Core functionality
+│   ├── base_interfaces.py    # Base interface classes
+│   ├── database.py           # Database operations (SQLite)
+│   ├── node.py               # Node management and tracking
+│   ├── sitrep.py             # Situational reporting
+│   └── __init__.py
+├── interfaces/               # External service interfaces
+│   ├── gemini_interface.py   # AI integration (Google Gemini)
+│   ├── rss_interface.py      # RSS feed monitoring
+│   ├── weather_interface.py  # Weather alerts (weather.gov)
+│   ├── web_scraper_interface.py # Web content monitoring
+│   └── __init__.py
+└── utils/                    # Utility functions
+    ├── scrapers/            # Custom web scrapers
+    │   └── twinsburg_boe.py # Specific scraper implementations
+    └── __init__.py
+```
 
 ## Configuration
 

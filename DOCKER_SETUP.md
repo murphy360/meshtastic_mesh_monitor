@@ -99,10 +99,10 @@ If you see import errors, ensure:
 - Check that the volume mount for data directory is correct
 - Ensure SQLite database path is `/app/data/mesh_monitor.db`
 
-### Migration Notes
+### Clean Architecture Notes
 
-- **Entry Point**: Changed from `mesh-monitor.py` to `main.py`
-- **Module Structure**: Application now uses organized module imports
-- **Configuration**: Centralized in `/app/config/` directory
+- **Entry Point**: Uses `main.py` with modern modular imports
+- **Module Structure**: Organized into `core/`, `interfaces/`, `config/`, and `utils/` directories
+- **Configuration**: Centralized in `/app/config/` directory using `ConfigManager`
 - **Logging**: Centralized in `/app/logs/` directory
-- **Backward Compatibility**: Original files still present during transition
+- **No Legacy Files**: All duplicate and empty files have been removed for a clean codebase
