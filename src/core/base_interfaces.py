@@ -8,7 +8,7 @@ for interfaces that interact with external services like APIs, feeds, etc.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta, timezone
-from config.config_manager import ConfigManager
+from ..config.config_manager import ConfigManager
 import logging
 import json
 import time
