@@ -15,8 +15,9 @@ import sys
 import os
 import requests
 
+
 # base_interfaces is in the core directory which is at the same level as config
-from ..config.config_manager import ConfigManager
+from src.config.config_manager import ConfigManager
 
 
 
