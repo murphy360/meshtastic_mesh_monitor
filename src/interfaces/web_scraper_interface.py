@@ -1,6 +1,5 @@
 import os
 import requests
-import logging
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Callable, Any, Optional, Tuple
@@ -8,6 +7,7 @@ import time
 import re
 import sys
 from config.config_manager import ConfigManager
+from utils.logger import get_logger
 
 class WebScraperInterface:
     """Interface for scraping websites and monitoring for changes."""
@@ -21,6 +21,7 @@ class WebScraperInterface:
                                   stored but not reported as new
             config_manager: ConfigManager instance for loading scraper configuration
         """
+        self.logger = get_logger(self.__class__.__name__)
         self.config_manager = config_manager
         self.websites = {}  # Dict to store website configurations
         self.website_intervals = {}  # Store custom check intervals per website
@@ -36,7 +37,7 @@ class WebScraperInterface:
         
         self._load_websites_from_config()
         
-        logging.info(f"Web Scraper Interface initialized with {len(self.websites)} websites (discard_initial_items={discard_initial_items})")
+        self.logger.info(f"Web Scraper Interface initialized with {len(self.websites)} websites (discard_initial_items={discard_initial_items})")
 
     def _load_websites_from_config(self):
         """Load website scrapers from configuration manager."""
@@ -59,13 +60,13 @@ class WebScraperInterface:
                         )
                         # Set custom check interval for this website
                         self.website_intervals[scraper_id] = timedelta(hours=check_interval_hours)
-                        logging.info(f"Loaded web scraper: {scraper_config.get('name', scraper_id)} ({scraper_id})")
+                        self.logger.info(f"Loaded web scraper: {scraper_config.get('name', scraper_id)} ({scraper_id})")
                     else:
-                        logging.warning(f"Invalid scraper configuration: missing id or url - {scraper_config}")
+                        self.logger.warning(f"Invalid scraper configuration: missing id or url - {scraper_config}")
             except Exception as e:
-                logging.error(f"Error loading scrapers from configuration: {e}")
+                self.logger.error(f"Error loading scrapers from configuration: {e}")
         else:
-            logging.warning("No configuration manager provided for web scrapers")
+            self.logger.warning("No configuration manager provided for web scrapers")
     
     def add_website(self, website_id: str, url: str, css_selector: str = None, 
                    extractor_type: str = "generic", custom_parser: Callable = None):
@@ -92,7 +93,7 @@ class WebScraperInterface:
         self.last_check_time[website_id] = datetime.now(timezone.utc) - self.website_intervals[website_id]
         self.previous_items[website_id] = {}
         self.initial_check_complete[website_id] = False
-        logging.info(f"Added website to monitor: {website_id} - {url} - {extractor_type}")
+        self.logger.info(f"Added website to monitor: {website_id} - {url} - {extractor_type}")
     
     def remove_website(self, website_id: str) -> bool:
         """
@@ -109,7 +110,7 @@ class WebScraperInterface:
             del self.last_check_time[website_id]
             del self.previous_items[website_id]
             del self.initial_check_complete[website_id]
-            logging.info(f"Removed website: {website_id}")
+            self.logger.info(f"Removed website: {website_id}")
             return True
         return False
     
@@ -121,7 +122,7 @@ class WebScraperInterface:
             hours: Number of hours between website checks
         """
         self.check_interval = timedelta(hours=hours)
-        logging.info(f"Website check interval set to {hours} hours")
+        self.logger.info(f"Website check interval set to {hours} hours")
     
     def _extract_links_and_titles(self, soup: BeautifulSoup, css_selector: str = None) -> List[Dict[str, str]]:
         """
@@ -166,7 +167,7 @@ class WebScraperInterface:
                         })
         
         except Exception as e:
-            logging.error(f"Error extracting links and titles: {e}")
+            self.logger.error(f"Error extracting links and titles: {e}")
         
         return items
     
@@ -205,10 +206,10 @@ class WebScraperInterface:
 				AUGUST 16: Cocktail Johnny			</a>"
                 '''     
                            
-                logging.debug(f"Processing link: {link}")
+                self.logger.debug(f"Processing link: {link}")
                 link_type = "event"
                 date = href.split('/')[-2]
-                logging.debug(f"Extracted date: {date} from link: {href}")
+                self.logger.debug(f"Extracted date: {date} from link: {href}")
                 
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
@@ -221,7 +222,7 @@ class WebScraperInterface:
                 })
         
         except Exception as e:
-            logging.error(f"Error extracting Rock the Park links: {e}")
+            self.logger.error(f"Error extracting Rock the Park links: {e}")
         
         return items
     
@@ -273,7 +274,7 @@ class WebScraperInterface:
                 })
         
         except Exception as e:
-            logging.error(f"Error extracting {link}:\n\n {e}")
+            self.logger.error(f"Error extracting {link}:\n\n {e}")
 
         return items
     
@@ -288,7 +289,7 @@ class WebScraperInterface:
             List of new items found (may be empty on first check if discard_initial_items is True)
         """
         if website_id not in self.websites:
-            logging.warning(f"Website ID '{website_id}' not found")
+            self.logger.warning(f"Website ID '{website_id}' not found")
             return []
         
         config = self.websites[website_id]
@@ -341,13 +342,13 @@ class WebScraperInterface:
                 item_id = item.get('id')
                 if item_id:
                     current_items[item_id] = item
-                    #logging.info(f"Checking item: {item_id} on website '{website_id}'")
+                    #self.logger.info(f"Checking item: {item_id} on website '{website_id}'")
                     # Check if this is a new item
                     if item_id not in self.previous_items[website_id] and self.initial_check_complete[website_id]:
-                        logging.info(f"New item found on website '{website_id}': {item_id}")
+                        self.logger.info(f"New item found on website '{website_id}': {item_id}")
                         new_items.append(item)
                 else:
-                    logging.warning(f"Item on website '{website_id}' has no ID, skipping: {item}")
+                    self.logger.warning(f"Item on website '{website_id}' has no ID, skipping: {item}")
             
             # Update previous items
             self.previous_items[website_id] = current_items
@@ -356,15 +357,15 @@ class WebScraperInterface:
             # Mark initial check as complete
             if not self.initial_check_complete[website_id]:
                 self.initial_check_complete[website_id] = True
-                logging.info(f"Initial check of website '{website_id}', discarding {len(items)} items")
+                self.logger.info(f"Initial check of website '{website_id}', discarding {len(items)} items")
             else:
-                logging.info(f"Checked website '{website_id}', found {len(new_items)} new items")
+                self.logger.info(f"Checked website '{website_id}', found {len(new_items)} new items")
             
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching website '{website_id}': {e}")
+            self.logger.error(f"Error fetching website '{website_id}': {e}")
 
         except Exception as e:
-            logging.error(f"Unexpected error checking website '{website_id}': {e}")
+            self.logger.error(f"Unexpected error checking website '{website_id}': {e}")
         return new_items
     
     def download_pdf(self, url: str, destination: str) -> Optional[str]:
@@ -387,13 +388,13 @@ class WebScraperInterface:
             with open(destination, 'wb') as f:
                 f.write(response.content)
             
-            logging.info(f"Downloaded PDF from {url} to {destination}")
+            self.logger.info(f"Downloaded PDF from {url} to {destination}")
             return destination
         
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error downloading PDF from '{url}': {e}")
+            self.logger.error(f"Error downloading PDF from '{url}': {e}")
         except Exception as e:
-            logging.error(f"Unexpected error downloading PDF from '{url}': {e}")
+            self.logger.error(f"Unexpected error downloading PDF from '{url}': {e}")
         
         return None
     
@@ -431,16 +432,16 @@ class WebScraperInterface:
                         if 'title' in item and 'url' in item and 'type' in item:
                             # If .pdf in url, download and process it
                             if item['type'] == 'pdf':
-                                logging.info(f"Downloading PDF from {item['url']}")
+                                self.logger.info(f"Downloading PDF from {item['url']}")
                                 clean_filename = re.sub(r'[\\/*?:"<>|]', '', item['title'].strip())                    
                                 pdf_path = f"/data/{website_id}/{clean_filename}.pdf"
                                 self.download_pdf(item['url'], pdf_path)
                             # Format link items
-                            logging.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}")
+                            self.logger.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}")
                             message = f"New {item['title']} on Site: {website_id.replace('_', ' ').title()}"
                         elif 'content' in item:
                             # Format text content
-                            logging.info(f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄")
+                            self.logger.info(f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄")
                             message = f"📄 Content Update: {website_id.replace('_', ' ').title()} 📄\n\n"
                             content = item['content']
                             if len(content) > 300:
@@ -448,13 +449,13 @@ class WebScraperInterface:
                             message += content
                         else:
                             # Generic format for other items
-                            logging.info(f"Update detected on Site: {website_id.replace('_', ' ').title()} 🌐")
+                            self.logger.info(f"Update detected on Site: {website_id.replace('_', ' ').title()} 🌐")
                             message = f"🌐 Update Detected: {website_id.replace('_', ' ').title()} 🌐\n\n"
                             message += f"New content has been detected on this website."
                             
-                        logging.info(f"Sending message for {website_id}: {message}")
+                        self.logger.info(f"Sending message for {website_id}: {message}")
                         # Send message
-                        logging.info(message)
+                        self.logger.info(message)
                         message_callback(message, channel, destination, pdf_path, item.get('url', None))
 
                         if log_callback:

@@ -1,7 +1,7 @@
 import json
 import os
-import logging
 from typing import Dict, List, Any
+from utils.logger import get_logger
 
 class ConfigManager:
     """Manages configuration for the mesh monitor application ."""
@@ -14,6 +14,7 @@ class ConfigManager:
             config_file_path: Path to the configuration file. 
                             Defaults to config.json in the current directory.
         """
+        self.logger = get_logger(self.__class__.__name__)
         if config_file_path is None:
             # Look for config file in multiple possible locations
             current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,12 +32,12 @@ class ConfigManager:
             for path in possible_paths:
                 if os.path.exists(path):
                     config_file_path = path
-                    logging.debug(f"Found config file at: {config_file_path}")
+                    self.logger.debug(f"Found config file at: {config_file_path}")
                     break
             else:
                 # Default to the original location if no file found
                 config_file_path = os.path.join(parent_dir, "config.json")
-                logging.debug(f"No config file found, using default: {config_file_path}")
+                self.logger.debug(f"No config file found, using default: {config_file_path}")
         
         self.config_file_path = config_file_path
         self.config = self._load_config()
@@ -47,14 +48,14 @@ class ConfigManager:
             if os.path.exists(self.config_file_path):
                 with open(self.config_file_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-                logging.info(f"Configuration loaded from {self.config_file_path}")
+                self.logger.info(f"Configuration loaded from {self.config_file_path}")
                 return config
             else:
-                logging.warning(f"Configuration file not found at {self.config_file_path}, using defaults")
+                self.logger.warning(f"Configuration file not found at {self.config_file_path}, using defaults")
                 return self._get_default_config()
         except Exception as e:
-            logging.error(f"Error loading configuration: {e}")
-            logging.info("Using default configuration")
+            self.logger.error(f"Error loading configuration: {e}")
+            self.logger.info("Using default configuration")
             return self._get_default_config()
     
     def _get_default_config(self) -> Dict[str, Any]:
@@ -110,7 +111,7 @@ class ConfigManager:
                         "enabled": True,
                         "check_interval_hours": 1
                     })
-                    logging.info(f"Added RSS feed from environment variable: {key}")
+                    self.logger.info(f"Added RSS feed from environment variable: {key}")
         
         return feeds
     
@@ -150,21 +151,21 @@ class ConfigManager:
         for i, feed in enumerate(feeds):
             if feed.get("id") == feed_id:
                 feeds[i] = new_feed
-                logging.info(f"Updated existing RSS feed: {feed_id}")
+                self.logger.info(f"Updated existing RSS feed: {feed_id}")
                 self._save_config()
                 return
         
         # Add new feed
         feeds.append(new_feed)
         self.config["rss_feeds"] = feeds
-        logging.info(f"Added new RSS feed: {feed_id}")
+        self.logger.info(f"Added new RSS feed: {feed_id}")
         self._save_config()
     
     def remove_rss_feed(self, feed_id: str):
         """Remove an RSS feed from the configuration."""
         feeds = self.config.get("rss_feeds", [])
         self.config["rss_feeds"] = [feed for feed in feeds if feed.get("id") != feed_id]
-        logging.info(f"Removed RSS feed: {feed_id}")
+        self.logger.info(f"Removed RSS feed: {feed_id}")
         self._save_config()
     
     def _save_config(self):
@@ -172,14 +173,14 @@ class ConfigManager:
         try:
             with open(self.config_file_path, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, indent=2, ensure_ascii=False)
-            logging.info(f"Configuration saved to {self.config_file_path}")
+            self.logger.info(f"Configuration saved to {self.config_file_path}")
         except Exception as e:
-            logging.error(f"Error saving configuration: {e}")
+            self.logger.error(f"Error saving configuration: {e}")
     
     def reload_config(self):
         """Reload configuration from the file."""
         self.config = self._load_config()
-        logging.info("Configuration reloaded")
+        self.logger.info("Configuration reloaded")
     
     def get_logging_config(self) -> Dict[str, Any]:
         """Get logging configuration settings."""
@@ -202,7 +203,7 @@ class ConfigManager:
         
         self.config["logging"].update(kwargs)
         self._save_config()
-        logging.info("Logging configuration updated")
+        self.logger.info("Logging configuration updated")
     
     def apply_logging_preset(self, preset: str = "production"):
         """Apply a logging preset configuration."""
@@ -245,6 +246,6 @@ class ConfigManager:
             self.config["logging"] = presets[preset].copy()
             self.config["logging"]["environment_preset"] = preset
             self._save_config()
-            logging.info(f"Applied logging preset: {preset}")
+            self.logger.info(f"Applied logging preset: {preset}")
         else:
-            logging.warning(f"Unknown logging preset: {preset}")
+            self.logger.warning(f"Unknown logging preset: {preset}")

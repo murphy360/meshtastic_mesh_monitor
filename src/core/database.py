@@ -23,11 +23,11 @@ class SQLiteHelper:
         Check if the SQLite database exists and connect to it.
         """
         try:
-            logging.info(f"Connecting to {self.db_name}")
+            self.logger.info(f"Connecting to {self.db_name}")
             self.conn = sqlite3.connect(self.db_name, check_same_thread=False)
-            logging.info(f"Connected to SQLite database: {self.db_name}")
+            self.logger.info(f"Connected to SQLite database: {self.db_name}")
         except sqlite3.Error as e:
-            logging.error(f"Error connecting to SQLite database: {e}")
+            self.logger.error(f"Error connecting to SQLite database: {e}")
             with open("/data/test.txt", "w") as f: #TODO remove
                 f.write(f"{datetime.datetime.now()}\n")
 
@@ -41,11 +41,11 @@ class SQLiteHelper:
         Returns:
             bool: True if the node is new, False if it was updated.
         """
-        #logging.info(f"Adding or updating node: {node['user']['shortName']}")
+        #self.logger.info(f"Adding or updating node: {node['user']['shortName']}")
         new = False
         num = node["num"]
         if "user" not in node:
-            logging.error(f"Node {num} does not have user data")
+            self.logger.error(f"Node {num} does not have user data")
             return
 
         else: 
@@ -72,7 +72,7 @@ class SQLiteHelper:
     
         if "lastHeard" in node:
             lastHeard = node["lastHeard"] 
-            #logging.info(f"Node {num} last heard: {lastHeard}") 
+            #self.logger.info(f"Node {num} last heard: {lastHeard}") 
         else:
             lastHeard = ""
 
@@ -83,36 +83,36 @@ class SQLiteHelper:
         airUtilTx = ""
         uptimeSeconds = ""
         if "deviceMetrics" in node:
-            #logging.info(f"Node {num} has device metrics data")
+            #self.logger.info(f"Node {num} has device metrics data")
             if "batteryLevel" in node["deviceMetrics"]:
-                #logging.info(f"Node {num} battery: {battery}")
+                #self.logger.info(f"Node {num} battery: {battery}")
                 battery = node["deviceMetrics"]["batteryLevel"]
             else:
-                logging.info(f"Node {num} does not have battery level data")
+                self.logger.info(f"Node {num} does not have battery level data")
                 battery = ""
             
             if "voltage" in node["deviceMetrics"]:
-                #logging.info(f"Node {num} has voltage data")
+                #self.logger.info(f"Node {num} has voltage data")
                 voltage = node["deviceMetrics"]["voltage"]
             else:
-                logging.info(f"Node {num} does not have voltage data")
+                self.logger.info(f"Node {num} does not have voltage data")
                 voltage = ""
             if "channelUtilization" in node["deviceMetrics"]:
                 channelUtilization = node["deviceMetrics"]["channelUtilization"]
             else:
-                logging.info(f"Node {num} does not have channel utilization data")
+                self.logger.info(f"Node {num} does not have channel utilization data")
                 channelUtilization = ""
             if "airUtilTx" in node["deviceMetrics"]:
-                # logging.info(f"Node {num} has air utilization TX data")
+                # self.logger.info(f"Node {num} has air utilization TX data")
                 airUtilTx = node["deviceMetrics"]["airUtilTx"]
             else:
-                logging.info(f"Node {num} does not have air utilization TX data")
+                self.logger.info(f"Node {num} does not have air utilization TX data")
                 airUtilTx = ""
             if "uptimeSeconds" in node["deviceMetrics"]:
-                # logging.info(f"Node {num} has uptime seconds data")
+                # self.logger.info(f"Node {num} has uptime seconds data")
                 uptimeSeconds = node["deviceMetrics"]["uptimeSeconds"]
             else:
-                logging.info(f"Node {num} does not have uptime seconds data")
+                self.logger.info(f"Node {num} does not have uptime seconds data")
                 uptimeSeconds = ""
 
         # Check if the node already exists in the database
@@ -127,7 +127,7 @@ class SQLiteHelper:
             existing_shortname = result[3]
             existing_longname = result[4]
             if shortname != existing_shortname or longname != existing_longname:
-                logging.info(f"Node {node_id} shortname or longname has changed: {existing_shortname} -> {shortname}, {existing_longname} -> {longname}")
+                self.logger.info(f"Node {node_id} shortname or longname has changed: {existing_shortname} -> {shortname}, {existing_longname} -> {longname}")
                 
 
         # Node exists, update it
@@ -149,7 +149,7 @@ class SQLiteHelper:
             query = "INSERT INTO node_database (num, id, shortname, longname, macaddr, hwModel, lastHeard, batteryLevel, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             self.conn.execute(query, (num, node_id, shortname, longname, macaddr, hwModel, lastHeard, battery, voltage, channelUtilization, airUtilTx, uptimeSeconds, nodeOfInterest, aircraft, created_at, updated_at))
         self.conn.commit()
-        #logging.info(log_string)
+        #self.logger.info(log_string)
         return new
     
     def is_new_node(self, node):
@@ -168,7 +168,7 @@ class SQLiteHelper:
         if result:
             return False
         else:
-            logging.info(f"Node {node['user']['id']} is new and will be added to the database")
+            self.logger.info(f"Node {node['user']['id']} is new and will be added to the database")
             return True
     
     def is_name_change(self, node):
@@ -202,7 +202,7 @@ class SQLiteHelper:
         query = "DELETE FROM node_database WHERE id = ?"
         self.conn.execute(query, (node_id,))
         self.conn.commit()
-        logging.info(f"Node {node_id} removed")
+        self.logger.info(f"Node {node_id} removed")
 
     def is_node_of_interest(self, node):
         """
@@ -232,7 +232,7 @@ class SQLiteHelper:
         query = "UPDATE node_database SET nodeOfInterest = ? WHERE id = ?"
         self.conn.execute(query, (node_of_interest, node["user"]["id"]))
         self.conn.commit()
-        logging.info(f"Node {node['user']['id']} is set as node of interest: {node_of_interest}")
+        self.logger.info(f"Node {node['user']['id']} is set as node of interest: {node_of_interest}")
 
     def is_aircraft(self, node):
         """
@@ -262,7 +262,7 @@ class SQLiteHelper:
         query = "UPDATE node_database SET aircraft = ? WHERE id = ?"
         self.conn.execute(query, (aircraft, node["user"]["id"]))
         self.conn.commit()
-        logging.info(f"Node {node['user']['id']} is set as aircraft: {aircraft}")
+        self.logger.info(f"Node {node['user']['id']} is set as aircraft: {aircraft}")
 
     def create_table(self, table_name, columns):
         """
@@ -283,7 +283,7 @@ class SQLiteHelper:
             table_name (str): The name of the table.
             data (tuple): The data to insert.
         """
-        logging.info(f"Inserting data into {table_name} table: {data}")
+        self.logger.info(f"Inserting data into {table_name} table: {data}")
         placeholders = ', '.join(['?' for _ in range(len(data))])
         query = f"INSERT INTO {table_name} VALUES ({placeholders})"
         self.conn.execute(query, data)
@@ -335,7 +335,7 @@ class SQLiteHelper:
         query = "INSERT INTO weather_report_database (created_at, updated_at, short_report, long_report) VALUES (?, ?, ?, ?)"
         self.conn.execute(query, (created_at, updated_at, short_report, long_report))
         self.conn.commit()
-        logging.info(f"Weather report added: {short_report}")
+        self.logger.info(f"Weather report added: {short_report}")
     
     def get_last_weather_report(self):
         """
@@ -350,7 +350,7 @@ class SQLiteHelper:
         if result:
             return result
         else:
-            logging.info("No weather reports found")
+            self.logger.info("No weather reports found")
             return None
     
     def get_last_weather_report_time(self):
@@ -364,10 +364,10 @@ class SQLiteHelper:
         cursor = self.conn.execute(query)
         result = cursor.fetchone()
         if result:
-            logging.info(f"Last weather report time: {result[0]}")
+            self.logger.info(f"Last weather report time: {result[0]}")
             return result[0]
         else:
-            logging.info("No weather reports found")
+            self.logger.info("No weather reports found")
             return None
 
     def store_traceroute(self, originator_node, destination_node, route_to, route_back, snr_to, snr_back):
@@ -404,10 +404,10 @@ class SQLiteHelper:
                 hop_count
             ))
             
-            logging.info(f"Stored traceroute from {originator_node} to {destination_node} with {hop_count} hops")
+            self.logger.info(f"Stored traceroute from {originator_node} to {destination_node} with {hop_count} hops")
             
         except Exception as e:
-            logging.error(f"Error storing traceroute data: {e}")
+            self.logger.error(f"Error storing traceroute data: {e}")
 
     def update_node_connections(self, route_to, route_back, snr_to, snr_back):
         """
@@ -448,10 +448,10 @@ class SQLiteHelper:
                 
                 self._upsert_connection(node1_name, node2_name, "traceroute_back", snr_value, now, hop_count)
                 
-            logging.info(f"Updated node connections from traceroute data")
+            self.logger.info(f"Updated node connections from traceroute data")
             
         except Exception as e:
-            logging.error(f"Error updating node connections: {e}")
+            self.logger.error(f"Error updating node connections: {e}")
 
     def _upsert_connection(self, node1, node2, connection_type, snr, timestamp, hop_count):
         """
@@ -489,7 +489,7 @@ class SQLiteHelper:
                 ))
                 
         except Exception as e:
-            logging.error(f"Error upserting connection between {node1} and {node2}: {e}")
+            self.logger.error(f"Error upserting connection between {node1} and {node2}: {e}")
 
     def get_node_connections(self, node_name=None):
         """
@@ -507,7 +507,7 @@ class SQLiteHelper:
             else:
                 return self.query_data("node_connections", "*")
         except Exception as e:
-            logging.error(f"Error getting node connections: {e}")
+            self.logger.error(f"Error getting node connections: {e}")
             return []
 
     def get_recent_traceroutes(self, limit=10):
@@ -523,7 +523,7 @@ class SQLiteHelper:
         try:
             return self.query_data("traceroute_database", "*", "", f"ORDER BY created_at DESC LIMIT {limit}")
         except Exception as e:
-            logging.error(f"Error getting recent traceroutes: {e}")
+            self.logger.error(f"Error getting recent traceroutes: {e}")
             return []
 
     def get_network_topology(self):
@@ -563,7 +563,7 @@ class SQLiteHelper:
             }
             
         except Exception as e:
-            logging.error(f"Error getting network topology: {e}")
+            self.logger.error(f"Error getting network topology: {e}")
             return {'nodes': [], 'connections': [], 'total_nodes': 0, 'total_connections': 0}
 
     def get_node_connectivity_stats(self, node_name):
@@ -607,7 +607,7 @@ class SQLiteHelper:
             }
             
         except Exception as e:
-            logging.error(f"Error getting connectivity stats for {node_name}: {e}")
+            self.logger.error(f"Error getting connectivity stats for {node_name}: {e}")
             return {
                 'node_name': node_name,
                 'direct_connections': [],
@@ -629,7 +629,7 @@ class SQLiteHelper:
         Returns:
             list: A list of short names of nodes of interest.
         """
-        logging.info("Getting nodes of interest")
+        self.logger.info("Getting nodes of interest")
         nodes_of_interest = []
         query = "SELECT shortname FROM node_database WHERE nodeOfInterest = 1"
         cursor = self.conn.execute(query)

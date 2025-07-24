@@ -1,14 +1,13 @@
 import datetime
 import time
-import logging
 import json
-
-# Use the unified logging system from main application
+from utils.logger import get_logger
 
 class SITREP:
     def __init__(self, localNode, shortName, longName, dbHelper):
+        self.logger = get_logger(self.__class__.__name__)
         self.localNode = localNode
-        logging.debug(f"Local Node init: {localNode}")
+        self.logger.debug(f"Local Node init: {localNode}")
         self.shortName = shortName
         self.longName = longName
         self.dbHelper = dbHelper
@@ -31,7 +30,7 @@ class SITREP:
         self.known_nodes = []
         self.num_connections = 0
         self.extra_connections = {}
-        logging.debug(f"SITREP initialized")
+        self.logger.debug(f"SITREP initialized")
 
     def update_sitrep(self, interface, is_routine_sitrep=False):
         """
@@ -69,11 +68,11 @@ class SITREP:
         return
     
     def add_trace(self, trace):
-        #logging.info(f"Adding trace: {trace}")
+        #self.logger.info(f"Adding trace: {trace}")
         # Iterate through list of nodes in trace and use add_extra_connection to add connections
         for i in range(len(trace) - 1):
             
-            #logging.info(f"Adding extra connection between {trace[i]['user']['shortName']} and {trace[i + 1]['user']['shortName']}")
+            #self.logger.info(f"Adding extra connection between {trace[i]['user']['shortName']} and {trace[i + 1]['user']['shortName']}")
             self.add_extra_connection(trace[i]['user']['shortName'], trace[i + 1]['user']['shortName'])
     
     def add_extra_connection(self, node1_short_name, node2_short_name):
@@ -92,7 +91,7 @@ class SITREP:
             if node1_short_name not in self.extra_connections[node2_short_name]:
                 self.extra_connections[node2_short_name].append(node1_short_name)
         
-        #logging.info(f"Extra Connections: {self.extra_connections}")
+        #self.logger.info(f"Extra Connections: {self.extra_connections}")
         return
 
     def update_connections_from_database(self):
@@ -107,7 +106,7 @@ class SITREP:
             # Get all node connections from the database
             connections = self.dbHelper.get_node_connections()
             
-            logging.debug(f"Loading {len(connections)} connections from database")
+            self.logger.debug(f"Loading {len(connections)} connections from database")
             
             for conn in connections:
                 node1 = conn[3]  # node1 column
@@ -118,12 +117,12 @@ class SITREP:
                 # Only include recent connections (within last 24 hours)
                 if self._is_recent_connection(last_seen):
                     self.add_extra_connection(node1, node2)
-                    logging.debug(f"Added connection from database: {node1} <-> {node2} ({connection_type})")
+                    self.logger.debug(f"Added connection from database: {node1} <-> {node2} ({connection_type})")
             
-            logging.debug(f"Updated extra_connections with {len(self.extra_connections)} nodes from database")
+            self.logger.debug(f"Updated extra_connections with {len(self.extra_connections)} nodes from database")
             
         except Exception as e:
-            logging.error(f"Error updating connections from database: {e}")
+            self.logger.error(f"Error updating connections from database: {e}")
 
     def _is_recent_connection(self, last_seen_str):
         """
@@ -147,7 +146,7 @@ class SITREP:
             return time_diff.total_seconds() < (24 * 60 * 60)
             
         except Exception as e:
-            logging.error(f"Error parsing timestamp {last_seen_str}: {e}")
+            self.logger.error(f"Error parsing timestamp {last_seen_str}: {e}")
             return False
 
     def add_node_of_interest(self, node_short_name):
@@ -160,7 +159,7 @@ class SITREP:
 
     def update_nodes_of_interest_from_db(self):
         self.nodes_of_interest = self.dbHelper.get_nodes_of_interest()
-        logging.debug(f"Nodes of Interest: {self.nodes_of_interest}")
+        self.logger.debug(f"Nodes of Interest: {self.nodes_of_interest}")
         return
 
     def update_aircraft_tracks_from_db(self):
@@ -178,7 +177,7 @@ class SITREP:
         Returns:
             str: The aircraft tracks report.
         """
-        logging.debug("Building Aircraft Tracks Report")
+        self.logger.debug("Building Aircraft Tracks Report")
         num_nodes = 0
         report_string = ""
         line_letter = "A"
@@ -213,7 +212,7 @@ class SITREP:
         Returns:
             str: The nodes of interest report.
         """
-        logging.debug("Building Nodes of Interest Report")
+        self.logger.debug("Building Nodes of Interest Report")
         num_nodes = 0
         report_string = ""
         line_letter = "A"
@@ -280,7 +279,7 @@ class SITREP:
         Returns:
             str: The formatted uptime string.
         """
-        logging.debug(f"Getting Node Uptime for {node['user']['shortName']}")
+        self.logger.debug(f"Getting Node Uptime for {node['user']['shortName']}")
         uptime_seconds_total = int(node["deviceMetrics"]["uptimeSeconds"])
         uptime_days = uptime_seconds_total // 86400
         uptime_hours = (uptime_seconds_total % 86400) // 3600
@@ -325,7 +324,7 @@ class SITREP:
             self.packets_received[packet_type] += 1
         else:
             self.packets_received[packet_type] = 1
-        #logging.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
+        #self.logger.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
         return
 
     def is_packet_from_node_of_interest(self, interface, packet):
@@ -339,10 +338,10 @@ class SITREP:
         Returns:
             bool: True if the packet is from a node of interest, False otherwise.
         """
-        logging.debug("is_packet_from_node_of_interest")
+        self.logger.debug("is_packet_from_node_of_interest")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name in self.nodes_of_interest:
-            logging.info(f"Node of Interest Detected: {from_node_short_name}")  # Keep this as info - it's important
+            self.logger.info(f"Node of Interest Detected: {from_node_short_name}")  # Keep this as info - it's important
             return True
         return False
 
@@ -357,11 +356,11 @@ class SITREP:
         Returns:
             bool: True if the packet is from a new node, False otherwise.
         """
-        logging.debug("is_packet_from_new_node")
-        logging.debug(f"Checking if packet is from a new node")
+        self.logger.debug("is_packet_from_new_node")
+        self.logger.debug(f"Checking if packet is from a new node")
         from_node_short_name = self.lookup_short_name(interface, packet['from'])
         if from_node_short_name not in self.known_nodes:
-            logging.info(f"New Node Detected Sitrep: {from_node_short_name}")  # Keep this as info - it's important
+            self.logger.info(f"New Node Detected Sitrep: {from_node_short_name}")  # Keep this as info - it's important
             self.known_nodes.append(from_node_short_name)
             return True
         return False
@@ -374,7 +373,7 @@ class SITREP:
             int: The total number of packets received.
         """
         total_packets = sum(self.packets_received.values())
-        logging.debug(f"Total Packets Received: {total_packets}")
+        self.logger.debug(f"Total Packets Received: {total_packets}")
         return total_packets
 
     def log_message_sent(self, message_type):
@@ -407,7 +406,7 @@ class SITREP:
             interface: The interface to interact with the mesh network.
             file_path (str): The path to the file.
         """
-        #logging.info(f"Writing SITREP to file: {file_path}")
+        #self.logger.info(f"Writing SITREP to file: {file_path}")
         sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
         mesh_data = {
             "last_update": self.get_date_time_in_zulu(datetime.datetime.now()),
@@ -419,15 +418,15 @@ class SITREP:
 
         localNode = self.lookup_node_by_short_name(interface, self.shortName)
         if localNode is None:
-            logging.info(f"Local Node not found in interface.nodes")
+            self.logger.info(f"Local Node not found in interface.nodes")
             return
         self_data["id"] = self.shortName
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
 
         for node in interface.nodes.values():
-            #logging.info(f"Writing Node: {node}")
-            #logging.info(f"Writing Node: {node['user']['shortName']}")
+            #self.logger.info(f"Writing Node: {node}")
+            #self.logger.info(f"Writing Node: {node['user']['shortName']}")
             try:
                 latitude = 0
                 longitude = 0
@@ -445,7 +444,7 @@ class SITREP:
                     if "altitude" in node["position"]:
                         altitude = node["position"]["altitude"]
                     if "precisionBits" in node["position"]:
-                        #logging.info(f"Node {node['user']['shortName']} has precisionBits: {node['position']['precisionBits']}")
+                        #self.logger.info(f"Node {node['user']['shortName']} has precisionBits: {node['position']['precisionBits']}")
                         precision_bits = node["position"]["precisionBits"]
                 
                 if "lastHeard" in node:
@@ -494,20 +493,20 @@ class SITREP:
                         node_data["connections"].append(connection)
 
             except Exception as e:
-                logging.error(f"Error While processing node {node['user']['shortName']}: {e} - {node}")
+                self.logger.error(f"Error While processing node {node['user']['shortName']}: {e} - {node}")
                 
         try:
             for line in self.lines:
-                #logging.info(f"Adding SITREP line to file: {line}")
+                #self.logger.info(f"Adding SITREP line to file: {line}")
                 mesh_data["sitrep"].append(line)
         except Exception as e:
-            logging.error(f"Error: {e}")
+            self.logger.error(f"Error: {e}")
 
         with open(file_path, 'w') as file:
             json.dump(mesh_data, file)
 
-        #logging.info(f"SITREP written to file: {file_path}")
-        #logging.info(f"File Contents: {mesh_data}")
+        #self.logger.info(f"SITREP written to file: {file_path}")
+        #self.logger.info(f"File Contents: {mesh_data}")
 
     def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
         """
@@ -562,13 +561,13 @@ class SITREP:
                 qualifying_nodes.append(node['user']['shortName'])
                 response_string += " " + node['user']['shortName']
                 
-            logging.debug(log_message)
+            self.logger.debug(log_message)
                 
         if self.nodes_connected <= 20:
-            logging.info(f"📡 SITREP: {self.nodes_connected} nodes active - {response_string}")  # Important summary
+            self.logger.info(f"📡 SITREP: {self.nodes_connected} nodes active - {response_string}")  # Important summary
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
-            logging.info(f"📡 SITREP: {self.nodes_connected} nodes active")  # Important summary
+            self.logger.info(f"📡 SITREP: {self.nodes_connected} nodes active")  # Important summary
             response_string = str(self.nodes_connected)
         return response_string
 
@@ -608,11 +607,11 @@ class SITREP:
         Returns:
             str: The short name of the node.
         """
-        #logging.info(f"Sitrep: Looking up short name for node: {node_num}")
+        #self.logger.info(f"Sitrep: Looking up short name for node: {node_num}")
         for node in interface.nodes.values():
             if node["num"] == node_num:
                 node_short_name = node["user"]["shortName"]
-                logging.debug(f"Node found: {node_short_name}")
+                self.logger.debug(f"Node found: {node_short_name}")
                 return node_short_name
         return "Unknown"
 
@@ -642,7 +641,7 @@ class SITREP:
         now = datetime.datetime.now()
         # Check if the day has changed
         if now.date() != self.sitrep_time.date():
-            logging.info("📊 SITREP: New day started - sending routine report")
+            self.logger.info("📊 SITREP: New day started - sending routine report")
             self.update_sitrep(interface, is_routine_sitrep=True)
             self.send_report(interface, 1, '^all')
 
@@ -650,7 +649,7 @@ class SITREP:
 
     def send_report(self, interface, channelId, to_id):
         for line in self.lines:
-            logging.info(f"📊 SITREP SEND: {line}")
+            self.logger.info(f"📊 SITREP SEND: {line}")
             interface.sendText(f"{line}", channelIndex=channelId, destinationId=to_id)
             time.sleep(5) # sleep for 5 seconds between each line
     

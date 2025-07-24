@@ -8,11 +8,11 @@ for interfaces that interact with external services like APIs, feeds, etc.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta, timezone
-import logging
 import json
 import time
 import sys
 import os
+from utils.logger import get_logger
 import requests
 from config.config_manager import ConfigManager
 
@@ -37,7 +37,7 @@ class BaseInterface(ABC):
         self.cache: Dict[str, Any] = {}
         self.cache_expiry: Dict[str, datetime] = {}
         self.cache_duration = timedelta(seconds=cache_duration_seconds)
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = get_logger(self.__class__.__name__)
         
         # Initialize config manager if not provided
         if self.config_manager is None:

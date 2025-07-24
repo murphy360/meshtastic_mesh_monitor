@@ -1,10 +1,10 @@
 import requests
-import logging
 import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 import time
 from core.base_interfaces import APIInterface
+from utils.logger import get_logger
 
 class WeatherGovInterface(APIInterface):
     """Interface for accessing the National Weather Service (weather.gov) API."""
@@ -59,7 +59,7 @@ class WeatherGovInterface(APIInterface):
         cached_result = self._get_cached_data(cache_key)
         
         if cached_result:
-            #logging.info(f"Using cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
+            #self.logger.info(f"Using cached forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
             return cached_result
             
         try:
@@ -70,14 +70,14 @@ class WeatherGovInterface(APIInterface):
             if response.get("success"):
                 forecast_data = response["data"]
                 self._cache_data(cache_key, forecast_data)
-                logging.debug(f"Cached new forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
+                self.logger.debug(f"Cached new forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
                 return forecast_data
             else:
-                logging.error(f"Error fetching forecast: {response.get('error', 'Unknown error')}")
+                self.logger.error(f"Error fetching forecast: {response.get('error', 'Unknown error')}")
                 return {"error": response.get('error', 'Unknown error')}
             
         except Exception as e:
-            logging.error(f"Error fetching forecast: {e}")
+            self.logger.error(f"Error fetching forecast: {e}")
             return {"error": str(e)}
     
     def update_location_details(self, latitude: float, longitude: float) -> None:
@@ -96,7 +96,7 @@ class WeatherGovInterface(APIInterface):
             response = self._make_request(points_endpoint)
             
             if not response.get("success"):
-                logging.error(f"Error fetching location details: {response.get('error', 'Unknown error')}")
+                self.logger.error(f"Error fetching location details: {response.get('error', 'Unknown error')}")
                 return
                 
             metadata = response["data"]
@@ -117,7 +117,7 @@ class WeatherGovInterface(APIInterface):
                 self.stations_url = metadata['properties']['observationStations']
             
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching location details: {e}")
+            self.logger.error(f"Error fetching location details: {e}")
     
     def update_alerts(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
@@ -150,17 +150,17 @@ class WeatherGovInterface(APIInterface):
                     alerts_data = response["data"]
                     self._cache_data(zone, alerts_data, 900)  # 15 minute cache
                 else:
-                    logging.error(f"Error fetching alerts: {response.get('error', 'Unknown error')}")
+                    self.logger.error(f"Error fetching alerts: {response.get('error', 'Unknown error')}")
                     return []
             else:
                 # If we have cached data, log it
                 log_message += " - Using cached alerts data"
 
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching alerts metadata: {e}")
+            self.logger.error(f"Error fetching alerts metadata: {e}")
             return {"error": str(e)}
         
-        logging.debug(log_message)
+        self.logger.debug(log_message)
         
 
         # Now process the alerts data
@@ -170,7 +170,7 @@ class WeatherGovInterface(APIInterface):
             title = alerts_data.get('title', 'Active Weather Alerts')
             updated_date = alerts_data.get('updated', datetime.now().isoformat())
 
-            logging.debug(f"Processing {title}, updated at {updated_date}")
+            self.logger.debug(f"Processing {title}, updated at {updated_date}")
 
             for feature in features:
                 props = feature['properties']
@@ -192,7 +192,7 @@ class WeatherGovInterface(APIInterface):
                     'expires': props.get('expires', '')
                 }
 
-                logging.debug(f"Processed alert ID {alert_id}: {self.current_alerts[alert_id].get('headline', 'No headline')}")
+                self.logger.debug(f"Processed alert ID {alert_id}: {self.current_alerts[alert_id].get('headline', 'No headline')}")
 
             self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in self.current_alerts}
 
@@ -204,17 +204,17 @@ class WeatherGovInterface(APIInterface):
 
             # Log alert changes at info level
             if self.new_alerts:
-                logging.info(f"🆕 {len(self.new_alerts)} new weather alerts detected")
+                self.logger.info(f"🆕 {len(self.new_alerts)} new weather alerts detected")
             if self.updated_alerts:
-                logging.info(f"📝 {len(self.updated_alerts)} weather alerts updated")
+                self.logger.info(f"📝 {len(self.updated_alerts)} weather alerts updated")
             if self.expired_alerts:
-                logging.info(f"⏰ {len(self.expired_alerts)} weather alerts expired")
+                self.logger.info(f"⏰ {len(self.expired_alerts)} weather alerts expired")
 
             # Update previous alerts for next run
             self.previous_alerts = self.current_alerts.copy()
 
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching alerts: {e}")
+            self.logger.error(f"Error fetching alerts: {e}")
             return {"error": str(e)}
         
     def get_current_alerts(self) -> Dict[str, Any]:
@@ -287,7 +287,7 @@ class WeatherGovInterface(APIInterface):
             response = self._make_request(stations_endpoint)
             
             if not response.get("success"):
-                logging.error(f"Error fetching stations: {response.get('error', 'Unknown error')}")
+                self.logger.error(f"Error fetching stations: {response.get('error', 'Unknown error')}")
                 return {"error": response.get('error', 'Unknown error')}
                 
             stations_data = response["data"]
@@ -302,7 +302,7 @@ class WeatherGovInterface(APIInterface):
             obs_response = self._make_request(observations_endpoint)
             
             if not obs_response.get("success"):
-                logging.error(f"Error fetching observations: {obs_response.get('error', 'Unknown error')}")
+                self.logger.error(f"Error fetching observations: {obs_response.get('error', 'Unknown error')}")
                 return {"error": obs_response.get('error', 'Unknown error')}
             
             conditions_data = obs_response["data"]
@@ -310,7 +310,7 @@ class WeatherGovInterface(APIInterface):
             return conditions_data
             
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching current conditions: {e}")
+            self.logger.error(f"Error fetching current conditions: {e}")
             return {"error": str(e)}
     
     def get_forecast_string(self, latitude: float, longitude: float) -> str:
@@ -343,7 +343,7 @@ class WeatherGovInterface(APIInterface):
             return result
             
         except (KeyError, IndexError) as e:
-            logging.error(f"Error formatting forecast: {e}")
+            self.logger.error(f"Error formatting forecast: {e}")
             return "Error formatting weather forecast"
 
     def get_alerts_string(self) -> str:
@@ -377,7 +377,7 @@ class WeatherGovInterface(APIInterface):
             return result
             
         except (KeyError, IndexError) as e:
-            logging.error(f"Error formatting alerts: {e}")
+            self.logger.error(f"Error formatting alerts: {e}")
             return "Error formatting weather alerts"
             
     def get_current_conditions_string(self, latitude: float, longitude: float) -> str:
@@ -423,7 +423,7 @@ class WeatherGovInterface(APIInterface):
             return result
             
         except (KeyError, TypeError) as e:
-            logging.error(f"Error formatting current conditions: {e}")
+            self.logger.error(f"Error formatting current conditions: {e}")
             return "Error formatting current weather conditions"
     
     def get_weather_summary(self, latitude: float, longitude: float) -> str:

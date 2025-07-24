@@ -1,17 +1,18 @@
 import requests
-import logging
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any, Tuple, Callable
 import time
 import re
 import hashlib
+from utils.logger import get_logger
 
 class WebScraperInterface:
     """Interface for scraping and monitoring web pages for changes."""
     
     def __init__(self):
         """Initialize the web scraper interface."""
+        self.logger = get_logger(self.__class__.__name__)
         self.scrapers = {}
         self.last_check_time = {}
         self.check_interval = timedelta(hours=6)  # Check pages every 6 hours by default
@@ -24,7 +25,7 @@ class WebScraperInterface:
             self._scrape_twinsburg_school_board
         )
         
-        logging.info(f"Web Scraper Interface initialized with {len(self.scrapers)} scrapers")
+        self.logger.info(f"Web Scraper Interface initialized with {len(self.scrapers)} scrapers")
     
     def add_scraper(self, scraper_id: str, url: str, scraper_function: Callable[[str], List[Dict]]):
         """
@@ -41,7 +42,7 @@ class WebScraperInterface:
         }
         self.last_check_time[scraper_id] = datetime.now(timezone.utc) - self.check_interval
         self.previous_content[scraper_id] = {}
-        logging.info(f"Added web scraper: {scraper_id} - {url}")
+        self.logger.info(f"Added web scraper: {scraper_id} - {url}")
     
     def remove_scraper(self, scraper_id: str) -> bool:
         """
@@ -57,7 +58,7 @@ class WebScraperInterface:
             del self.scrapers[scraper_id]
             del self.last_check_time[scraper_id]
             del self.previous_content[scraper_id]
-            logging.info(f"Removed web scraper: {scraper_id}")
+            self.logger.info(f"Removed web scraper: {scraper_id}")
             return True
         return False
     
@@ -69,7 +70,7 @@ class WebScraperInterface:
             hours: Number of hours between web page checks
         """
         self.check_interval = timedelta(hours=hours)
-        logging.info(f"Web scraper check interval set to {hours} hours")
+        self.logger.info(f"Web scraper check interval set to {hours} hours")
     
     def _scrape_twinsburg_school_board(self, html_content: str) -> List[Dict]:
         """
@@ -88,7 +89,7 @@ class WebScraperInterface:
             # Find the main content area
             main_content = soup.find('div', {'class': 'main-content'})
             if not main_content:
-                logging.error("Could not find main content area")
+                self.logger.error("Could not find main content area")
                 return items
             
             # Extract the year headings and their content
@@ -147,10 +148,10 @@ class WebScraperInterface:
                             "url": link_url
                         })
             
-            logging.info(f"Scraped {len(items)} items from Twinsburg school board page")
+            self.logger.info(f"Scraped {len(items)} items from Twinsburg school board page")
             
         except Exception as e:
-            logging.error(f"Error scraping Twinsburg school board page: {e}")
+            self.logger.error(f"Error scraping Twinsburg school board page: {e}")
         
         return items
     
@@ -165,7 +166,7 @@ class WebScraperInterface:
             List[Dict]: List of new items
         """
         if scraper_id not in self.scrapers:
-            logging.warning(f"Scraper ID '{scraper_id}' not found")
+            self.logger.warning(f"Scraper ID '{scraper_id}' not found")
             return []
         
         scraper_info = self.scrapers[scraper_id]
@@ -198,12 +199,12 @@ class WebScraperInterface:
             self.previous_content[scraper_id] = current_items
             self.last_check_time[scraper_id] = datetime.now(timezone.utc)
             
-            logging.info(f"Checked scraper '{scraper_id}', found {len(new_items)} new items")
+            self.logger.info(f"Checked scraper '{scraper_id}', found {len(new_items)} new items")
             
         except requests.exceptions.RequestException as e:
-            logging.error(f"Error fetching page for scraper '{scraper_id}': {e}")
+            self.logger.error(f"Error fetching page for scraper '{scraper_id}': {e}")
         except Exception as e:
-            logging.error(f"Unexpected error checking scraper '{scraper_id}': {e}")
+            self.logger.error(f"Unexpected error checking scraper '{scraper_id}': {e}")
         
         return new_items
     
