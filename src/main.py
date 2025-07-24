@@ -74,7 +74,9 @@ rss_interface = RSSInterface()
 # Initialize web scraper interface (config manager will be initialized internally)
 web_scraper = WebScraperInterface(discard_initial_items=True)
 
-logging.info("Starting Mesh Monitor")
+logging.info("=" * 60)
+logging.info("🚀 STARTING MESH MONITOR")
+logging.info("=" * 60)
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
@@ -1561,7 +1563,7 @@ def send_llm_message(interface, message, channel, to_id):
             except:
                 logging.warning(f"Could not get short name for node {to_id}")
         else:
-            logging.info(f"Sending message to all nodes: {message}")
+            logging.debug(f"Sending message to gemini for processing: {message}")
             # Generate response using Gemini interface
             response_text = gemini_interface.generate_response(message, channel)
         
@@ -1601,7 +1603,7 @@ def send_message(interface, message, channel, to_id):
                 return
             current_chunk += 1
     else:
-        logging.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
+        logging.debug(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
         
         try:
             sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
@@ -1885,7 +1887,9 @@ def send_weather_alerts_if_needed(interface, channel):
 
 
 # Main loop
-logging.info("Starting Main Loop")
+logging.info("=" * 60)
+logging.info("🔄 STARTING MAIN LOOP")
+logging.info("=" * 60)
 
 pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onReceiveUser, "meshtastic.receive.user")
@@ -1912,7 +1916,9 @@ heartbeat_counter = 0
 while True:
     try:
         if interface is None:
-            logging.info(f"Connecting to Meshtastic device with hostname {TCP_SERVER}")
+            logging.info("=" * 50)
+            logging.info(f"📡 CONNECTING TO MESHTASTIC DEVICE: {TCP_SERVER}")
+            logging.info("=" * 50)
             interface = meshtastic.tcp_interface.TCPInterface(hostname=TCP_SERVER)
     except Exception as e:
         logging.error(f"Error connecting to Meshtastic device: {e}")
