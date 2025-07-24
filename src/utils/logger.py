@@ -43,6 +43,13 @@ class MeshMonitorLogger:
         # print all directories in sys.path
         for path in sys.path:
             print(f"Path: {path}")
+            if path == '/app':
+                # iterate over directories in /app
+                for subdir in os.listdir('/app'):
+                    subdir_path = os.path.join('/app', subdir)
+                    if os.path.isdir(subdir_path):
+                        print(f"  Subdirectory: {subdir_path}")
+                break
 
         if self._configured:
             return self.logger
