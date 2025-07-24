@@ -160,7 +160,7 @@ def onNodeUpdate(node, interface):
     db_helper.add_or_update_node(node)
 
 def onReceiveText(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveText")
+    logging.debug(f"[FUNCTION] onReceiveText")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
@@ -173,7 +173,7 @@ def onReceiveText(packet, interface):
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num} - Channel: {channelId}")
+    logging.debug(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num} - Channel: {channelId}")
 
     localNode = interface.getNode('^local')
 
@@ -184,25 +184,25 @@ def onReceiveText(packet, interface):
         message_bytes = packet['decoded']['payload']
         message_string = message_bytes.decode('utf-8')
         message_id = packet['id']
-        logging.info(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
+        logging.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
     else:
-        logging.info(f"Packet does not contain decoded data")
+        logging.debug(f"Packet does not contain decoded data")
         return
 
     if message_string == "👍":
-        logging.info(packet)
+        logging.debug(packet)
 
     if 'toId' in packet:
         to_id = packet['to']
         if to_id == localNode.nodeNum: # Message sent directly to local node
-            logging.info(f"Message sent directly to local node from {packet['from']}")
+            logging.info(f"Direct message received from {node_short_name}: '{message_string}'")
             reply_to_direct_message(interface, message_string, channelId, packet['from'])
         elif 'channel' in packet: # Message sent to a channel
-            logging.info(f"Message sent to channel {packet['channel']} from {packet['from']}")
+            logging.info(f"Channel message from {node_short_name}: '{message_string}'")
             channelId = int(packet['channel'])
             reply_to_message(interface, message_string, message_id, channelId, "^all", from_node_num)
         elif packet['toId'] == "^all": # Message sent to all nodes
-            logging.info(f"Message broadcast to all nodes from {packet['from']}")
+            logging.info(f"Broadcast message from {node_short_name}: '{message_string}'")
             reply_to_message(interface, message_string, message_id, 0, "^all", from_node_num)
 
 def onReceivePosition(packet, interface):
@@ -287,11 +287,11 @@ def onReceivePosition(packet, interface):
 
     if 'decoded' not in packet:
         log_message += " - No decoded data"
-        logging.info(log_message)
+        logging.debug(log_message)
         return
 
     if 'position' not in packet['decoded']:
-        logging.info(f"Position Packet does not contain position data")
+        logging.debug(f"Position Packet does not contain position data")
         return
  
     if 'latitude' in packet['decoded']['position'] and 'longitude' in packet['decoded']['position']:
@@ -306,7 +306,7 @@ def onReceivePosition(packet, interface):
         location_source = packet['decoded']['position']['locationSource']
         log_message += f" - Location Source: {location_source}"
         if location_source == 'LOC_MANUAL':
-            logging.info(log_message)
+            logging.debug(log_message)
             return
     
     if 'groundSpeed' in packet['decoded']['position']:
@@ -346,14 +346,14 @@ def onReceivePosition(packet, interface):
 
     # Aircraft Detection
     if is_fast_moving and is_high_altitude:
-        logging.info(f"Node {node_short_name} is fast moving and high altitude")
+        logging.warning(f"🛩️ AIRCRAFT DETECTED: {node_short_name} at {altitude}m altitude, {ground_speed}m/s")
         # If the node is fast and high altitude, mark it as aircraft
         log_message += " - Node is fast moving and high altitude"
         
         if db_helper.is_aircraft(node):
-            logging.info(f"Node {node_short_name} is already marked as aircraft. No action taken.")
+            logging.debug(f"Node {node_short_name} is already marked as aircraft. No action taken.")
         else:
-            logging.info(f"Node {node_short_name} is marked as aircraft due to altitude {altitude}m and ground speed {ground_speed}m/s")
+            logging.warning(f"🛩️ NEW AIRCRAFT: {node_short_name} marked as aircraft due to altitude {altitude}m and ground speed {ground_speed}m/s")
             db_helper.set_aircraft(node, True)
             log_message += " - Aircraft Detected"
             admin_message += " - Aircraft Detected"
@@ -363,7 +363,7 @@ def onReceivePosition(packet, interface):
     elif not is_fast_moving and not is_high_altitude:
         # If the node is not fast moving and not high altitude, check if it's marked as aircraft
         if db_helper.is_aircraft(node):
-            logging.info(f"Node {node_short_name} is marked as aircraft but is not fast moving or high altitude")
+            logging.warning(f"🛩️ AIRCRAFT UNMARKED: {node_short_name} no longer meets aircraft criteria")
             send_node_info(interface)
             db_helper.set_aircraft(node, False)
             log_message += " - Aircraft Unmarked"
@@ -372,12 +372,16 @@ def onReceivePosition(packet, interface):
             send_llm_message(interface, user_message, public_channel_number, node['num'])
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
 
-    logging.info(log_message)
+    # Only log detailed position info for aircraft or debug mode
+    if is_fast_moving or is_high_altitude:
+        logging.info(log_message)
+    else:
+        logging.debug(log_message)
     
     return
 
 def onReceiveData(packet, interface):
-    logging.info(f"[FUNCTION] onReceiveData")
+    logging.debug(f"[FUNCTION] onReceiveData")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
@@ -387,7 +391,7 @@ def onReceiveData(packet, interface):
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
+    logging.debug(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
 
 def onReceiveUser(packet, interface):
     from_node_num = packet['from']
@@ -395,16 +399,16 @@ def onReceiveUser(packet, interface):
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
     
-    logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
+    logging.debug(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
 
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
+    logging.debug(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
 
 def onReceiveTelemetry(packet, interface):
-    #logging.info(f"[FUNCTION] onReceiveTelemetry")
+    #logging.debug(f"[FUNCTION] onReceiveTelemetry")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
@@ -414,10 +418,10 @@ def onReceiveTelemetry(packet, interface):
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
+    logging.debug(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
 
 def onReceiveNeighborInfo(packet, interface):
-    #logging.info(f"[FUNCTION] onReceiveNeighborInfo")
+    #logging.debug(f"[FUNCTION] onReceiveNeighborInfo")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
@@ -427,7 +431,7 @@ def onReceiveNeighborInfo(packet, interface):
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveNeighborInfo from {node_short_name} - {from_node_num}\n\n {packet['decoded']['neighbors']}")
+    logging.warning(f"🔍 NEIGHBOR INFO received from {node_short_name} - {from_node_num}\n\n {packet['decoded']['neighbors']}")
     
     # Alert admin if a node is reporting neighbors
     admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
@@ -435,7 +439,7 @@ def onReceiveNeighborInfo(packet, interface):
     return
 
 def onReceiveTraceRoute(packet, interface):
-    #logging.info(f"[FUNCTION] onReceiveTraceroute")
+    #logging.debug(f"[FUNCTION] onReceiveTraceroute")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
@@ -445,7 +449,7 @@ def onReceiveTraceRoute(packet, interface):
         # Ignore packets from local node
         return
 
-    logging.info(f"[FUNCTION] onReceiveTraceroute from {node_short_name} - {from_node_num}")
+    logging.debug(f"[FUNCTION] onReceiveTraceroute from {node_short_name} - {from_node_num}")
     
     trace = packet['decoded']['traceroute']
     route_to = []
@@ -457,7 +461,7 @@ def onReceiveTraceRoute(packet, interface):
     traced_node = lookup_node(interface,packet['to'])
     global last_trace_time, public_channel_number
 
-    logging.info(f"Trace Route Packet: {trace}")
+    logging.debug(f"Trace Route Packet: {trace}")
     
     if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
         originator_node = lookup_node(interface, packet['to']) # Originator should be local node
@@ -465,25 +469,25 @@ def onReceiveTraceRoute(packet, interface):
         
         # set last_trace_time for the traced node
         last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
-        logging.info(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
+        logging.debug(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
 
-        logging.info(f"SNR BACK:  {trace['snrBack']}")
+        logging.debug(f"SNR BACK:  {trace['snrBack']}")
         for hop in trace['snrBack']:
             snr_back.append(hop)
 
         if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
-            logging.info(f"ROUTE BACK:  {trace['routeBack']}")
+            logging.debug(f"ROUTE BACK:  {trace['routeBack']}")
             for hop in trace['routeBack']:
                 node = lookup_node(interface, hop)
-                logging.info(f"Adding node {node['user']['shortName']} to route back")
+                logging.debug(f"Adding node {node['user']['shortName']} to route back")
                 route_back.append(node)
         route_back.append(originator_node) # Add the originator node to the route back (local node)
 
     else: # If no route back in trace, then the trace was not initiated by the local node
-        logging.info(f"I've been traced by {node_short_name}")
+        logging.info(f"🔍 TRACED BY: {node_short_name}")
 
         if packet['to'] == localNode.nodeNum:
-            logging.info(f"I've been traced by {node_short_name} - {trace} Replying")
+            logging.warning(f"🔍 TRACEROUTE received from {node_short_name} - responding")
             # Tell admin what the traceroute is
             admin_message = f"Traceroute received from {node_short_name}"
             send_message(interface, admin_message, admin_channel_number, "^all")
@@ -492,24 +496,24 @@ def onReceiveTraceRoute(packet, interface):
             db_helper.set_node_of_interest(node, True)
 
     if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
-        logging.info(f"SNR TOWARDS:  {trace['snrTowards']}")
+        logging.debug(f"SNR TOWARDS:  {trace['snrTowards']}")
         for hop in trace['snrTowards']:
             snr_towards.append(hop)
 
         route_to.append(originator_node)
         if 'routeTo' in trace:
-            logging.info(f"ROUTE TO:  {trace['routeTo']}")
+            logging.debug(f"ROUTE TO:  {trace['routeTo']}")
             for hop in trace['routeTo']:
                 node = lookup_node(interface, hop)
                 route_to.append(node)
         elif 'route' in trace: # If routeTo is not present, use route
-            logging.info(f"ROUTE:  {trace['route']}")
+            logging.debug(f"ROUTE:  {trace['route']}")
             for hop in trace['route']:
                 node = lookup_node(interface, hop)
                 if node:
                     route_to.append(node)
                 else:
-                    logging.info(f"Route not found in trace, using node num")
+                    logging.debug(f"Route not found in trace, using node num")
                     route_to.append(hop) # Fallback to originator node if route not found
         
     route_to.append(traced_node)
@@ -519,9 +523,9 @@ def onReceiveTraceRoute(packet, interface):
     for node in route_to:
         if 'user' in node:
             message_string += f"{node['user']['shortName']}"
-            logging.info(f"Length of snr_towards: {len(snr_towards)}")
+            logging.debug(f"Length of snr_towards: {len(snr_towards)}")
         else:
-            logging.info(f"Node {node} does not have a user field, using node num")
+            logging.debug(f"Node {node} does not have a user field, using node num")
             message_string += f"{node}"
         if i < len(snr_towards):
             message_string += f" -> ({snr_towards[i]}dB) "
@@ -530,7 +534,7 @@ def onReceiveTraceRoute(packet, interface):
     i = 0
     # Add the node names from route_back message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
     for node in route_back:
-        logging.info(f"Length of snr_back: {len(snr_back)}")
+        logging.debug(f"Length of snr_back: {len(snr_back)}")
         if i < len(snr_back):
             message_string += f" -> ({snr_back[i]}dB) "
             i += 1
@@ -561,7 +565,7 @@ def onReceiveTraceRoute(packet, interface):
     db_helper.update_node_connections(route_to, route_back, snr_towards, snr_back)
     
     # Tell admin what the traceroute is
-    logging.info(f"Traceroute: {message_string}")
+    logging.info(f"🗺️ TRACEROUTE: {message_string}")
     send_message(interface, message_string, admin_channel_number, "^all")
     return
 
@@ -705,7 +709,7 @@ def onReceiveRangeTest(packet, interface):
     return
 
 def onReceive(packet, interface):
-    #logging.info(f"[FUNCTION] onReceive")
+    #logging.debug(f"[FUNCTION] onReceive")
     """
     Handles incoming packets not specifically handled by other functions.
 
@@ -721,14 +725,14 @@ def onReceive(packet, interface):
     """
     global heartbeat_counter 
     heartbeat_counter = 0
-    #logging.info(f"Received packet: {packet}")
+    #logging.debug(f"Received packet: {packet}")
     from_node_num = packet['from']
     node_short_name = lookup_short_name(interface, from_node_num)
     node_long_name = lookup_long_name(interface, from_node_num)
     node = lookup_node(interface, from_node_num)
     if node is None:
-        logging.warning(f"Node data not found for {from_node_num}, skipping packet processing")
-        logging.warning(packet)
+        logging.warning(f"⚠️ Unknown node {from_node_num}, skipping packet processing")
+        logging.debug(packet)
         return
     
     localNode = interface.getNode('^local')
@@ -763,6 +767,7 @@ def onReceive(packet, interface):
             send_llm_message(interface, private_message, public_channel_number, from_node_num)
             admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
+            logging.info(f"🆕 NEW NODE: {node_short_name} ({node_long_name}) - {from_node_num}")
             notify_admin = True 
         else:
             name_change_list = db_helper.is_name_change(node)
@@ -774,6 +779,7 @@ def onReceive(packet, interface):
                 
                 admin_message = f"Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
                 send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                logging.info(f"📝 NAME CHANGE: {name_change_list[1]}/{name_change_list[2]} → {node_short_name}/{node_long_name}")
                 notify_admin = True
 
         db_helper.add_or_update_node(node)
@@ -792,6 +798,7 @@ def onReceive(packet, interface):
 
             if portnum not in portnums_handled:
                 log_message += f" - Unhandled Portnum"
+                logging.warning(f"❓ UNHANDLED PORTNUM: {portnum} from {node_short_name}")
                 notify_admin = True
                 admin_message = f"Unhandled Portnum: {portnum} from {node_short_name} - {node_long_name} ({from_node_num})"
                 send_llm_message(interface, admin_message, admin_channel_number, "^all")
@@ -802,7 +809,11 @@ def onReceive(packet, interface):
             log_message += f" - Encrypted"
             sitrep.log_packet_received("Encrypted")
 
-        logging.info(log_message)
+        # Only log detailed packet info in debug mode unless it's a notable event
+        if notify_admin or new_node:
+            logging.info(log_message)
+        else:
+            logging.debug(log_message)
 
         if notify_admin:
             # Notify admin if required
@@ -810,7 +821,7 @@ def onReceive(packet, interface):
             #send_llm_message(interface, log_message, admin_channel_number, "^all")
        
     except KeyError as e:
-        logging.error(f"Error processing packet from {packet['from']}: {e}")
+        logging.error(f"❌ ERROR processing packet from {packet['from']}: {e}")
         logging.error(f"Packet: {packet}")
         
 def onLog(line, interface):
@@ -1738,12 +1749,12 @@ def send_weather_forecast_if_needed(interface, channel):
     last_forecast_sent_time = now
     
     # Send the weather forecast
-    logging.info(f"Sending weather forecast for {node_short_name} ({node_long_name}) at {wx_lat}, {wx_lon}")
+    logging.info(f"🌤️ SENDING weather forecast for {node_short_name} ({node_long_name}) at {wx_lat}, {wx_lon}")
     try:
         send_weather_forecast(interface, wx_lat, wx_lon, node_short_name, node_long_name, channel)
-        logging.info("Weather forecast sent successfully.")
+        logging.info("✅ Weather forecast sent successfully.")
     except Exception as e:
-        logging.error(f"Error sending weather forecast: {e}")
+        logging.error(f"❌ ERROR sending weather forecast: {e}")
     
 def send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, channel):
     """
@@ -1762,7 +1773,7 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
         forecast_text = weather_interface.get_forecast_string(latitude, longitude)
         
         if not forecast_text:
-            logging.error("No forecast data available.")
+            logging.error("❌ No forecast data available.")
             return
         
         message = f"Weather forecast for {node_short_name} ({node_long_name}) in :\n\n{forecast_text}"
@@ -1772,7 +1783,7 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
         send_llm_message(interface, message, channel, "^all")
         
     except Exception as e:
-        logging.error(f"Error sending weather forecast: {e}")
+        logging.error(f"❌ ERROR sending weather forecast: {e}")
 
 def send_weather_alerts_if_needed(interface, channel):
     """
@@ -1798,7 +1809,7 @@ def send_weather_alerts_if_needed(interface, channel):
         # Check for expired alerts first
         expired_alerts = weather_interface.get_expired_alerts()
         if expired_alerts is not None and len(expired_alerts) > 0:
-            logging.info(f"Found {len(expired_alerts)} expired weather alerts")
+            logging.info(f"⏰ SENDING {len(expired_alerts)} expired weather alert notifications")
             
             expired_message = f"The following weather alerts are no longer active:\n"
             for alert_id, alert_data in expired_alerts.items():
@@ -1812,7 +1823,7 @@ def send_weather_alerts_if_needed(interface, channel):
         # Check for updated alerts
         updated_alerts = weather_interface.get_updated_alerts()
         if updated_alerts is not None and len(updated_alerts) > 0:
-            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
+            logging.info(f"📝 SENDING {len(updated_alerts)} updated weather alert notifications")
             
             for alert_id, alert_data in updated_alerts.items():
                 alert_message = f"UPDATED WEATHER ALERT\n"
@@ -1831,8 +1842,7 @@ def send_weather_alerts_if_needed(interface, channel):
         # Check for new alerts
         new_alerts = weather_interface.get_new_alerts()
         if new_alerts is not None and len(new_alerts) > 0:
-            logging.info(f"Found {len(new_alerts)} new weather alerts")
-            logging.info(f"{new_alerts}")
+            logging.info(f"🆕 SENDING {len(new_alerts)} new weather alert notifications")
             
             for alert_id, alert_data in new_alerts.items():
                 alert_message = f"NEW WEATHER ALERT\n"
@@ -1851,47 +1861,8 @@ def send_weather_alerts_if_needed(interface, channel):
         weather_interface.clear_alerts()  # Clear alerts after processing
 
     except Exception as e:
-        logging.error(f"Error checking for weather alerts: {e}")
-    
+        logging.error(f"❌ ERROR checking for weather alerts: {e}")
 
-        # Check for updated alerts
-        updated_alerts = weather_interface.get_updated_alerts()
-        if updated_alerts is not None and len(updated_alerts) > 0:
-            logging.info(f"Found {len(updated_alerts)} updated weather alerts")
-            
-            for alert_id, alert_data in updated_alerts.items():
-                alert_message = f"⚠️ UPDATED WEATHER ALERT ⚠️\n"
-                alert_message += f"Type: {alert_data['event']}\n"
-                alert_message += f"Severity: {alert_data['severity']}\n"
-                alert_message += f"Urgency: {alert_data['urgency']}\n"
-                alert_message += f"{alert_data['headline']}"
-
-                # Send to specified channel
-                send_llm_message(interface, alert_message, channel, "^all")
-                sitrep.log_message_sent("weather-alert-updated")
-
-        # Check for new alerts
-        new_alerts = weather_interface.get_new_alerts()
-        if new_alerts is not None and len(new_alerts) > 0:
-            logging.info(f"Found {len(new_alerts)} new weather alerts")
-            logging.info(f"{new_alerts}")
-            
-            for alert_id, alert_data in new_alerts.items():
-                alert_message = f"⚠️ NEW WEATHER ALERT ⚠️\n"
-                alert_message += f"Type: {alert_data['event']}\n"
-                alert_message += f"Severity: {alert_data['severity']}\n"
-                alert_message += f"Urgency: {alert_data['urgency']}\n"
-                alert_message += f"{alert_data['headline']}"
-
-                # Send to specified channel
-                send_llm_message(interface, alert_message, channel, "^all")
-                sitrep.log_message_sent("weather-alert-new")
-        
-        weather_interface.clear_alerts()  # Clear alerts after processing
-
-    except Exception as e:
-        logging.error(f"Error checking for weather alerts: {e}")
-    
 
 # Main loop
 logging.info("Starting Main Loop")

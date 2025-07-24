@@ -70,7 +70,7 @@ class WeatherGovInterface(APIInterface):
             if response.get("success"):
                 forecast_data = response["data"]
                 self._cache_data(cache_key, forecast_data)
-                logging.info(f"Cached new forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
+                logging.debug(f"Cached new forecast data for {self.city}, {self.state} ({latitude}, {longitude})")
                 return forecast_data
             else:
                 logging.error(f"Error fetching forecast: {response.get('error', 'Unknown error')}")
@@ -160,7 +160,7 @@ class WeatherGovInterface(APIInterface):
             logging.error(f"Error fetching alerts metadata: {e}")
             return {"error": str(e)}
         
-        logging.info(log_message)
+        logging.debug(log_message)
         
 
         # Now process the alerts data
@@ -170,7 +170,7 @@ class WeatherGovInterface(APIInterface):
             title = alerts_data.get('title', 'Active Weather Alerts')
             updated_date = alerts_data.get('updated', datetime.now().isoformat())
 
-            logging.info(f"Processing {title}, updated at {updated_date}")
+            logging.debug(f"Processing {title}, updated at {updated_date}")
 
             for feature in features:
                 props = feature['properties']
@@ -192,7 +192,7 @@ class WeatherGovInterface(APIInterface):
                     'expires': props.get('expires', '')
                 }
 
-                logging.info(f"Processed alert ID {alert_id}: {self.current_alerts[alert_id].get('headline', 'No headline')}")
+                logging.debug(f"Processed alert ID {alert_id}: {self.current_alerts[alert_id].get('headline', 'No headline')}")
 
             self.expired_alerts = {k: v for k, v in self.previous_alerts.items() if k not in self.current_alerts}
 
@@ -201,6 +201,14 @@ class WeatherGovInterface(APIInterface):
 
             # Update updated alerts
             self.updated_alerts = {k: v for k, v in self.current_alerts.items() if k in self.previous_alerts and v != self.previous_alerts[k]}
+
+            # Log alert changes at info level
+            if self.new_alerts:
+                logging.info(f"🆕 {len(self.new_alerts)} new weather alerts detected")
+            if self.updated_alerts:
+                logging.info(f"📝 {len(self.updated_alerts)} weather alerts updated")
+            if self.expired_alerts:
+                logging.info(f"⏰ {len(self.expired_alerts)} weather alerts expired")
 
             # Update previous alerts for next run
             self.previous_alerts = self.current_alerts.copy()
