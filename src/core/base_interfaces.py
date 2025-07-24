@@ -8,19 +8,13 @@ for interfaces that interact with external services like APIs, feeds, etc.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta, timezone
+from config.config_manager import ConfigManager
 import logging
 import json
 import time
 import sys
 import os
 import requests
-
-# list modules i could import from 
-for key, value in sys.modules.items():
-    if key.startswith('src.') or key.startswith('tests.'):
-        print(f"Module: {key} - {value}")
-# base_interfaces is in the core directory which is at the same level as config
-from src.config.config_manager import ConfigManager
 
 
 
