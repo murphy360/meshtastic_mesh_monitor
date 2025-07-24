@@ -45,11 +45,6 @@ class BaseInterface(ABC):
     
     def _initialize_config_manager(self):
         """Initialize config manager - can be overridden by subclasses."""
-
-        # print all directories in sys.path
-        for path in sys.path:
-            print(f"Path: {path}")
-
         try:
             self.config_manager = ConfigManager()
         except Exception as e:
