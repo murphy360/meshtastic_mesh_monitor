@@ -9,7 +9,15 @@ import os
 print(f"Current working directory: {os.getcwd()}")
 print(f"Contents of /app: {os.listdir('/app')}")
 if os.path.exists('/app/config'):
-    print(f"Contents of /app/config: {os.listdir('/app/config')}")
+    config_contents = os.listdir('/app/config')
+    print(f"Contents of /app/config: {config_contents}")
+    if 'config_manager.py' in config_contents:
+        print("✓ config_manager.py found!")
+    else:
+        print("✗ config_manager.py NOT found!")
+        # Check for any .py files
+        py_files = [f for f in config_contents if f.endswith('.py')]
+        print(f"Python files in /app/config: {py_files}")
 else:
     print("No /app/config directory found!")
 
