@@ -1669,11 +1669,10 @@ def send_node_info(interface):
             wantAck=False,
             wantResponse=True
         )
-        logging.info("Outside try")
-        logging.info(f"Node info request sent to node {node_num}")
+        logging.info(f"Node info sent to public channel {public_channel_number}")
     except Exception as e:
-        logging.error(f"Error sending node info to {node_num}: {e}")
-        send_llm_message(interface, f"Error sending node info to node {node_num}: {e}", admin_channel_number, "^all")
+        logging.error(f"Error sending node info to public channel {public_channel_number}: {e}")
+        send_llm_message(interface, f"Error sending node info to public channel: {e}", admin_channel_number, "^all")
         return
     
 def send_weather_forecast_if_needed(interface, channel):
