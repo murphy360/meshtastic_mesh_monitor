@@ -30,7 +30,7 @@ class RSSInterface(FeedInterface):
         # Load feeds from configuration
         self._load_feeds_from_config()
         
-        logging.info(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
+        logging.debug(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
 
     def _load_feeds_from_config(self):
         """Load RSS feeds from configuration manager."""
@@ -50,7 +50,7 @@ class RSSInterface(FeedInterface):
                         self.last_poll_time[feed_id] = datetime.now(timezone.utc) - timedelta(hours=check_interval_hours)
                         self.previous_data[feed_id] = {}  # Use base class previous_data instead of previous_items
                         
-                        logging.info(f"Loaded RSS feed: {feed_config.get('name', feed_id)} ({feed_id})")
+                        logging.debug(f"Loaded RSS feed: {feed_config.get('name', feed_id)} ({feed_id})")
                     else:
                         logging.warning(f"Invalid feed configuration: missing id or url - {feed_config}")
             except Exception as e:
@@ -72,7 +72,7 @@ class RSSInterface(FeedInterface):
             self.add_feed(feed_id, feed_url, 3600)  # 1 hour interval in seconds
             self.last_poll_time[feed_id] = datetime.now(timezone.utc) - self.check_interval
             
-        logging.info(f"RSS Interface initialized with {len(self.feeds)} default feeds")
+        logging.debug(f"RSS Interface initialized with {len(self.feeds)} default feeds")
 
     def parse_feed(self, feed_content: str) -> List[Dict[str, str]]:
         """
@@ -163,7 +163,7 @@ class RSSInterface(FeedInterface):
                     # Add to new_items if not already seen
                     if item_id not in self.previous_data[feed_id] and self.initial_check_complete[feed_id]:
                         new_items.append(item)
-                        logging.info(f"Adding: {item}")
+                        logging.debug(f"Adding new RSS item: {item.get('title', 'No Title')}")
             
             # Update previous items using base class attribute
             self.previous_data[feed_id] = current_items
@@ -172,9 +172,11 @@ class RSSInterface(FeedInterface):
             # Mark initial check as complete
             if not self.initial_check_complete[feed_id]:
                 self.initial_check_complete[feed_id] = True
-                logging.info(f"Initial check of feed '{feed_id}' complete, discarding {len(items)} existing items") 
+                logging.debug(f"Initial RSS check of feed '{feed_id}' complete, discarding {len(items)} existing items") 
+            elif len(new_items) > 0:
+                logging.info(f"📰 RSS: Found {len(new_items)} new items in feed '{feed_id}'")  # Important: new items discovered
             else:
-                logging.info(f"Checked feed '{feed_id}', found {len(new_items)} new items")
+                logging.debug(f"RSS check of feed '{feed_id}' complete, no new items")
             
         except requests.exceptions.RequestException as e:
             logging.error(f"Error fetching RSS feed '{feed_id}': {e}")
@@ -197,7 +199,7 @@ class RSSInterface(FeedInterface):
         for feed_id, last_check in self.last_poll_time.items():
             feed_interval = self.poll_intervals.get(feed_id, self.default_poll_interval)
             if now - last_check >= feed_interval:
-                logging.info(f"Checking feed '{feed_id}' for updates")
+                logging.debug(f"Checking RSS feed '{feed_id}' for updates")
                 new_items = self.check_feed(feed_id)
                 
                 if new_items:
@@ -211,7 +213,7 @@ class RSSInterface(FeedInterface):
                         
                         message_callback(message, channel, destination)
                 else:
-                    logging.info(f"No new items found in feed '{feed_id}'")
+                    logging.debug(f"No new items found in RSS feed '{feed_id}'")
 
     def poll_for_updates(self) -> Dict[str, Any]:
         """
