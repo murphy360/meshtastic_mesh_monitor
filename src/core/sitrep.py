@@ -52,7 +52,7 @@ class SITREP:
         self.lines = []
         self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {sitrep_time_string} SITREP is as follows:"
         self.lines.append(self.reportHeader)
-        self.line1 = "Line 1: Direct Nodes online: " + str(self.count_nodes_connected(interface, 60, 1)) # 60 Minutes, 1 hop 
+        self.line1 = "Line 1: Active Nodes: " + str(self.count_nodes_connected(interface, 60, 1)) # 60 Minutes, any hops 
         self.lines.append(self.line1)
         self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2, interface)
         self.lines.append(self.line2)
@@ -516,19 +516,23 @@ class SITREP:
         Args:
             interface: The interface to interact with the mesh network.
             time_threshold_minutes (int): The time threshold in minutes.
-            hop_threshold (int): The hop threshold.
+            hop_threshold (int): The hop threshold (ignored - counts all hops).
         
         Returns:
             str: The number of nodes connected.
         """
         self.nodes_connected = 0
         response_string = ""
+        qualifying_nodes = []
+        
         for node in interface.nodes.values():
             log_message = f"\nNode ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
             if self.localNode.nodeNum == node["num"]:
                 log_message += " - Local Node, skipping"
                 continue
 
+            # Check time threshold only - ignore hop limit
+            time_qualifies = False
             if "lastHeard" in node:
                 now = datetime.datetime.now()
                 if node["lastHeard"]:
@@ -537,6 +541,7 @@ class SITREP:
                         time_difference_hours = time_difference_in_seconds // 3600
                         time_difference_minutes = time_difference_in_seconds % 60
                         log_message += f"\nLast Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
+                        time_qualifies = True
                     else:
                         log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
                 else:
@@ -544,24 +549,26 @@ class SITREP:
             else:
                 log_message += " - Node doesn't have lastHeard data"
                 
+            # Log hop information but don't filter by it
             if "hopsAway" in node:
                 hops_away = node["hopsAway"]
-                if hops_away <= hop_threshold:
-                    log_message += f"\nHops Away: {hops_away}"
-                    response_string += " " + node['user']['shortName']
-                else:
-                    log_message += f"\nHops Away: {hops_away} - Not in range"
+                log_message += f"\nHops Away: {hops_away}"
             else:
-                log_message += "\nHops Away Not in Node Data"
+                log_message += "\nHops Away: Not available"
                 
-            #logging.info(log_message)
-            self.nodes_connected += 1
+            # Only count nodes that meet time criteria (any hop count)
+            if time_qualifies:
+                self.nodes_connected += 1
+                qualifying_nodes.append(node['user']['shortName'])
+                response_string += " " + node['user']['shortName']
+                
+            logging.debug(log_message)
                 
         if self.nodes_connected <= 20:
-            logging.info(f"📡 SITREP: {self.nodes_connected} nodes connected - {response_string}")  # Important summary
+            logging.info(f"📡 SITREP: {self.nodes_connected} nodes active - {response_string}")  # Important summary
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
         else:
-            logging.info(f"📡 SITREP: {self.nodes_connected} nodes connected")  # Important summary
+            logging.info(f"📡 SITREP: {self.nodes_connected} nodes active")  # Important summary
             response_string = str(self.nodes_connected)
         return response_string
 
