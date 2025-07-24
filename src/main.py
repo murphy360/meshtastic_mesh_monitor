@@ -1948,7 +1948,7 @@ while True:
             Interface Serial Port: {serial_port}\n      \
             Interface Node Number: {node_info['num']}\n      \
             Interface Node Short Name: {node_info['user']['shortName']}\n      \
-            Public Key: {node_info['user']['publicKey']}\n \
+            Public Key: {node_info['user']['publicKey']}\n      \
             Connection Timeout: {connect_timeout}\n      \
             Heartbeat Counter: {heartbeat_counter}\n      \
             Last Weather Forecast Sent: {last_forecast_sent_time}\n      \
