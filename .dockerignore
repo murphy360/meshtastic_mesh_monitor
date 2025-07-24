@@ -22,6 +22,12 @@ coverage.xml
 .DS_Store
 .mypy_cache
 
+# IMPORTANT: Ensure config files are included
+!src/config/
+!src/config/*.py
+!src/config/__init__.py
+!src/config/config_manager.py
+
 # Ignore archive and test directories for production builds
 archive/
 tests/

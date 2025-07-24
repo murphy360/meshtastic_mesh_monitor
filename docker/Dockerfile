@@ -17,7 +17,9 @@ RUN pip3 install --no-cache-dir -r /app/requirements.txt
 COPY src/ /app/
 
 # Explicitly copy config files to ensure they're there
-COPY src/config/ /app/config/
+RUN mkdir -p /app/config
+COPY src/config/config_manager.py /app/config/config_manager.py
+COPY src/config/__init__.py /app/config/__init__.py
 
 # Copy configuration files to /app/config_files (separate from Python config module)  
 COPY config/ /app/config_files/
