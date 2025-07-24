@@ -25,8 +25,5 @@ RUN mkdir -p /app/data /app/logs
 # Set the working directory
 WORKDIR /app
 
-# For debugging: list the directory structure in /app
-RUN echo "=== Contents of /app ===" && ls -la /app && echo "=== Contents of /app/config ===" && ls -la /app/config 2>/dev/null || echo "No /app/config directory found"
-
 # Run main.py on startup
 CMD ["python3", "main.py"]
