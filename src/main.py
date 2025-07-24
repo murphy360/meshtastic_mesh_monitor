@@ -912,22 +912,33 @@ def lookup_nodes(interface, node_generic_identifier):
     Lookup nodes by their short name, long name, number, or user ID.
     Args:
         interface: The interface to interact with the mesh network.
-        node_generic_identifier (str): The short name, long name, number, or user ID of the node.
+        node_generic_identifier (str|int): The short name, long name, number, or user ID of the node.
     Returns:
         list: A list of nodes that match the identifier.
     """
 
     nodes = []
-    node_generic_identifier = node_generic_identifier.lower()
-    for n in interface.nodes.values():
-        node_short_name = n["user"]["shortName"].lower()
-        node_long_name = n["user"]["longName"].lower()
-        node_num = n["num"]
-        node_user_id = n["user"]["id"]
-        
-        if node_generic_identifier in [node_short_name, node_long_name, node_num, node_user_id]:
-            logging.info(f"[FUNCTION] lookup_nodes: Node found: {n['user']['shortName']} - {n['num']}")
-            nodes.append(n)
+    
+    # Handle both string and integer identifiers
+    if isinstance(node_generic_identifier, int):
+        # For integer identifiers, compare directly with node numbers
+        for n in interface.nodes.values():
+            node_num = n["num"]
+            if node_generic_identifier == node_num:
+                logging.info(f"[FUNCTION] lookup_nodes: Node found by number: {n['user']['shortName']} - {n['num']}")
+                nodes.append(n)
+    else:
+        # For string identifiers, convert to lowercase and compare with names/IDs
+        node_generic_identifier_lower = str(node_generic_identifier).lower()
+        for n in interface.nodes.values():
+            node_short_name = n["user"]["shortName"].lower()
+            node_long_name = n["user"]["longName"].lower()
+            node_num = n["num"]
+            node_user_id = n["user"]["id"]
+            
+            if node_generic_identifier_lower in [node_short_name, node_long_name, str(node_num), node_user_id.lower()]:
+                logging.info(f"[FUNCTION] lookup_nodes: Node found by name/ID: {n['user']['shortName']} - {n['num']}")
+                nodes.append(n)
 
     return nodes
     
@@ -936,7 +947,7 @@ def lookup_node(interface, node_generic_identifier):
     Lookup a node by its short name, long name, number, or user ID.
     Args:
         interface: The interface to interact with the mesh network.
-        node_generic_identifier (str): The short name, long name, number, or user ID of the node.       
+        node_generic_identifier (str|int): The short name, long name, number, or user ID of the node.       
     Returns:
         dict: The first matching node, or None if no nodes match.
     """
