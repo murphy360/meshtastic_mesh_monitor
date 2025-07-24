@@ -15,10 +15,28 @@ class ConfigManager:
                             Defaults to config.json in the current directory.
         """
         if config_file_path is None:
-            # Look for config file in the parent directory of src
+            # Look for config file in multiple possible locations
             current_dir = os.path.dirname(os.path.abspath(__file__))
             parent_dir = os.path.dirname(current_dir)
-            config_file_path = os.path.join(parent_dir, "config.json")
+            
+            # Try different possible locations
+            possible_paths = [
+                os.path.join(parent_dir, "config.json"),  # /app/config.json (original location)
+                os.path.join(parent_dir, "config_files", "config.json"),  # /app/config_files/config.json (Docker)
+                "config.json",  # Current working directory
+                os.path.join("config_files", "config.json")  # config_files subdirectory
+            ]
+            
+            # Use the first existing file
+            for path in possible_paths:
+                if os.path.exists(path):
+                    config_file_path = path
+                    logging.debug(f"Found config file at: {config_file_path}")
+                    break
+            else:
+                # Default to the original location if no file found
+                config_file_path = os.path.join(parent_dir, "config.json")
+                logging.debug(f"No config file found, using default: {config_file_path}")
         
         self.config_file_path = config_file_path
         self.config = self._load_config()
