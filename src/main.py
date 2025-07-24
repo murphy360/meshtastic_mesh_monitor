@@ -925,7 +925,7 @@ def lookup_nodes(interface, node_generic_identifier):
         for n in interface.nodes.values():
             node_num = n["num"]
             if node_generic_identifier == node_num:
-                logging.info(f"[FUNCTION] lookup_nodes: Node found by number: {n['user']['shortName']} - {n['num']}")
+                logging.debug(f"[FUNCTION] lookup_nodes: Node found by number: {n['user']['shortName']} - {n['num']}")
                 nodes.append(n)
     else:
         # For string identifiers, convert to lowercase and compare with names/IDs
@@ -937,7 +937,7 @@ def lookup_nodes(interface, node_generic_identifier):
             node_user_id = n["user"]["id"]
             
             if node_generic_identifier_lower in [node_short_name, node_long_name, str(node_num), node_user_id.lower()]:
-                logging.info(f"[FUNCTION] lookup_nodes: Node found by name/ID: {n['user']['shortName']} - {n['num']}")
+                logging.debug(f"[FUNCTION] lookup_nodes: Node found by name/ID: {n['user']['shortName']} - {n['num']}")
                 nodes.append(n)
 
     return nodes
@@ -955,7 +955,7 @@ def lookup_node(interface, node_generic_identifier):
     nodes = lookup_nodes(interface, node_generic_identifier)
 
     if len(nodes) > 0:
-        logging.info(f"Found {len(nodes)} nodes matching {node_generic_identifier}")
+        logging.debug(f"Found {len(nodes)} nodes matching {node_generic_identifier}")
         return nodes[0]
     else:
         return None
