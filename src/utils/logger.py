@@ -40,6 +40,10 @@ class MeshMonitorLogger:
             log_file_backup_count: Number of backup log files to keep
             enable_console: Whether to enable console logging
         """
+        # print all directories in sys.path
+        for path in sys.path:
+            print(f"Path: {path}")
+
         if self._configured:
             return self.logger
         
