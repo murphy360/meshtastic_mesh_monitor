@@ -49,6 +49,12 @@ class MeshMonitorLogger:
                     subdir_path = os.path.join('/app', subdir)
                     if os.path.isdir(subdir_path):
                         print(f"  Subdirectory: {subdir_path}")
+                        if subdir == 'config' or subdir == 'core':
+                            # print all files in config and core directories
+                            for file in os.listdir(subdir_path):
+                                file_path = os.path.join(subdir_path, file)
+                                if os.path.isfile(file_path):
+                                    print(f"    File: {file_path}")
                 break
 
         if self._configured:
