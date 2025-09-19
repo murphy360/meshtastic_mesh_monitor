@@ -1,3 +1,4 @@
+import importlib
 import os
 from utils.logger import get_logger
 
@@ -73,14 +74,20 @@ def check_keywords(interface, packet):
     # Move up one directory from handlers to app, then into keywords
     keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
     keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]
-    if message in keyword_files:
-        logger.info(f"Keyword '{message}' detected, invoking handler.")
-        # Dynamically import and invoke the keyword handler
-        try:
-            keyword_module = __import__(f"app.keywords.{message}", fromlist=[''])
-            keyword_class = getattr(keyword_module, f"{message.capitalize()}Keyword")
-            keyword_instance = keyword_class()
-            keyword_instance.handle(interface, packet)
-        except Exception as e:
-            logger.error(f"Error handling keyword '{message}': {e}")
+    for keyword in keyword_files:
+        if message == keyword:
+            logger.info(f"Keyword '{keyword}' detected, invoking handler.")
+            try:
+                # Use simple module name for dynamic import
+                spec = importlib.util.spec_from_file_location(keyword, os.path.join(keywords_dir, f"{keyword}.py"))
+                keyword_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(keyword_module)
+                class_name = f"{keyword.capitalize()}Keyword"
+                keyword_class = getattr(keyword_module, class_name)
+                handler_instance = keyword_class()
+                handler_instance.handle(interface, packet)
+                return
+            except Exception as e:
+                logger.error(f"Error handling keyword '{keyword}': {e}")
+                return
         
