@@ -28,6 +28,7 @@ from handlers.routing_handler import on_receive_routing
 from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
+from utils.node_info_utils import send_node_info
 
 # Initialize unified logging system
 setup_logging()
