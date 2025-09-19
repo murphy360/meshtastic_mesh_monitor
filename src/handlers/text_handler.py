@@ -2,11 +2,10 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-def on_receive_text(packet, interface, lookup_short_name, lookup_node, public_channel_number, reply_to_direct_message, reply_to_message):
+def on_receive_text(packet, interface, lookup_node, public_channel_number, reply_to_direct_message, reply_to_message):
     logger.debug(f"[FUNCTION] onReceiveText")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
+    node = lookup_node(interface, packet['from'])
+    node_short_name = node["user"]["shortName"].lower()
     localNode = interface.getNode('^local')
     channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
     if 'channel' in packet:

@@ -21,6 +21,7 @@ from interfaces.rss_interface import RSSInterface
 from interfaces.web_scraper_interface import WebScraperInterface
 from utils.logger import setup_logging, get_logger
 from handlers.text_handler import on_receive_text
+from handlers.position_handler import on_receive_position
 
 # Initialize unified logging system
 setup_logging()
@@ -188,7 +189,6 @@ def onReceiveText(packet, interface):
     on_receive_text(
         packet,
         interface,
-        lookup_short_name,
         lookup_node,
         public_channel_number,
         reply_to_direct_message,
@@ -196,179 +196,17 @@ def onReceiveText(packet, interface):
     )
 
 def onReceivePosition(packet, interface):
-    #logger.info(f"[FUNCTION] onReceivePosition")
-    '''
-    {'from': 3518183533, 'to': 4294967295, 'channel': 1, 
-    'decoded': 
-        {'portnum': 'POSITION_APP', 
-        'payload': b'\r\xd5\x06\xa3\x18\x15\x0e p\xcf\x18\xe3\x02%\xa8\x91=h(\x02X}x\x00\x80\x01\x88\xe6\xb8\x10\x98\x01\n\xb8\x01 ', 
-        'bitfield': 0, 
-        'position': 
-        {
-            'latitudeI': 413337301, 
-            'longitudeI': -814735346, 
-            'altitude': 355, 
-            'time': 1748865448, 
-            'locationSource': 'LOC_INTERNAL', 
-            'PDOP': 125, 
-            'groundSpeed': 0, 
-            'groundTrack': 34485000, 
-            'satsInView': 10, 
-            'precisionBits': 32, 
-            'raw': 
-                latitude_i: 413337301
-                longitude_i: -814735346
-                altitude: 355
-                time: 1748865448
-                location_source: LOC_INTERNAL
-                PDOP: 125
-                ground_speed: 0
-                ground_track: 34485000
-                sats_in_view: 10
-                precision_bits: 32, 
-            'latitude': 41.3337301, 
-            'longitude': -81.4735346
-        }
-    }, 
-    'id': 27578439, 
-    'rxSnr': 4.0, 
-    'hopLimit': 2, 
-    'rxRssi': -99, 
-    'hopStart': 3, 
-    'relayNode': 198, 
-    'raw': 
-        from: 3518183533
-        to: 4294967295
-        channel: 1
-    decoded 
-    {
-        portnum: POSITION_APP
-        payload: "\r\325\006\243\030\025\016 p\317\030\343\002%\250\221=h(\002X}x\000\200\001\210\346\270\020\230\001\n\270\001 "
-        bitfield: 0
-    }
-    id: 27578439
-    rx_snr: 4
-    hop_limit: 2
-    rx_rssi: -99
-    hop_start: 3
-    relay_node: 198
-    , 'fromId': '!d1b3386d', 'toId': '^all'}
-    '''
-    
-    localNode = interface.getNode('^local')
-    from_node_num = packet['from']
-    altitude = 0
-    ground_speed = 0
-
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-    
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node_long_name = lookup_long_name(interface, from_node_num)
-    
-    node = lookup_node(interface, from_node_num)
-    
-    is_fast_moving = False
-    is_high_altitude = False
-    admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
-    log_message = f"[FUNCTION] onReceivePosition from {node_short_name} - {from_node_num}\n\n"
-    location = "Unknown"
-
-    if 'decoded' not in packet:
-        log_message += " - No decoded data"
-        logger.debug(log_message)
-        return
-
-    if 'position' not in packet['decoded']:
-        logger.debug(f"Position Packet does not contain position data")
-        return
- 
-    if 'latitude' in packet['decoded']['position'] and 'longitude' in packet['decoded']['position']:
-        latitude = packet['decoded']['position']['latitude']
-        longitude = packet['decoded']['position']['longitude']
-        log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
-        location = find_location_by_coordinates(latitude, longitude)
-        log_message += f" - Location: {location}"
-        admin_message += f" Location: {location}"
-
-    if 'locationSource' in packet['decoded']['position']:
-        location_source = packet['decoded']['position']['locationSource']
-        log_message += f" - Location Source: {location_source}"
-        if location_source == 'LOC_MANUAL':
-            logger.debug(log_message)
-            return
-    
-    if 'groundSpeed' in packet['decoded']['position']:
-        ground_speed = packet['decoded']['position']['groundSpeed']
-        log_message += f" - Ground Speed: {ground_speed} m/s"
-        admin_message += f" Ground Speed: {ground_speed} m/s"
-        if ground_speed > 150:
-            is_fast_moving = True
-
-    if 'altitude' in packet['decoded']['position']:
-        altitude = packet['decoded']['position']['altitude']
-        log_message += f" - Altitude: {altitude}m"
-        admin_message += f" Altitude: {altitude}m"
-        if altitude > 8000:
-            is_high_altitude = True
- 
-    if 'satsInView' in packet['decoded']['position']:
-        sats_in_view = packet['decoded']['position']['satsInView']
-        log_message += f" - Satellites in View: {sats_in_view}"
- 
-    if 'PDOP' in packet['decoded']['position']:
-        pdop = packet['decoded']['position']['PDOP']
-        log_message += f" - PDOP: {pdop}"
-
-    if 'precisionBits' in packet['decoded']['position']:
-        precision_bits = packet['decoded']['position']['precisionBits']
-        log_message += f" - Precision Bits: {precision_bits}"
-
-    if 'time' in packet['decoded']['position']:
-        time = packet['decoded']['position']['time']
-        time_str = datetime.fromtimestamp(time, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-        log_message += f" - Time: {time_str}"
-
-    if 'groundTrack' in packet['decoded']['position']:
-        ground_track = packet['decoded']['position']['groundTrack']
-        log_message += f" - Ground Track: {ground_track} degrees"
-
-    # Aircraft Detection
-    if is_fast_moving and is_high_altitude:
-        logger.warning(f"🛩️ AIRCRAFT DETECTED: {node_short_name} at {altitude}m altitude, {ground_speed}m/s")
-        # If the node is fast and high altitude, mark it as aircraft
-        log_message += " - Node is fast moving and high altitude"
-        
-        if db_helper.is_aircraft(node):
-            logger.debug(f"Node {node_short_name} is already marked as aircraft. No action taken.")
-        else:
-            logger.warning(f"🛩️ NEW AIRCRAFT: {node_short_name} marked as aircraft due to altitude {altitude}m and ground speed {ground_speed}m/s")
-            db_helper.set_aircraft(node, True)
-            log_message += " - Aircraft Detected"
-            admin_message += " - Aircraft Detected"
-            user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
-            send_llm_message(interface, user_message, public_channel_number, node['num'])
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
-    elif not is_fast_moving and not is_high_altitude:
-        # If the node is not fast moving and not high altitude, check if it's marked as aircraft
-        if db_helper.is_aircraft(node):
-            logger.warning(f"🛩️ AIRCRAFT UNMARKED: {node_short_name} no longer meets aircraft criteria")
-            send_node_info(interface)
-            db_helper.set_aircraft(node, False)
-            log_message += " - Aircraft Unmarked"
-            admin_message += " - Aircraft Unmarked"
-            user_message = f"{node_short_name} Your speed and altitude indicates that you are not an aircraft. I am no longer tracking you as an aircraft. Please confirm."
-            send_llm_message(interface, user_message, public_channel_number, node['num'])
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
-
-    # Only log detailed position info for aircraft or debug mode
-    if is_fast_moving or is_high_altitude:
-        logger.info(log_message)
-    else:
-        logger.debug(log_message)
-    
-    return
+    on_receive_position(
+        packet,
+        interface,
+        lookup_node,
+        find_location_by_coordinates,
+        db_helper,
+        public_channel_number,
+        admin_channel_number,
+        send_llm_message,
+        send_node_info
+    )
 
 def onReceiveData(packet, interface):
     logger.debug(f"[FUNCTION] onReceiveData")
