@@ -97,6 +97,9 @@ class MeshMonitorLogger:
         self.logger = root_logger
         self._configured = True
         
+        # Reduce noise from third-party libraries
+        self._configure_third_party_loggers()
+        
         # Log the configuration
         root_logger.info("=== Mesh Monitor Logging Initialized ===")
         root_logger.info(f"Log Level: {log_level}")
@@ -136,6 +139,31 @@ class MeshMonitorLogger:
             self.setup_logging()
         
         return logging.getLogger(name)
+    
+    def _configure_third_party_loggers(self):
+        """Configure logging levels for noisy third-party libraries."""
+        # Get the third-party log level from environment, default to ERROR
+        third_party_level = os.getenv('THIRD_PARTY_LOG_LEVEL', 'ERROR').upper()
+        
+        # Validate the log level
+        try:
+            numeric_level = getattr(logging, third_party_level)
+        except AttributeError:
+            numeric_level = logging.ERROR
+            self.logger.warning(f"Invalid THIRD_PARTY_LOG_LEVEL '{third_party_level}', using ERROR")
+        
+        # Reduce urllib3 connection retry warnings
+        logging.getLogger('urllib3.connectionpool').setLevel(numeric_level)
+        
+        # Reduce requests library noise
+        logging.getLogger('requests.packages.urllib3').setLevel(numeric_level)
+        
+        # Reduce other common noisy libraries
+        logging.getLogger('urllib3').setLevel(numeric_level)
+        logging.getLogger('requests').setLevel(numeric_level)
+        
+        # You can add more third-party loggers here as needed
+        # logging.getLogger('some_other_library').setLevel(numeric_level)
 
 
 # Global logger instance
