@@ -23,6 +23,7 @@ from utils.logger import setup_logging, get_logger
 from handlers.text_handler import on_receive_text
 from handlers.position_handler import on_receive_position
 from handlers.data_handler import on_receive_data
+from handlers.user_handler import on_receive_user
 
 # Initialize unified logging system
 setup_logging()
@@ -217,21 +218,12 @@ def onReceiveData(packet, interface):
     on_receive_data(packet, interface)
 
 def onReceiveUser(packet, interface):
-    from handlers.user_handler import on_receive_user
+    
     on_receive_user(packet, interface, lookup_node)
 
 def onReceiveTelemetry(packet, interface):
-    #logger.debug(f"[FUNCTION] onReceiveTelemetry")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
-
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.debug(f"[FUNCTION] onReceiveTelemetry from {node_short_name} - {from_node_num}")
+    from handlers.telemetry_handler import on_receive_telemetry
+    on_receive_telemetry(packet, interface, lookup_short_name, lookup_node)
 
 def onReceiveNeighborInfo(packet, interface):
     #logger.debug(f"[FUNCTION] onReceiveNeighborInfo")
