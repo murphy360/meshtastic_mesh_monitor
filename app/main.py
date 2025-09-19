@@ -920,7 +920,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         logger.info(f"Message not recognized: {message}. Not replying.")
         return
 
-    elif message == "sitrep":
+    if message == "sitrep":
         sitrep.update_sitrep(interface)
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
