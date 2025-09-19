@@ -1,8 +1,8 @@
 import geopy
 from geopy import distance, Nominatim
-import logging
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class LocationUtils:
     """

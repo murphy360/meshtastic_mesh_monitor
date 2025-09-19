@@ -1,7 +1,5 @@
 import base64
 import os
-import importlib.util
-import sys
 import time
 import threading
 import geopy
@@ -13,7 +11,6 @@ from meshtastic import BROADCAST_NUM
 from core.database import SQLiteHelper
 from pubsub import pub
 from core.sitrep import SITREP
-import logging
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from interfaces.gemini_interface import GeminiInterface
@@ -37,8 +34,7 @@ from handlers.range_test_handler import on_receive_range_test
 setup_logging()
 logger = get_logger(__name__)
 
-# Keep logging import for backward compatibility with existing code
-import logging
+## Logging is now handled via utils.logger.get_logger
 
 # Global variables
 localNode = ""

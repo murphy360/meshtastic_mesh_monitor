@@ -1,4 +1,4 @@
-import logging
+from utils.logger import get_logger
 from datetime import datetime, timezone
 
 def on_receive_node_info(packet, interface, lookup_node):
@@ -12,7 +12,7 @@ def on_receive_node_info(packet, interface, lookup_node):
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.
     """
-    logger = logging.getLogger(__name__)
+    logger = get_logger(__name__)
     logger.debug(f"[HANDLER] onReceiveNodeInfo called for node {packet['from']}")
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
