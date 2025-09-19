@@ -1,3 +1,4 @@
+import os
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -57,7 +58,19 @@ def on_receive_text(packet, interface, lookup_node, public_channel_number, reply
         elif 'channel' in packet: # Message sent to a channel
             logger.info(f"Channel message from {node_short_name}: '{message_string}'")
             channelId = int(packet['channel'])
-            reply_to_message(interface, message_string, message_id, channelId, "^all", from_node_num)
+            check_keywords(packet)
+            #reply_to_message(interface, message_string, message_id, channelId, "^all", from_node_num)
         elif packet['toId'] == "^all": # Message sent to all nodes
             logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
             reply_to_message(interface, message_string, message_id, 0, "^all", from_node_num)
+
+def check_keywords(interface, packet):
+    """
+    Check if message matches any keywords and print a log message if so.
+    """
+    message = packet['decoded']['payload'].decode('utf-8').strip().lower()
+    logger.debug(f"[FUNCTION] check_keywords")
+    keywords_dir = os.path.join(os.path.dirname(__file__), "keywords")
+    keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]
+    if message in keyword_files:
+        logger.info(f"Keyword '{message}' detected, invoking handler.")

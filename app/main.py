@@ -1,5 +1,6 @@
 import base64
 import os
+import importlib.util
 import sys
 import time
 import threading
@@ -757,21 +758,166 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
     logger.info(f"Replying to message: {message}")
     from_node = lookup_node(interface, from_id)
     local_node = lookup_node(interface, interface.getNode('^local').nodeNum)
-    #logger.info(f"From Node: {from_node}")
 
-    if message == "ping":
-        logger.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
-        #send_thumbs_up_reply(interface, channel, message_id, to_id)
-        location = find_location_by_node_num(interface, local_node['num'])
-        distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
-        
-        if distance != "Unknown" and location != "Unknown":
-            distance = round(distance, 2)
-            send_message(interface, f"{from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+    # Dynamic keyword dispatch using KeywordHandler base class
+ 
+    # Continue with legacy keyword handling
+    if message == "sitrep":
+        sitrep.update_sitrep(interface)
+        sitrep.send_report(interface, channel, to_id)
+        sitrep.log_message_sent("sitrep-requested")
+        return
+    elif message == "get forecast" or message == "getforecast" or message == "forecast":
+        logger.info(f"Processing weather forecast request from {from_node['user']['shortName']} - {from_node['num']}")
+        try:
+            wx_lat, wx_lon = None, None
+            if 'position' in from_node and 'latitude' in from_node['position'] and 'longitude' in from_node['position']:
+                logger.info(f"Requesting node has position data: {from_node['position']}")
+                wx_lat = from_node['position']['latitude']
+                wx_lon = from_node['position']['longitude']
+            elif 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
+                logger.info(f"Requesting node does not have position data, using local node's position")
+                wx_lat = local_node['position']['latitude']
+                wx_lon = local_node['position']['longitude']
+            else:
+                logger.error("Requesting node nor Local node have position data, cannot get forecast")
+                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+                admin_message = f"Weather forecast request from {from_node['user']['shortName']} - {from_node['num']} failed due to missing position data for both requesting and local nodes."
+                send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                return
+            if wx_lat is not None and wx_lon is not None:
+                send_weather_forecast(interface, wx_lat, wx_lon, from_node['user']['shortName'], from_node['user']['longName'], channel)
+                sitrep.log_message_sent("weather-forecast-requested")
+            else:
+                logger.error("No valid coordinates found for weather forecast")
+                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
+        except Exception as e:
+            logger.error(f"Error getting weather forecast: {e}")
+            send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
+        return
+    elif "set node of interest" in message or "setnoi" in message:
+        logger.info("Setting node of interest")
+        node_short_name = message.split(" ")[-1].lower()
+        send_llm_message(interface, f"Setting {node_short_name} as a node of interest", channel, to_id)
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_node_of_interest(node, True)
+            send_llm_message(interface, f"{node_short_name} is now a node of interest", channel, to_id)
+            sitrep.log_message_sent("node-of-interest-set")
         else:
-            send_message(interface, f"{from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong", channel, to_id)
-        
-        sitrep.log_message_sent("ping-pong")
+            send_llm_message(interface, f"Node {node_short_name} not found. Please use the short name", channel, to_id)
+        return
+    elif "remove node of interest" in message or "removenoi" in message:
+        logger.info("Removing node of interest")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_node_of_interest(node, False)
+            send_llm_message(interface, f"{node_short_name} is no longer a node of interest", channel, to_id)
+            sitrep.log_message_sent("node-of-interest-unset")
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
+        return
+    elif "remove node" in message or "removenode" in message:
+        logger.info("Removing node")
+        node_short_name = message.split(" ")[-1]
+        nodes = lookup_nodes(interface, node_short_name)
+        log_message = ""
+        if len(nodes) > 0:
+            for node in nodes:
+                logger.info(f"Removing node {node['user']['shortName']} - {node['num']}")
+                log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
+                db_helper.remove_node(node)
+                if node['num'] in interface.nodesByNum:
+                    logger.info(f"Removing node {node['user']['shortName']} - {node['num']} from interface")
+                    local_node = interface.getNode('^local')
+                    local_node.removeNode(node['num'])
+                try:
+                    deleted_node = lookup_node(interface, node_short_name)
+                    if deleted_node:
+                        logger.info(f"Node {node_short_name} still exists after removal.")
+                    else:
+                        logger.info(f"Node {node_short_name} successfully removed")
+                except Exception as e:
+                    logger.error(f"Error looking up node {node_short_name} after removal: {e}")
+            send_llm_message(interface, log_message, channel, to_id)
+            sitrep.log_message_sent("node-removed")
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found. Unable to remove from my database.", channel, to_id)
+        return
+    elif "request telemetry" in message or "requesttelemetry" in message:
+        logger.info("Requesting telemetry")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        want_response = True
+        if node:
+            sitrep.log_message_sent("telemetry-requested")
+            try:
+                interface.sendTelemetry(node['num'], want_response, public_channel_number, "device_metrics")
+                logger.info(f"Telemetry request sent to node {node_short_name} - {node['num']}")
+            except Exception as e:
+                logger.error(f"Error sending telemetry request to node {node_short_name}: {e}")
+                return
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send telemetry request.", channel, to_id)
+        return
+    elif "trace node" in message or "tracenode" in message:
+        logger.info("Tracing node")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            sitrep.log_message_sent("node-traced")
+            hop_limit = 2
+            if "hopsAway" in node:
+                hop_limit = int(node["hopsAway"]) + 1
+            if hop_limit < 1:
+                hop_limit = 1
+            send_trace_route(interface, node['num'], channel, hop_limit)
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
+        return
+    elif "set aircraft" in message or "setaircraft" in message:
+        logger.info("Setting aircraft")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_aircraft(node, True)
+            send_llm_message(interface, f"Node {node_short_name} is now set as an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-set")
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
+        return
+    elif "remove aircraft" in message or "removeaircraft" in message:
+        logger.info("Removing aircraft")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            db_helper.set_aircraft(node, False)
+            send_llm_message(interface, f"Node {node_short_name} is no longer set as an aircraft", channel, to_id)
+            sitrep.log_message_sent("aircraft-removed")
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
+        return
+    elif "sendnodeinfo" in message or "send node info" in message:
+        logger.info("Sending node info")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            send_llm_message(interface, f"Requesting node Info for {node_short_name}", channel, to_id)
+            send_node_info(interface)
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send node info request.", channel, to_id)
+    elif "send position" in message or "sendposition" in message:
+        logger.info("Sending position request")
+        node_short_name = message.split(" ")[-1]
+        node = lookup_node(interface, node_short_name)
+        if node:
+            send_position_request(interface, node['num'])
+        else:
+            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
+        return
+    else:
+        logger.info(f"Message not recognized: {message}. Not replying.")
         return
 
     elif message == "sitrep":
