@@ -3,11 +3,24 @@ from keywords.base import KeywordHandler
 from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
 from utils.node_lookup_utils import NodeLookupUtils
-import logging
+from utils.logger import get_logger
 
 class PingKeyword(KeywordHandler):
     def handle(self, interface, packet):
-        logger = logging.getLogger(__name__)
+        """
+        Handle incoming 'ping' keyword messages.
+
+        This function extracts sender and local node information, determines location and distance,
+        prepares a reply message, and sends it using the MessageSender utility. It supports both direct
+        and channel messages.
+
+        Args:
+            interface: The mesh network interface object.
+            packet: The received packet containing message and sender info.
+        Returns:
+            None
+        """
+        logger = get_logger(__name__)
         logger.info("PingKeyword handler invoked.")
 
         # Extract sender and local node info
