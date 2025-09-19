@@ -58,7 +58,7 @@ def on_receive_text(packet, interface, lookup_node, public_channel_number, reply
         elif 'channel' in packet: # Message sent to a channel
             logger.info(f"Channel message from {node_short_name}: '{message_string}'")
             channelId = int(packet['channel'])
-            check_keywords(packet)
+            check_keywords(interface, packet)
             #reply_to_message(interface, message_string, message_id, channelId, "^all", from_node_num)
         elif packet['toId'] == "^all": # Message sent to all nodes
             logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
