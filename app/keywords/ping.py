@@ -20,7 +20,7 @@ class PingKeyword(KeywordHandler):
 
         # Get short names
         from_short_name = from_node['user']['shortName'] if 'user' in from_node and 'shortName' in from_node['user'] else str(from_node_num)
-        local_short_name = local_node.user['shortName'] if hasattr(local_node, 'user') and 'shortName' in local_node.user else str(local_node.nodeNum)
+        local_short_name = local_node['user']['shortName'] if 'user' in local_node and 'shortName' in local_node['user'] else str(local_node['num'])
 
         # Get location and distance using LocationUtils
         location_utils = LocationUtils()
@@ -41,5 +41,12 @@ class PingKeyword(KeywordHandler):
         message_sender = MessageSender()
         # Use channel and to_id from packet if available, else defaults
         channel = packet.get('channel', 0)
-        to_id = packet.get('from', None)
+        
+        # Check if this is a direct message or channel message
+        if packet['to'] == local_node.nodeNum:
+            # Direct message, reply directly
+            to_id = from_node_num
+        else:
+            # Channel message, reply to channel
+            to_id = "^all"
         message_sender.send_message(interface, reply, channel, to_id)
