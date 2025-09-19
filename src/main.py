@@ -346,8 +346,8 @@ def onReceive(packet, interface):
         if new_node:
             send_node_info(interface)
             log_message += f" - New Node Detected"
-            private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping and any direct messages!"
-            send_llm_message(interface, private_message, public_channel_number, from_node_num)
+            private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping, forecast and any direct messages! Check out NE Ohio Meshtastic Discord at (https://discord.gg/F5WfsM8k). My developer is DPSA or DP00"
+            send_message(interface, private_message, public_channel_number, from_node_num)
             admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
             logger.info(f"🆕 NEW NODE: {node_short_name} ({node_long_name}) - {from_node_num}")
