@@ -42,3 +42,22 @@ def send_node_info(interface, public_channel_number=1, admin_channel_number=2):
         message = f"Error sending node info to public channel: {e}"
         sender.send_message(interface, message, admin_channel_number, "^all")
         return
+    
+def send_position_request(interface, node_num, public_channel_number=0):
+    """
+    Send a position request to a specified node.
+
+    Args:
+        interface: The interface to interact with the mesh network.
+        node_num (int): The number of the node to send the request to.
+        public_channel_number (int): The channel to send the request on (default: 0).
+    """
+    logger.info(f"Sending position request to node {node_num}")
+    try:
+        interface.sendPosition(
+            destinationId=node_num,
+            wantResponse=False,
+            channelIndex=public_channel_number
+        )
+    except Exception as e:
+        logger.error(f"Error sending position request: {e}")

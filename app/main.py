@@ -28,7 +28,7 @@ from handlers.routing_handler import on_receive_routing
 from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
-from utils.node_info_utils import send_node_info
+from utils.node_info_utils import send_node_info, send_position_request
 
 # Initialize unified logging system
 setup_logging()
@@ -900,7 +900,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            send_position_request(interface, node['num'])
+            send_position_request(interface, node['num'], public_channel_number)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
         return
@@ -1064,20 +1064,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
             sitrep.log_message_sent("aircraft-removed")
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
-        return
-    
-    elif "send position" in message or "sendposition" in message:
-        logger.info("Sending position request")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            send_position_request(interface, node['num'])
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
-        return
-    
-    else:
-        logger.info(f"Message not recognized: {message}. Not replying.")
         return
 
 def send_trace_route_proto(interface, node_num, channel, hop_limit=1):
@@ -1339,28 +1325,6 @@ def send_telemetry_request(interface, node_num):
         logger.info(f"Telemetry request sent to node {node_num}")
     except Exception as e:
         logger.error(f"Error sending telemetry request: {e}")
-
-def send_position_request(interface, node_num):
-    """
-    Send a position request to a specified node.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The number of the node to send the request to.
-    """
-    logger.info(f"Sending position request to node {node_num}")
-    try:
-        interface.sendPosition(
-            destinationId = node_num,
-            wantResponse = False,
-            channelIndex = public_channel_number
-        )
-    except Exception as e:
-        logger.error(f"Error sending position request: {e}")
-        #send_llm_message(interface, f"Error sending position request to node {node_num}: {e}", admin_channel_number, "^all")
-
-
-
     
 def send_weather_forecast_if_needed(interface, channel):
     """
