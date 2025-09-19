@@ -11,4 +11,4 @@ if '/app' not in sys.path:
 
 # Now import and run main
 if __name__ == "__main__":
-    import main
+    import app.main as main
