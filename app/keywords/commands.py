@@ -3,8 +3,8 @@ import importlib
 import os
 
 class CommandsKeyword(KeywordHandler):
-    def __init__(self, keywords_dir="app/keywords"):
-        self.keywords_dir = keywords_dir
+    def __init__(self):
+        self.keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
         self.keywords = self._load_keywords()
 
     def _load_keywords(self):
