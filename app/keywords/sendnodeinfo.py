@@ -12,40 +12,22 @@ class SendNodeInfoKeyword(KeywordHandler):
         """
         Return a human-readable description of the sendnodeinfo command.
         """
-        return "Sends detailed information about a specified node. Usage: sendnodeinfo <node short name>"
+        return "Sends my node info"
 
     def handle(self, interface, packet):
         """
-        Handle the 'sendnodeinfo' keyword. Sends node info for the specified node.
+        Handle the 'sendnodeinfo' keyword. Sends local node info to the mesh.
         """
-        # Extract message string from decoded payload
-        message_string = ''
-        if 'decoded' in packet and 'payload' in packet['decoded']:
-            message_bytes = packet['decoded']['payload']
-            message_string = message_bytes.decode('utf-8').strip()
-        args = message_string.split()
         channel = packet['channel'] if 'channel' in packet else 0
         local_node = interface.getNode('^local')
         if 'to' in packet and packet['to'] == local_node.nodeNum:
             to_id = packet['from']
         else:
             to_id = "^all"
-        # Expect: sendnodeinfo <node short name>
-        if len(args) < 2:
-            reply = "Usage: sendnodeinfo <node short name>"
-        else:
-            node_short_name = args[1]
-            node = NodeLookupUtils.lookup_node(interface, node_short_name)
-            if node:
-                reply = f"Requesting node Info for {node_short_name}"
-                # Call the main's send_node_info function if available, or send basic info here
-                # For now, send basic info
-                user = node['user']
-                info = f"Node Info:\nShort Name: {user.get('shortName', 'Unknown')}\nLong Name: {user.get('longName', 'Unknown')}\nID: {user.get('id', 'Unknown')}\nHW Model: {user.get('hwModel', 'Unknown')}"
-                reply += "\n" + info
-            else:
-                reply = f"Node {node_short_name} not found in my database. Unable to send node info request."
+        # Send local node info to the mesh
+        self.send_node_info(interface, public_channel_number=channel)
         sender = MessageSender()
+        reply = "Sent my node info to the mesh."
         sender.send_message(interface, reply, channel, to_id)
     
     def send_node_info(interface, public_channel_number=1, admin_channel_number=2):
