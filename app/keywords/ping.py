@@ -1,4 +1,4 @@
-from .base import KeywordHandler
+from app.keywords.base import KeywordHandler
 import logging
 
 class PingKeyword(KeywordHandler):
