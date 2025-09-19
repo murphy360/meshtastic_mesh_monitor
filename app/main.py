@@ -1066,16 +1066,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
     
-    elif "sendnodeinfo" in message or "send node info" in message:
-        logger.info("Sending node info")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            send_llm_message(interface, f"Requesting node Info for {node_short_name}", channel, to_id)
-            send_node_info(interface)
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send node info request.", channel, to_id)
-    
     elif "send position" in message or "sendposition" in message:
         logger.info("Sending position request")
         node_short_name = message.split(" ")[-1]
