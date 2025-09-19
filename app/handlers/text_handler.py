@@ -70,7 +70,8 @@ def check_keywords(interface, packet):
     """
     message = packet['decoded']['payload'].decode('utf-8').strip().lower()
     logger.debug(f"[FUNCTION] check_keywords")
-    keywords_dir = os.path.join(os.path.dirname(__file__), "keywords")
+    # Move up one directory from handlers to app, then into keywords
+    keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
     keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]
     if message in keyword_files:
         logger.info(f"Keyword '{message}' detected, invoking handler.")
