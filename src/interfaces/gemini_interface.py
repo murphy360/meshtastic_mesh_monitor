@@ -211,13 +211,10 @@ class GeminiInterface(BaseInterface):
             self.logger.debug(f"Generated response: {response_text}")
             return response_text
         
-        # Handle 503 Service Unavailable errors
-        except genai.exceptions.ServiceUnavailable as e:
-            self.logger.error(f"Service Unavailable: {e}")
-            return "I'm currently unable to process your request. Please try again later."
-            
         except Exception as e:
             self.logger.error(f"Error generating response: {e}")
+            if "503" in str(e) or "Service Unavailable" in str(e):
+                return "I'm currently unable to process your request. Please try again later."
             return f"(Error with AI response: {message})"
 
     def test_connection(self) -> bool:
