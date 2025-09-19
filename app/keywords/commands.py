@@ -1,4 +1,5 @@
 from keywords.base import KeywordHandler
+from utils.message_sender import MessageSender
 import importlib
 import os
 
@@ -45,7 +46,6 @@ class CommandsKeyword(KeywordHandler):
             message_string = message_bytes.decode('utf-8').strip()
         
         channel = packet['channel'] if 'channel' in packet else 0
-        to_id = packet['from'] if 'from' in packet else None
 
         args = message_string.split()
         # If only 'commands', list all commands
@@ -67,7 +67,14 @@ class CommandsKeyword(KeywordHandler):
                 reply = f"{args[1]}: No description available."
         else:
             reply = "Usage: 'commands', 'commands describe', or 'commands <keyword>'"
-        # Use MessageSender for reply
-        from utils.message_sender import MessageSender
+
+
+        # Determine if this is a direct message or channel message
+        if 'to' in packet and packet['to'] == local_node.nodeNum:
+            # Direct message, reply directly
+            to_id = packet['from']
+        else:
+            # Channel message, reply to channel
+            to_id = "^all"
         sender = MessageSender()
         sender.send_message(interface, reply, channel, to_id)

@@ -70,12 +70,13 @@ def check_keywords(interface, packet):
     Check if message matches any keywords and print a log message if so.
     """
     message = packet['decoded']['payload'].decode('utf-8').strip().lower()
+    potential_keywords = message.split() # first word could be a keyword
     logger.debug(f"[FUNCTION] check_keywords")
     # Move up one directory from handlers to app, then into keywords
     keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
     keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]
     for keyword in keyword_files:
-        if message == keyword:
+        if potential_keywords[0] == keyword:
             logger.info(f"Keyword '{keyword}' detected, invoking handler.")
             try:
                 # Use simple module name for dynamic import
