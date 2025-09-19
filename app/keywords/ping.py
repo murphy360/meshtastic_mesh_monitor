@@ -20,8 +20,8 @@ class PingKeyword(KeywordHandler):
 
         # Get short names
         from_short_name = from_node['user']['shortName'] if 'user' in from_node and 'shortName' in from_node['user'] else str(from_node_num)
-        local_short_name = local_node['user']['shortName'] if 'user' in local_node and 'shortName' in local_node['user'] else str(local_node['num'])
-
+        local_node_info = interface.getMyNodeInfo()
+        local_node_short_name = local_node_info['user']['shortName'] if 'user' in local_node_info and 'shortName' in local_node_info['user'] else str(local_node_info['num'])
         # Get location and distance using LocationUtils
         location_utils = LocationUtils()
         location = location_utils.find_location_by_node_num(interface, local_node.nodeNum)
@@ -33,9 +33,9 @@ class PingKeyword(KeywordHandler):
                 distance = round(float(distance), 2)
             except Exception:
                 pass
-            reply = f"{from_short_name} this is {local_short_name}, Pong from {location}. Distance: {distance} miles"
+            reply = f"{from_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles"
         else:
-            reply = f"{from_short_name} this is {local_short_name}, Pong"
+            reply = f"{from_short_name} this is {local_node_short_name}, Pong"
 
         # Send reply using MessageSender
         message_sender = MessageSender()
