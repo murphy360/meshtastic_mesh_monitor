@@ -28,7 +28,7 @@ from handlers.routing_handler import on_receive_routing
 from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
-from utils.node_info_utils import send_node_info, send_position_request
+from utils.node_info_utils import send_node_info, send_position_request, lookup_node
 
 # Initialize unified logging system
 setup_logging()
@@ -872,28 +872,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return
-    elif "set aircraft" in message or "setaircraft" in message:
-        logger.info("Setting aircraft")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_aircraft(node, True)
-            send_llm_message(interface, f"Node {node_short_name} is now set as an aircraft", channel, to_id)
-            sitrep.log_message_sent("aircraft-set")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
-        return
-    elif "remove aircraft" in message or "removeaircraft" in message:
-        logger.info("Removing aircraft")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_aircraft(node, False)
-            send_llm_message(interface, f"Node {node_short_name} is no longer set as an aircraft", channel, to_id)
-            sitrep.log_message_sent("aircraft-removed")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
-        return
+    # 'setaircraft' and 'removeaircraft' are now handled by the modular keyword handler. Deprecated legacy block.
     # 'sendnodeinfo' and 'send node info' are now handled by the modular keyword handler. Deprecated legacy block.
     elif "send position" in message or "sendposition" in message:
         logger.info("Sending position request")
@@ -1040,30 +1019,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
             send_trace_route(interface, node['num'], channel, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
-        return
-
-    elif "set aircraft" in message or "setaircraft" in message:
-        logger.info("Setting aircraft")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_aircraft(node, True)
-            send_llm_message(interface, f"Node {node_short_name} is now set as an aircraft", channel, to_id)
-            sitrep.log_message_sent("aircraft-set")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
-        return
-
-    elif "remove aircraft" in message or "removeaircraft" in message:
-        logger.info("Removing aircraft")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_aircraft(node, False)
-            send_llm_message(interface, f"Node {node_short_name} is no longer set as an aircraft", channel, to_id)
-            sitrep.log_message_sent("aircraft-removed")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
 
 def send_trace_route_proto(interface, node_num, channel, hop_limit=1):
