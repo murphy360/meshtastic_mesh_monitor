@@ -213,21 +213,12 @@ def onReceivePosition(packet, interface):
     )
 
 def onReceiveData(packet, interface):
+    #Handler is in data_handler.py
     on_receive_data(packet, interface)
 
 def onReceiveUser(packet, interface):
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
-    
-    logger.debug(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
-
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.debug(f"[FUNCTION] onReceiveUser from {node_short_name} - {from_node_num}")
+    from handlers.user_handler import on_receive_user
+    on_receive_user(packet, interface, lookup_node)
 
 def onReceiveTelemetry(packet, interface):
     #logger.debug(f"[FUNCTION] onReceiveTelemetry")
