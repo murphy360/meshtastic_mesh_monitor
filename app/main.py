@@ -1,4 +1,3 @@
-import base64
 import os
 import time
 import threading
@@ -6,7 +5,7 @@ import geopy
 from geopy import distance
 import meshtastic
 import meshtastic.tcp_interface
-from meshtastic.protobuf import mesh_pb2, config_pb2, telemetry_pb2
+from meshtastic.protobuf import mesh_pb2
 from meshtastic import BROADCAST_NUM
 from core.database import SQLiteHelper
 from pubsub import pub
@@ -894,15 +893,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
-    elif "sendnodeinfo" in message or "send node info" in message:
-        logger.info("Sending node info")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            send_llm_message(interface, f"Requesting node Info for {node_short_name}", channel, to_id)
-            send_node_info(interface)
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send node info request.", channel, to_id)
+    # 'sendnodeinfo' and 'send node info' are now handled by the modular keyword handler. Deprecated legacy block.
     elif "send position" in message or "sendposition" in message:
         logger.info("Sending position request")
         node_short_name = message.split(" ")[-1]
@@ -912,11 +903,9 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
         return
-    else:
-        logger.info(f"Message not recognized: {message}. Not replying.")
-        return
 
-    if message == "sitrep":
+
+    elif message == "sitrep":
         sitrep.update_sitrep(interface)
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
@@ -954,11 +943,11 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
             else:
                 logger.error("No valid coordinates found for weather forecast")
                 send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
-        
+    
         except Exception as e:
             logger.error(f"Error getting weather forecast: {e}")
             send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
-        return
+            return
 
     elif "set node of interest" in message or "setnoi" in message:
         logger.info("Setting node of interest")
@@ -1380,43 +1369,7 @@ def send_position_request(interface, node_num):
         #send_llm_message(interface, f"Error sending position request to node {node_num}: {e}", admin_channel_number, "^all")
 
 
-def send_node_info(interface):
-    logger.info(f"Sending node info on public channel {public_channel_number}")
-                 
-    """
-    Send node information to a specified node.
 
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The number of the node to send information to.
-    """
-    
-    user = mesh_pb2.User()
-    me = interface.nodesByNum[interface.localNode.nodeNum]['user']
-    
-    user.id = me['id']
-    user.long_name = me['longName']
-    user.short_name = me['shortName']
-    user.hw_model = mesh_pb2.HardwareModel.Value(me['hwModel'])
-    logger.info(f"User ID: {user.id}")
-    user.public_key = base64.b64decode(me['publicKey'])
-    if user.role:
-        logger.info(f"User role: {user.role}")
-        user.role = config_pb2.Config.DeviceConfig.Role.Value(me['role'])
-    try:
-        logger.info("Inside Try")
-        interface.sendData(
-            user,
-            destinationId=public_channel_number,
-            portNum=meshtastic.portnums_pb2.NODEINFO_APP,
-            wantAck=False,
-            wantResponse=True
-        )
-        logger.info(f"Node info sent to public channel {public_channel_number}")
-    except Exception as e:
-        logger.error(f"Error sending node info to public channel {public_channel_number}: {e}")
-        send_llm_message(interface, f"Error sending node info to public channel: {e}", admin_channel_number, "^all")
-        return
     
 def send_weather_forecast_if_needed(interface, channel):
     """
