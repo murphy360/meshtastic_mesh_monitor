@@ -68,7 +68,7 @@ class CommandsKeyword(KeywordHandler):
         else:
             reply = "Usage: 'commands', 'commands describe', or 'commands <keyword>'"
 
-
+        local_node = interface.getNode('^local')
         # Determine if this is a direct message or channel message
         if 'to' in packet and packet['to'] == local_node.nodeNum:
             # Direct message, reply directly
