@@ -6,6 +6,11 @@ from utils.node_lookup_utils import NodeLookupUtils
 from utils.logger import get_logger
 
 class PingKeyword(KeywordHandler):
+    def get_description(self):
+        """
+        Return a human-readable description of the ping command.
+        """
+        return "Responds with a pong message and location/distance information when a node sends 'ping'."
     def handle(self, interface, packet):
         """
         Handle incoming 'ping' keyword messages.
