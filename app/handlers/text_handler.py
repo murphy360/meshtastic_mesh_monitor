@@ -83,8 +83,8 @@ def check_keywords(interface, packet):
                 spec = importlib.util.spec_from_file_location(keyword, os.path.join(keywords_dir, f"{keyword}.py"))
                 keyword_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(keyword_module)
-                # Convert snake_case or lowercase to CamelCase for class name
-                class_name = ''.join([part.capitalize() for part in keyword.split('_')]) + 'Keyword'
+                # Treat keyword as a single lowercase word, capitalize first letter, append 'Keyword'
+                class_name = keyword.capitalize() + 'Keyword'
                 keyword_class = getattr(keyword_module, class_name)
                 handler_instance = keyword_class()
                 handler_instance.handle(interface, packet)

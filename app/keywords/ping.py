@@ -5,7 +5,7 @@ from utils.message_sender import MessageSender
 from utils.node_lookup_utils import NodeLookupUtils
 from utils.logger import get_logger
 
-class PingKeyword(KeywordHandler):
+class Pingkeyword(KeywordHandler):
     def get_description(self):
         """
         Return a human-readable description of the ping command.

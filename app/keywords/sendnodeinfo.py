@@ -4,7 +4,7 @@ from utils.message_sender import MessageSender
 from utils.node_info_utils import send_node_info
 
 
-class SendNodeInfoKeyword(KeywordHandler):
+class SendnodeinfoKeyword(KeywordHandler):
     def get_description(self):
         """
         Return a human-readable description of the sendnodeinfo command.
