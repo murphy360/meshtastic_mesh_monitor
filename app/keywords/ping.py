@@ -2,8 +2,9 @@ from .base import KeywordHandler
 import logging
 
 class PingKeyword(KeywordHandler):
-    def handle(self, interface, from_node, local_node, channel, to_id, sitrep,
-               find_location_by_node_num, find_distance_between_nodes, send_message):
+    def handle(self, interface, packet):
+        logging.info("PingKeyword handler invoked.")
+        '''
         logger = logging.getLogger(__name__)
         logger.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
         location = find_location_by_node_num(interface, local_node['num'])
@@ -14,3 +15,4 @@ class PingKeyword(KeywordHandler):
         else:
             send_message(interface, f"{from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong", channel, to_id)
         sitrep.log_message_sent("ping-pong")
+        '''

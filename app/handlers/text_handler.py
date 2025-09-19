@@ -75,3 +75,12 @@ def check_keywords(interface, packet):
     keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]
     if message in keyword_files:
         logger.info(f"Keyword '{message}' detected, invoking handler.")
+        # Dynamically import and invoke the keyword handler
+        try:
+            keyword_module = __import__(f"app.keywords.{message}", fromlist=[''])
+            keyword_class = getattr(keyword_module, f"{message.capitalize()}Keyword")
+            keyword_instance = keyword_class()
+            keyword_instance.handle(interface, packet)
+        except Exception as e:
+            logger.error(f"Error handling keyword '{message}': {e}")
+        
