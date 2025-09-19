@@ -24,6 +24,13 @@ from handlers.text_handler import on_receive_text
 from handlers.position_handler import on_receive_position
 from handlers.data_handler import on_receive_data
 from handlers.user_handler import on_receive_user
+from handlers.telemetry_handler import on_receive_telemetry
+from handlers.neighbor_info_handler import on_receive_neighbor_info
+from handlers.node_info_handler import on_receive_node_info
+from handlers.routing_handler import on_receive_routing
+from handlers.traceroute_handler import on_receive_traceroute
+from handlers.waypoint_handler import on_receive_waypoint
+from handlers.range_test_handler import on_receive_range_test
 
 # Initialize unified logging system
 setup_logging()
@@ -222,296 +229,67 @@ def onReceiveUser(packet, interface):
     on_receive_user(packet, interface, lookup_node)
 
 def onReceiveTelemetry(packet, interface):
-    from handlers.telemetry_handler import on_receive_telemetry
-    on_receive_telemetry(packet, interface, lookup_short_name, lookup_node)
+
+    on_receive_telemetry(packet, interface, lookup_node)
 
 def onReceiveNeighborInfo(packet, interface):
-    #logger.debug(f"[FUNCTION] onReceiveNeighborInfo")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
-
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.warning(f"🔍 NEIGHBOR INFO received from {node_short_name} - {from_node_num}\n\n {packet['decoded']['neighbors']}")
     
-    # Alert admin if a node is reporting neighbors
-    admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
-    send_message(interface, admin_message, admin_channel_number, "^all")
-    return
+    on_receive_neighbor_info(
+        packet,
+        interface,
+        lookup_node,
+        send_message,
+        admin_channel_number
+    )
 
 def onReceiveTraceRoute(packet, interface):
-    #logger.debug(f"[FUNCTION] onReceiveTraceroute")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
 
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.debug(f"[FUNCTION] onReceiveTraceroute from {node_short_name} - {from_node_num}")
-    
-    trace = packet['decoded']['traceroute']
-    route_to = []
-    snr_towards = []
-    route_back = []
-    snr_back = []
-    message_string = ""
-    originator_node = lookup_node(interface,packet['from'])
-    traced_node = lookup_node(interface,packet['to'])
-    global last_trace_time, public_channel_number
-
-    logger.debug(f"Trace Route Packet: {trace}")
-    
-    if 'snrBack' in trace: # if snrBack is present, then the trace was initiated by the local node and this is a reply
-        originator_node = lookup_node(interface, packet['to']) # Originator should be local node
-        traced_node = lookup_node(interface, packet['from']) # Traced node should be the node that was traced originally
-        
-        # set last_trace_time for the traced node
-        last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
-        logger.debug(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
-
-        logger.debug(f"SNR BACK:  {trace['snrBack']}")
-        for hop in trace['snrBack']:
-            snr_back.append(hop)
-
-        if 'routeBack' in trace: # If routeBack is present, there's multiple hops back to the originator node
-            logger.debug(f"ROUTE BACK:  {trace['routeBack']}")
-            for hop in trace['routeBack']:
-                node = lookup_node(interface, hop)
-                logger.debug(f"Adding node {node['user']['shortName']} to route back")
-                route_back.append(node)
-        route_back.append(originator_node) # Add the originator node to the route back (local node)
-
-    else: # If no route back in trace, then the trace was not initiated by the local node
-        logger.info(f"🔍 TRACED BY: {node_short_name}")
-
-        if packet['to'] == localNode.nodeNum:
-            logger.warning(f"🔍 TRACEROUTE received from {node_short_name} - responding")
-            # Tell admin what the traceroute is
-            admin_message = f"Traceroute received from {node_short_name}"
-            send_message(interface, admin_message, admin_channel_number, "^all")
-            reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
-            send_llm_message(interface, reply_message, public_channel_number, from_node_num)
-            db_helper.set_node_of_interest(node, True)
-
-    if 'snrTowards' in trace: # snrTowards should always be present regardless of direction
-        logger.debug(f"SNR TOWARDS:  {trace['snrTowards']}")
-        for hop in trace['snrTowards']:
-            snr_towards.append(hop)
-
-        route_to.append(originator_node)
-        if 'routeTo' in trace:
-            logger.debug(f"ROUTE TO:  {trace['routeTo']}")
-            for hop in trace['routeTo']:
-                node = lookup_node(interface, hop)
-                route_to.append(node)
-        elif 'route' in trace: # If routeTo is not present, use route
-            logger.debug(f"ROUTE:  {trace['route']}")
-            for hop in trace['route']:
-                node = lookup_node(interface, hop)
-                if node:
-                    route_to.append(node)
-                else:
-                    logger.debug(f"Route not found in trace, using node num")
-                    route_to.append(hop) # Fallback to originator node if route not found
-        
-    route_to.append(traced_node)
-    
-    i = 0
-    # Add the node names from route_to message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
-    for node in route_to:
-        if 'user' in node:
-            message_string += f"{node['user']['shortName']}"
-            logger.debug(f"Length of snr_towards: {len(snr_towards)}")
-        else:
-            logger.debug(f"Node {node} does not have a user field, using node num")
-            message_string += f"{node}"
-        if i < len(snr_towards):
-            message_string += f" -> ({snr_towards[i]}dB) "
-            i += 1
-
-    i = 0
-    # Add the node names from route_back message string. Example: "Node1 (snr) -> Node2 (snr) -> Node3 (snr)"
-    for node in route_back:
-        logger.debug(f"Length of snr_back: {len(snr_back)}")
-        if i < len(snr_back):
-            message_string += f" -> ({snr_back[i]}dB) "
-            i += 1
-        message_string += f"{node['user']['shortName']}"
-        
-    
-    # Strip trailing arrow
-    if message_string.endswith(" ->"):
-        message_string = message_string[:-3]
-
-    route_full = route_to + route_back
-    sitrep.add_trace(route_full)
-    
-    # Store traceroute data in database
-    originator_name = originator_node.get('user', {}).get('shortName', 'Unknown') if isinstance(originator_node, dict) else str(originator_node)
-    destination_name = traced_node.get('user', {}).get('shortName', 'Unknown') if isinstance(traced_node, dict) else str(traced_node)
-    
-    db_helper.store_traceroute(
-        originator_name,
-        destination_name, 
-        route_to,
-        route_back,
-        snr_towards,
-        snr_back
+    on_receive_traceroute(
+        packet,
+        interface,
+        lookup_node,
+        db_helper,
+        sitrep,
+        send_message,
+        send_llm_message,
+        public_channel_number,
+        admin_channel_number,
+        last_trace_time
     )
-    
-    # Update node connections in database
-    db_helper.update_node_connections(route_to, route_back, snr_towards, snr_back)
-    
-    # Tell admin what the traceroute is
-    logger.info(f"🗺️ TRACEROUTE: {message_string}")
-    send_message(interface, message_string, admin_channel_number, "^all")
-    return
 
 def onReceiveWaypoint(packet, interface):
-    #logger.info(f"[FUNCTION] onReceiveWaypoint")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
 
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.info(f"[FUNCTION] onReceiveWaypoint from {node_short_name} - {from_node_num}")
-    '''
-    {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': {
-    'portnum': 'WAYPOINT_APP', 
-    'payload': b'\x08\x80\xbc\x9bC\x15wC\xa3\x18\x1d\xd6\x8do\xcf \x012\x04test', 
-    'bitfield': 0, 
-    'waypoint': 
-    {
-    'id': 140959232, 
-    'latitudeI': 413352823, 
-    'longitudeI': -814772778, 
-    'expire': 1, 
-    'name': 'test', 
-    'raw': id: 140959232
-    latitude_i: 413352823
-    longitude_i: -814772778
-    expire: 1
-    name: "test"
-    }
-    }, 'id': 140959241, 'rxSnr': 6.0, 'hopLimit': 3, 'rxRssi': -41, 'hopStart': 3, 'relayNode': 240, 'raw': from: 2058949616
-        to: 4294967295
-        channel: 1
-        decoded {
-        portnum: WAYPOINT_APP
-        payload: "\010\200\274\233C\025wC\243\030\035\326\215o\317 \0012\004test"
-        bitfield: 0
-    }
-    '''
-    logger.info(f"Waypoint_APP: {packet}")
-    waypoint = packet['decoded']['waypoint']
-    logger.info(f"Waypoint: {waypoint}")
-    id = waypoint['id']
-    latitude = waypoint['latitudeI']
-    longitude = waypoint['longitudeI']
-    expire = waypoint['expire']
-    name = waypoint['name']
-    if 'description' in waypoint:
-        description = waypoint['description']
-    else:
-        description = "No description"
-    logger.info(f"Waypoint ID: {id}, Latitude: {latitude}, Longitude: {longitude}, Expire: {expire}, Name: {name}, Description: {description}")
-
-    if expire == 1:
-        logger.info(f"Waypoint {name} is expired")
-        send_llm_message(interface, f"Waypoint {name} is expired", admin_channel_number, "^all")
-    else:
-        # expire is in epoch time, so convert to datetime
-        expire_time = datetime.fromtimestamp(expire, tz=timezone.utc)
-        logger.info(f"Waypoint {name} expires at {expire_time}")
-        send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", admin_channel_number, "^all")
+    on_receive_waypoint(
+        packet,
+        interface,
+        lookup_node,
+        send_llm_message,
+        admin_channel_number
+    )
 
 def onReceiveNodeInfo(packet, interface):
-    #logger.info(f"[FUNCTION] onReceiveNodeInfo")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
-
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.info(f"[FUNCTION] onReceiveNodeInfo from {node_short_name} - {from_node_num}")
-
-    return
+    on_receive_node_info(
+        packet,
+        interface,
+        lookup_node
+    )
 
 def onReceiveRouting(packet, interface):
-    #logger.info(f"[FUNCTION] onReceiveRouting")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
-
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.info(f"[FUNCTION] onReceiveRouting from {node_short_name} - {from_node_num} \n {packet}")
-    now = datetime.now(timezone.utc)
-    now_string = now.strftime("%Y-%m-%d %H:%M:%S")
-    admin_message = f"Routing Packet received from {node_short_name} at {now_string}"
-    send_message(interface, admin_message, admin_channel_number, "^all")
-    return
+    on_receive_routing(
+        packet,
+        interface,
+        lookup_node,
+        send_message,
+        admin_channel_number
+    )
 
 def onReceiveRangeTest(packet, interface):
-    #logger.info(f"[FUNCTION] onReceiveRangeTest")
-    '''
-    {'from': 2058949616, 'to': 4294967295, 'channel': 1, 'decoded': 
-        {
-            'portnum': 'RANGE_TEST_APP', 
-            'payload': b'seq 29', 
-            'bitfield': 0, 
-            'text': 'seq 29'
-        }, 
-    'id': 1410720800, 
-    'rxSnr': 5.75, 
-    'rxRssi': -66, 
-    'raw': 
-        from: 2058949616
-        to: 4294967295
-        channel: 1
-    decoded 
-    {
-        portnum: RANGE_TEST_APP
-        payload: "seq 29"
-        bitfield: 0
-    }
-        id: 1410720800
-        rx_snr: 5.75
-        rx_rssi: -66, 
-        'fromId': '!7ab913f0', 
-        'toId': '^all'
-    }
-    '''
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    sequence = packet['decoded']['text'].split(" ")[1]
-    localNode = interface.getNode('^local')
 
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.info(f"[FUNCTION] onReceiveRangeTest from {node_short_name} - {from_node_num} - Sequence: {sequence}")
-
-    return
+    on_receive_range_test(
+        packet,
+        interface,
+        lookup_node
+    )
 
 def onReceive(packet, interface):
     #logger.debug(f"[FUNCTION] onReceive")

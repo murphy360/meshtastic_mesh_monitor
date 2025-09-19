@@ -10,11 +10,16 @@ def on_receive_position(packet, interface, lookup_node, find_location_by_coordin
     is_fast_moving = False
     is_high_altitude = False
     location = "Unknown"
+    log_message = f"[HANDLER] onReceivePosition from node {from_node_num}"
 
     node = lookup_node(interface, from_node_num)
     if node is None:
         logger.warning(f"[HANDLER] onReceivePosition: Node {from_node_num} not found, skipping position handling.")
         return
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
+    
     node_short_name = node["user"]["shortName"].lower()
     node_long_name = node["user"]["longName"].lower()
 

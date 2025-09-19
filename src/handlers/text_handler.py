@@ -3,21 +3,36 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 def on_receive_text(packet, interface, lookup_node, public_channel_number, reply_to_direct_message, reply_to_message):
+    """
+    Handler for text packets. Extracts node info and logs the event.
+    Args:
+        packet (dict): The received packet data.
+        interface: The interface object representing the connection.
+        lookup_node (function): Function to lookup node object.
+        public_channel_number (int): Public channel number.
+        reply_to_direct_message (function): Function to reply to direct messages.
+        reply_to_message (function): Function to reply to channel/broadcast messages.
+    Safety:
+        - Skips handling if node cannot be found.
+        - Ignores packets from the local node.
+    """
     logger.debug(f"[FUNCTION] onReceiveText")
-    node = lookup_node(interface, packet['from'])
-    node_short_name = node["user"]["shortName"].lower()
+
+    from_node_num = packet['from']
+    node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
+    if node is None:
+        logger.warning(f"[HANDLER] onReceiveText: Node {from_node_num} not found, skipping text handling.")
+        return
+    if localNode.nodeNum == from_node_num:
+        # Ignore packets from local node
+        return
+    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
     channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
     if 'channel' in packet:
         channelId = packet['channel']
 
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
     logger.debug(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num} - Channel: {channelId}")
-
-    localNode = interface.getNode('^local')
 
     if 'decoded' in packet:
         portnum = packet['decoded']['portnum']
