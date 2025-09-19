@@ -1,18 +1,45 @@
+
 from keywords.base import KeywordHandler
+from utils.location_utils import LocationUtils
+from utils.message_sender import MessageSender
+from utils.node_lookup_utils import NodeLookupUtils
 import logging
 
 class PingKeyword(KeywordHandler):
     def handle(self, interface, packet):
-        logging.info("PingKeyword handler invoked.")
-        '''
         logger = logging.getLogger(__name__)
-        logger.info(f"Processing ping request from {from_node['user']['shortName']} - {from_node['num']}")
-        location = find_location_by_node_num(interface, local_node['num'])
-        distance = find_distance_between_nodes(interface, from_node['num'], local_node['num'])
+        logger.info("PingKeyword handler invoked.")
+
+        # Extract sender and local node info
+        from_node_num = packet['from']
+        local_node = interface.getNode('^local')
+        from_node = NodeLookupUtils.lookup_node(interface, from_node_num)
+        if not from_node:
+            logger.warning(f"PingKeyword: Could not find from_node for num {from_node_num}")
+            return
+
+        # Get short names
+        from_short_name = from_node['user']['shortName'] if 'user' in from_node and 'shortName' in from_node['user'] else str(from_node_num)
+        local_short_name = local_node.user['shortName'] if hasattr(local_node, 'user') and 'shortName' in local_node.user else str(local_node.nodeNum)
+
+        # Get location and distance using LocationUtils
+        location_utils = LocationUtils()
+        location = location_utils.find_location_by_node_num(interface, local_node.nodeNum)
+        distance = location_utils.find_distance_between_nodes(interface, from_node_num, local_node.nodeNum)
+
+        # Prepare message
         if distance != "Unknown" and location != "Unknown":
-            distance = round(distance, 2)
-            send_message(interface, f"{from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong from {location}. Distance: {distance} miles", channel, to_id)
+            try:
+                distance = round(float(distance), 2)
+            except Exception:
+                pass
+            reply = f"{from_short_name} this is {local_short_name}, Pong from {location}. Distance: {distance} miles"
         else:
-            send_message(interface, f"{from_node['user']['shortName']} this is {local_node['user']['shortName']}, Pong", channel, to_id)
-        sitrep.log_message_sent("ping-pong")
-        '''
+            reply = f"{from_short_name} this is {local_short_name}, Pong"
+
+        # Send reply using MessageSender
+        message_sender = MessageSender()
+        # Use channel and to_id from packet if available, else defaults
+        channel = packet.get('channel', 0)
+        to_id = packet.get('from', None)
+        message_sender.send_message(interface, reply, channel, to_id)
