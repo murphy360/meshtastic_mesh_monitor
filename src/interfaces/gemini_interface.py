@@ -20,7 +20,8 @@ class GeminiInterface(BaseInterface):
         if not self.gemini_api_key:
             self.logger.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
-        
+
+        self.gemini_model = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
         self.location = location
         self.max_message_length = 200  # Maximum message length for transmission
         self.max_output_tokens = 70  # Maximum output tokens for responses
@@ -72,7 +73,7 @@ class GeminiInterface(BaseInterface):
         )
         
         return self.gemini_client.chats.create(
-            model='gemini-2.5-flash-lite-preview-06-17',
+            model=self.gemini_model,
             config=types.GenerateContentConfig(
                 system_instruction=public_instruction,
                 max_output_tokens=self.max_output_tokens
@@ -91,7 +92,7 @@ class GeminiInterface(BaseInterface):
         )
         
         return self.gemini_client.chats.create(
-            model='gemini-2.5-flash-lite-preview-06-17',
+            model=self.gemini_model,
             config=types.GenerateContentConfig(
                 system_instruction=admin_instruction,
                 max_output_tokens=self.max_output_tokens
@@ -112,7 +113,7 @@ class GeminiInterface(BaseInterface):
             )
             
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
-                model='gemini-2.5-flash-lite-preview-06-17',
+                model=self.gemini_model,
                 config=types.GenerateContentConfig(
                     system_instruction=private_instruction,
                     max_output_tokens=self.max_output_tokens
@@ -143,7 +144,7 @@ class GeminiInterface(BaseInterface):
 
         try:
             response = self.gemini_client.models.generate_content(
-                model="gemini-2.5-flash-lite-preview-06-17",
+                model=self.gemini_model,
                 contents=[f"Summarize this PDF File in {self.max_message_length} characters or less", uploaded_file]
             )
             self.logger.debug(f"Response: {response}")
@@ -195,7 +196,7 @@ class GeminiInterface(BaseInterface):
                 )
                 
                 response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash-lite-preview-06-17",
+                    model=self.gemini_model,
                     config=types.GenerateContentConfig(
                         system_instruction=generic_instruction,
                         max_output_tokens=self.max_output_tokens
