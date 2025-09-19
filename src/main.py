@@ -22,6 +22,7 @@ from interfaces.web_scraper_interface import WebScraperInterface
 from utils.logger import setup_logging, get_logger
 from handlers.text_handler import on_receive_text
 from handlers.position_handler import on_receive_position
+from handlers.data_handler import on_receive_data
 
 # Initialize unified logging system
 setup_logging()
@@ -185,6 +186,7 @@ def onNodeUpdate(node, interface):
     db_helper.add_or_update_node(node)
 
 def onReceiveText(packet, interface):
+    logger.debug(f"[FUNCTION] onReceiveText")
     # Pass all required dependencies to the handler
     on_receive_text(
         packet,
@@ -196,6 +198,8 @@ def onReceiveText(packet, interface):
     )
 
 def onReceivePosition(packet, interface):
+    logger.debug(f"[FUNCTION] onReceivePosition")
+    # Pass all required dependencies to the handler
     on_receive_position(
         packet,
         interface,
@@ -209,17 +213,7 @@ def onReceivePosition(packet, interface):
     )
 
 def onReceiveData(packet, interface):
-    logger.debug(f"[FUNCTION] onReceiveData")
-    from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node = lookup_node(interface, from_node_num)
-    localNode = interface.getNode('^local')
-
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-
-    logger.debug(f"[FUNCTION] onReceiveData from {node_short_name} - {from_node_num}")
+    on_receive_data(packet, interface)
 
 def onReceiveUser(packet, interface):
     from_node_num = packet['from']
