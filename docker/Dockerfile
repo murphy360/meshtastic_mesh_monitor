@@ -16,6 +16,9 @@ RUN pip3 install --no-cache-dir -r /app/requirements.txt
 # Copy the entire src directory structure to /app
 COPY src/ /app/
 
+# Explicitly copy src/config files to ensure they're there
+COPY src/config/ /app/config/
+
 # Copy configuration files to /app/config_files (separate from Python config module)  
 COPY config/ /app/config_files/
 
