@@ -10,7 +10,7 @@ class PingKeyword(KeywordHandler):
         """
         Return a human-readable description of the ping command.
         """
-        return "Responds with a pong message and location/distance information when a node sends 'ping'."
+        return "Responds with a pong and, if available, location/distance from sender"
     def handle(self, interface, packet):
         """
         Handle incoming 'ping' keyword messages.
