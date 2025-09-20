@@ -576,32 +576,8 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         sitrep.log_message_sent("sitrep-requested")
         return
     elif message == "get forecast" or message == "getforecast" or message == "forecast":
-        logger.info(f"Processing weather forecast request from {from_node['user']['shortName']} - {from_node['num']}")
-        try:
-            wx_lat, wx_lon = None, None
-            if 'position' in from_node and 'latitude' in from_node['position'] and 'longitude' in from_node['position']:
-                logger.info(f"Requesting node has position data: {from_node['position']}")
-                wx_lat = from_node['position']['latitude']
-                wx_lon = from_node['position']['longitude']
-            elif 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
-                logger.info(f"Requesting node does not have position data, using local node's position")
-                wx_lat = local_node['position']['latitude']
-                wx_lon = local_node['position']['longitude']
-            else:
-                logger.error("Requesting node nor Local node have position data, cannot get forecast")
-                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
-                admin_message = f"Weather forecast request from {from_node['user']['shortName']} - {from_node['num']} failed due to missing position data for both requesting and local nodes."
-                send_llm_message(interface, admin_message, admin_channel_number, "^all")
-                return
-            if wx_lat is not None and wx_lon is not None:
-                send_weather_forecast(interface, wx_lat, wx_lon, from_node['user']['shortName'], from_node['user']['longName'], channel)
-                sitrep.log_message_sent("weather-forecast-requested")
-            else:
-                logger.error("No valid coordinates found for weather forecast")
-                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
-        except Exception as e:
-            logger.error(f"Error getting weather forecast: {e}")
-            send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
+        from app.keywords.forecast import handle_forecast
+        handle_forecast(interface, message, channel, to_id, from_id, sitrep)
         return
     elif "set node of interest" in message or "setnoi" in message:
         logger.info("Setting node of interest")
@@ -702,48 +678,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         sitrep.send_report(interface, channel, to_id)
         sitrep.log_message_sent("sitrep-requested")
         return
-
-    elif message == "get forecast" or message == "getforecast" or message == "forecast":
-        logger.info(f"Processing weather forecast request from {from_node['user']['shortName']} - {from_node['num']}")
-        
-        try:
-            # Setup variables for location
-            wx_lat, wx_lon = None, None
-            
-            # First try to get the location of the requesting node
-            if 'position' in from_node and 'latitude' in from_node['position'] and 'longitude' in from_node['position']:
-                logger.info(f"Requesting node has position data: {from_node['position']}")
-                wx_lat = from_node['position']['latitude']
-                wx_lon = from_node['position']['longitude']
-            # If the requesting node does not have position data, try to use the local node's position
-            elif 'position' in local_node and 'latitude' in local_node['position'] and 'longitude' in local_node['position']:
-                logger.info(f"Requesting node does not have position data, using local node's position")
-                wx_lat = local_node['position']['latitude']
-                wx_lon = local_node['position']['longitude']
-            # If neither node has position data, we cannot get a forecast
-            else:
-                logger.error("Requesting node nor Local node have position data, cannot get forecast")
-                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
-                admin_message = f"Weather forecast request from {from_node['user']['shortName']} - {from_node['num']} failed due to missing position data for both requesting and local nodes."
-                send_llm_message(interface, admin_message, admin_channel_number, "^all")
-                return
-            
-            # If we have coordinates, get and send the forecast
-            if wx_lat is not None and wx_lon is not None:
-                send_weather_forecast(interface, wx_lat, wx_lon, from_node['user']['shortName'], from_node['user']['longName'], channel)
-                sitrep.log_message_sent("weather-forecast-requested")
-            else:
-                logger.error("No valid coordinates found for weather forecast")
-                send_llm_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
     
-        except Exception as e:
-            logger.error(f"Error getting weather forecast: {e}")
-            send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
-            return
-
-    # 'setnodeofinterest' and 'removenodeofinterest' are now handled by the modular keyword handler. Deprecated legacy block.
-    
-    # Request Telemetry from a node
     elif "request telemetry" in message or "requesttelemetry" in message:
         logger.info("Requesting telemetry")
         node_short_name = message.split(" ")[-1]
