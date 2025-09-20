@@ -1,5 +1,5 @@
 from utils.logger import get_logger
-from utils.node_lookup_utils import lookup_node
+from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 from core.database import SQLiteHelper
 

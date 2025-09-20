@@ -1,7 +1,7 @@
 from keywords.base import KeywordHandler
 from utils.node_info_utils import send_position_request
 from utils.message_sender import MessageSender
-from utils.node_lookup_utils import NodeLookupUtils
+from utils.node_info_utils import NodeLookupUtils
 
 class RequestpositionKeyword(KeywordHandler):
     def get_description(self):

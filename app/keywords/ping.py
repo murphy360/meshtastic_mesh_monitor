@@ -2,7 +2,7 @@
 from keywords.base import KeywordHandler
 from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
-from utils.node_lookup_utils import NodeLookupUtils
+from utils.node_info_utils import NodeLookupUtils
 from utils.logger import get_logger
 
 class Pingkeyword(KeywordHandler):
