@@ -30,6 +30,7 @@ from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
 from utils.node_info_utils import send_node_info, send_position_request
+from utils.message_sender import send_message
 
 # Initialize unified logging system
 setup_logging()
@@ -1009,50 +1010,6 @@ def send_llm_message(interface, message, channel, to_id):
             
     except Exception as e:
         logger.error(f"Error in send_llm_message: {e}")
-
-def send_message(interface, message, channel, to_id):
-    """
-    Send a message to a specified channel and node.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        message (str): The message to send.
-        channel (int): The channel to send the message to.
-        to_id (str): The ID of the recipient.
-    """
-    # Split every message into chunks of no more than 200 characters
-    if len(message) > 240:
-        message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
-        total_messages = len(message_chunks)
-        logger.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
-        current_chunk = 1
-        for chunk in message_chunks:
-            logger.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
-            chunk = f"({current_chunk}/{total_messages}) {chunk}"
-            try:
-                interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
-            except Exception as e:
-                logger.error(f"Error sending chunk: {e}")
-                return
-            current_chunk += 1
-    else:
-        logger.debug(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
-        
-        try:
-            sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
-            logger.debug(f"Sent message: {sent_message}")
-
-        except Exception as e:
-            if "Data payload too big" in str(e):
-                logger.error("Message too long to send. Please shorten the message.")
-                send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
-                return
-            logger.error(f"Error sending message: {e}")
-            return
-        node_name = to_id
-        if to_id != "^all":
-            node_name = lookup_short_name(interface, to_id)
-        logger.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
 
 def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
     """
