@@ -1,9 +1,10 @@
+from keywords.base import KeywordHandler
 from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 from core.database import SQLiteHelper
 
-class SetaircraftKeyword:
+class SetaircraftKeyword(KeywordHandler):
     def handle(self, interface, packet):
         db_helper = SQLiteHelper("/data/mesh_monitor.db")
         logger = get_logger(__name__)
