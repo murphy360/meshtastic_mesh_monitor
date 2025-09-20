@@ -546,7 +546,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
         logger.info(f"Node found: {node['user']['shortName']} - {node['num']}")
         short_name = node['user']['shortName']
         # Gemini interface response
-        response_text = gemini_interface.get_gemini_response(message, channel, short_name)
+        response_text = gemini_interface.generate_response(message, channel, short_name)
   
     logger.debug(f"Response: {response_text}")
     message_sender.send_message(interface, response_text, channel, from_id)   
