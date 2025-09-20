@@ -29,7 +29,7 @@ from handlers.routing_handler import on_receive_routing
 from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
-from utils.node_info_utils import send_node_info, send_position_request
+from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 
 
@@ -219,8 +219,7 @@ def onReceivePosition(packet, interface):
         db_helper,
         public_channel_number,
         admin_channel_number,
-        send_llm_message,
-        send_node_info
+        send_llm_message
     )
 
 def onReceiveData(packet, interface):
@@ -338,10 +337,10 @@ def onReceive(packet, interface):
         new_node = db_helper.is_new_node(node)
               
         if new_node:
-            send_node_info(interface)
+            message_sender.send_node_info(interface)
             log_message += f" - New Node Detected"
             private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping, forecast and any direct messages! Check out NE Ohio Meshtastic Discord at (https://discord.gg/F5WfsM8k). My developer is DPSA or DP00"
-            send_message(interface, private_message, public_channel_number, from_node_num)
+            message_sender.send_message(interface, private_message, public_channel_number, from_node_num)
             admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
             send_llm_message(interface, admin_message, admin_channel_number, "^all")
             logger.info(f"🆕 NEW NODE: {node_short_name} ({node_long_name}) - {from_node_num}")
@@ -478,17 +477,17 @@ def check_node_health(interface, node):
             if alert_key not in active_health_alerts:
                 active_health_alerts[alert_key] = datetime.now(timezone.utc)
                 logger.info(f"Critical Battery Alert: {node['user']['shortName']} - {battery_level}%")
-                send_message(interface, f"Critical Alert: {node['user']['shortName']} has a critical battery level ({battery_level}%)", admin_channel_number, "^all")
+                message_sender.send_message(interface, f"Critical Alert: {node['user']['shortName']} has a critical battery level ({battery_level}%)", admin_channel_number, "^all")
         elif battery_level < 10:
             if f"battery_{node['num']}_warning" not in active_health_alerts:
                 active_health_alerts[f"battery_{node['num']}_warning"] = datetime.now(timezone.utc)
                 logger.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
-                send_message(interface, f"Low Battery Warning: {node['user']['shortName']} has a low battery level ({battery_level}%)", admin_channel_number, "^all")
+                message_sender.send_message(interface, f"Low Battery Warning: {node['user']['shortName']} has a low battery level ({battery_level}%)", admin_channel_number, "^all")
         elif battery_level < 20:
             if f"battery_{node['num']}_notification" not in active_health_alerts:
                 active_health_alerts[f"battery_{node['num']}_notification"] = datetime.now(timezone.utc)
                 logger.info(f"Low Battery Notification: {node['user']['shortName']} - {battery_level}%")
-                send_message(interface, f"Notification: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")
+                message_sender.send_message(interface, f"Notification: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")
         elif battery_level > 50:
             logger.info(f"Battery level is returning to normal for node {node['user']['shortName']} - {battery_level}%")
             # Clear any active alerts for this node
@@ -499,7 +498,7 @@ def check_node_health(interface, node):
                     del active_health_alerts[key]
             if send_llm_callback:
                 logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
-                send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
+                message_sender.send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
     
 def lookup_short_name(interface, node_num):
     """
@@ -631,7 +630,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
     if node is None:
         response_text = "I'm sorry, I couldn't find your user information. I am an auto-responder and I can only respond to ping and direct messages."
         logger.warning(f"Node not found for from_id {from_id}, sending default response")
-        send_message(interface, response_text, channel, from_id)
+        message_sender.send_message(interface, response_text, channel, from_id)
         return
     
     if 'user' in node and 'shortName' in node['user']:
@@ -640,7 +639,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
         short_name = node['user']['shortName']
   
     logger.debug(f"Response: {response_text}")
-    send_message(interface, response_text, channel, from_id)
+    message_sender.send_message(interface, response_text, channel, from_id)
     
     
 def reply_to_message(interface, message, message_id, channel, to_id, from_id):
@@ -964,7 +963,7 @@ def send_llm_message_with_url(interface, message, channel, to_id, url):
         logger.error("No response generated by the AI model. Sending original message.")
         response_text = message + f"\n\nLink: {url}"
 
-    send_message(interface, response_text, channel, to_id)
+    message_sender.send_message(interface, response_text, channel, to_id)
 
 
 def send_llm_message(interface, message, channel, to_id):
@@ -1001,7 +1000,7 @@ def send_llm_message(interface, message, channel, to_id):
         else:
             logger.error("No response generated by the AI model. Sending original message.")
         
-        send_message(interface, message, channel, to_id)
+        message_sender.send_message(interface, message, channel, to_id)
             
     except Exception as e:
         logger.error(f"Error in send_llm_message: {e}")
@@ -1018,7 +1017,7 @@ def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
     """
     logger.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
 
-    send_message(interface, "👍", channel, to_id)
+    message_sender.send_message(interface, "👍", channel, to_id)
 
     '''
     try:
