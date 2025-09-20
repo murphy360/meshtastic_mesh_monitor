@@ -1,7 +1,7 @@
 from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 
-def on_receive_telemetry(packet, interface, lookup_node):
+def on_receive_telemetry(packet, interface):
     """
     Handler for telemetry packets. Extracts node info and logs the event.
     Args:
