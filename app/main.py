@@ -1,3 +1,4 @@
+from utils.node_info_utils import lookup_node, lookup_nodes
 import os
 import time
 import threading
@@ -28,7 +29,6 @@ from handlers.routing_handler import on_receive_routing
 from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
-from utils.node_lookup_utils import lookup_node, lookup_nodes
 from utils.node_info_utils import send_node_info, send_position_request
 
 # Initialize unified logging system
