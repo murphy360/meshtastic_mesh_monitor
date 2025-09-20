@@ -28,7 +28,8 @@ from handlers.routing_handler import on_receive_routing
 from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
-from utils.node_info_utils import send_node_info, send_position_request, lookup_node
+from utils.node_lookup_utils import lookup_node, lookup_nodes
+from utils.node_info_utils import send_node_info, send_position_request
 
 # Initialize unified logging system
 setup_logging()
@@ -503,60 +504,7 @@ def check_node_health(interface, node):
             if send_llm_callback:
                 logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
                 send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
-
-def lookup_nodes(interface, node_generic_identifier):
-    """
-    Lookup nodes by their short name, long name, number, or user ID.
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_generic_identifier (str|int): The short name, long name, number, or user ID of the node.
-    Returns:
-        list: A list of nodes that match the identifier.
-    """
-
-    nodes = []
     
-    # Handle both string and integer identifiers
-    if isinstance(node_generic_identifier, int):
-        # For integer identifiers, compare directly with node numbers
-        for n in interface.nodes.values():
-            node_num = n["num"]
-            if node_generic_identifier == node_num:
-                logger.debug(f"[FUNCTION] lookup_nodes: Node found by number: {n['user']['shortName']} - {n['num']}")
-                nodes.append(n)
-    else:
-        # For string identifiers, convert to lowercase and compare with names/IDs
-        node_generic_identifier_lower = str(node_generic_identifier).lower()
-        for n in interface.nodes.values():
-            node_short_name = n["user"]["shortName"].lower()
-            node_long_name = n["user"]["longName"].lower()
-            node_num = n["num"]
-            node_user_id = n["user"]["id"]
-            
-            if node_generic_identifier_lower in [node_short_name, node_long_name, str(node_num), node_user_id.lower()]:
-                logger.debug(f"[FUNCTION] lookup_nodes: Node found by name/ID: {n['user']['shortName']} - {n['num']}")
-                nodes.append(n)
-
-    return nodes
-    
-def lookup_node(interface, node_generic_identifier):
-    """
-    Lookup a node by its short name, long name, number, or user ID.
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_generic_identifier (str|int): The short name, long name, number, or user ID of the node.       
-    Returns:
-        dict: The first matching node, or None if no nodes match.
-    """
-
-    nodes = lookup_nodes(interface, node_generic_identifier)
-
-    if len(nodes) > 0:
-        logger.debug(f"Found {len(nodes)} nodes matching {node_generic_identifier}")
-        return nodes[0]
-    else:
-        return None
-
 def lookup_short_name(interface, node_num):
     """
     Lookup the short name of a node by its number.
@@ -590,42 +538,7 @@ def lookup_long_name(interface, node_num):
             return n["user"]["longName"]
     return "Unknown"
 
-def find_distance_between_nodes(interface, node1, node2):
-    """
-    Find the distance between two nodes.
 
-    Args:
-        interface: The interface to interact with the mesh network.
-        node1 (int): The number of the first node.
-        node2 (int): The number of the second node.
-
-    Returns:
-        float: The distance between the nodes in miles, or "Unknown" if the distance cannot be determined.
-    """
-    logger.info(f"Finding distance between {node1} and {node2}")
-    node1Lat, node1Lon, node2Lat, node2Lon = None, None, None, None
-    for n in interface.nodes.values():
-        try:
-            if n["num"] == node1:
-                if 'position' not in n:
-                    return "Unknown"
-                if 'latitude' not in n["position"] or 'longitude' not in n["position"]:
-                    return "Unknown"
-                node1Lat = n["position"]["latitude"]
-                node1Lon = n["position"]["longitude"]
-            if n["num"] == node2:
-                if 'position' not in n:
-                    return "Unknown"
-                if 'latitude' not in n["position"] or 'longitude' not in n["position"]:
-                    return "Unknown"
-                node2Lat = n["position"]["latitude"]
-                node2Lon = n["position"]["longitude"]
-        except Exception as e:
-            logger.error(f"Error finding distance between nodes: {e}")
-            return "Unknown"
-    if node1Lat and node1Lon and node2Lat and node2Lon:
-        return geopy.distance.distance((node1Lat, node1Lon), (node2Lat, node2Lon)).miles
-    return "Unknown"
 
 def time_since_last_heard(last_heard_time):
     """
@@ -730,11 +643,6 @@ def reply_to_direct_message(interface, message, channel, from_id):
         logger.info(f"Node found: {node['user']['shortName']} - {node['num']}")
         short_name = node['user']['shortName']
   
-
-    response_text = gemini_interface.generate_response(message, channel, short_name)
-    if not response_text:
-        response_text = "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while! Try sending ping on LongFast."
-    
     logger.debug(f"Response: {response_text}")
     send_message(interface, response_text, channel, from_id)
     
@@ -753,7 +661,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
     message = message.lower()
     logger.info(f"Replying to message: {message}")
     from_node = lookup_node(interface, from_id)
-    local_node = lookup_node(interface, interface.getNode('^local').nodeNum)
+    local_node = interface.getNode('^local')
 
     # Dynamic keyword dispatch using KeywordHandler base class
  
@@ -929,61 +837,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
             send_llm_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
             return
 
-    elif "set node of interest" in message or "setnoi" in message:
-        logger.info("Setting node of interest")
-        node_short_name = message.split(" ")[-1].lower()
-        send_llm_message(interface, f"Setting {node_short_name} as a node of interest", channel, to_id)
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_node_of_interest(node, True)
-            send_llm_message(interface, f"{node_short_name} is now a node of interest", channel, to_id)
-            sitrep.log_message_sent("node-of-interest-set")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found. Please use the short name", channel, to_id)
-        return
-
-    elif "remove node of interest" in message or "removenoi" in message:
-        logger.info("Removing node of interest")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_node_of_interest(node, False)
-            send_llm_message(interface, f"{node_short_name} is no longer a node of interest", channel, to_id)
-            sitrep.log_message_sent("node-of-interest-unset")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
-        return
-    
-    elif "remove node" in message or "removenode" in message:
-        logger.info("Removing node")
-        
-        node_short_name = message.split(" ")[-1]
-        nodes = lookup_nodes(interface, node_short_name)
-        log_message = ""
-        if len(nodes) > 0:
-            for node in nodes:
-                logger.info(f"Removing node {node['user']['shortName']} - {node['num']}")
-                log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
-                db_helper.remove_node(node)
-                if node['num'] in interface.nodesByNum:
-                    logger.info(f"Removing node {node['user']['shortName']} - {node['num']} from interface")
-                    local_node = interface.getNode('^local')
-                    local_node.removeNode(node['num'])
-                try:
-                    deleted_node = lookup_node(interface, node_short_name)
-                    if deleted_node:
-                        logger.info(f"Node {node_short_name} still exists after removal.")
-                    else:
-                        logger.info(f"Node {node_short_name} successfully removed")
-                except Exception as e:
-                    logger.error(f"Error looking up node {node_short_name} after removal: {e}")
-            
-            send_llm_message(interface, log_message, channel, to_id)
-            sitrep.log_message_sent("node-removed")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found. Unable to remove from my database.", channel, to_id)
-
-        return
+    # 'setnodeofinterest' and 'removenodeofinterest' are now handled by the modular keyword handler. Deprecated legacy block.
     
     # Request Telemetry from a node
     elif "request telemetry" in message or "requesttelemetry" in message:
@@ -1019,29 +873,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
             send_trace_route(interface, node['num'], channel, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
-        return
-
-def send_trace_route_proto(interface, node_num, channel, hop_limit=1):
-    """
-    Send a traceroute request to a specified node on public channel. Sends response to the channel that the request was received on.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The number of the node to trace.
-        channel (int): The channel to send responses to. 
-        hop_limit (int): The maximum number of hops to trace.
-    """
-    logger.info(f"Sending traceroute request to node {node_num} on channel {channel} with hop limit {hop_limit}")
-    r = mesh_pb2.RouteDiscovery()
-    interface.sendData(
-        r,
-        destinationId=node_num,
-        portNum=meshtastic.portnums_pb2.TRACEROUTE_APP,
-        wantResponse=False,
-        hop_limit=hop_limit,
-        channelIndex=channel
-    )
-    
+        return    
 
 def send_trace_route(interface, node_num, channel, hop_limit=1):
     """
