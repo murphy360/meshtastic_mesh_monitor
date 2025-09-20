@@ -2,8 +2,8 @@
 from keywords.base import KeywordHandler
 from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
-from utils.node_info_utils import NodeLookupUtils
 from utils.logger import get_logger
+from utils.node_info_utils import lookup_node
 
 class Pingkeyword(KeywordHandler):
     def get_description(self):
@@ -31,7 +31,7 @@ class Pingkeyword(KeywordHandler):
         # Extract sender and local node info
         from_node_num = packet['from']
         local_node = interface.getNode('^local')
-        from_node = NodeLookupUtils.lookup_node(interface, from_node_num)
+        from_node = lookup_node(interface, from_node_num)
         if not from_node:
             logger.warning(f"PingKeyword: Could not find from_node for num {from_node_num}")
             return

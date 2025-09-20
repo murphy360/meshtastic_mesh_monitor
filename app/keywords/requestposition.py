@@ -1,7 +1,7 @@
 from keywords.base import KeywordHandler
 from utils.node_info_utils import send_position_request
 from utils.message_sender import MessageSender
-from utils.node_info_utils import NodeLookupUtils
+from utils.node_info_utils import lookup_node
 
 class RequestpositionKeyword(KeywordHandler):
     def get_description(self):
@@ -30,7 +30,7 @@ class RequestpositionKeyword(KeywordHandler):
             reply = "Usage: requestposition <node short name>"
         else:
             node_short_name = args[1]
-            node = NodeLookupUtils.lookup_node(interface, node_short_name)
+            node = lookup_node(interface, node_short_name)
             if node:
                 send_position_request(interface, node['num'], channel)
                 reply = f"Requested position from {node_short_name}"
