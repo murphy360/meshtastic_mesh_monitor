@@ -206,7 +206,6 @@ def onReceiveText(packet, interface):
     on_receive_text(
         packet,
         interface,
-        lookup_node,
         public_channel_number,
         reply_to_direct_message,
         reply_to_message
