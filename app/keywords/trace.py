@@ -3,7 +3,7 @@ from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 from utils.logger import get_logger
 
-class TraceNodeKeyword(KeywordHandler):
+class TraceKeyword(KeywordHandler):
     def get_description(self):
         """
         Return a human-readable description of the trace node command.
