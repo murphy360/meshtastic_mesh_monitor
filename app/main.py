@@ -535,7 +535,6 @@ def reply_to_direct_message(interface, message, channel, from_id):
     logger.info(f"Replying to direct message: {message}")
     node = lookup_node(interface, from_id)
     response_text = ""
-    short_name = from_id
     if node is None:
         response_text = "I'm sorry, I couldn't find your user information. I am an auto-responder and I can only respond to ping and direct messages."
         logger.warning(f"Node not found for from_id {from_id}, sending default response")
@@ -546,6 +545,8 @@ def reply_to_direct_message(interface, message, channel, from_id):
         # If the node has a user field, use the short name from there
         logger.info(f"Node found: {node['user']['shortName']} - {node['num']}")
         short_name = node['user']['shortName']
+        # Gemini interface response
+        response_text = gemini_interface.get_gemini_response(message, channel, short_name)
   
     logger.debug(f"Response: {response_text}")
     message_sender.send_message(interface, response_text, channel, from_id)   
