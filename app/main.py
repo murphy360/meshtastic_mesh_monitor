@@ -602,33 +602,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         else:
             send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
         return
-    elif "remove node" in message or "removenode" in message:
-        logger.info("Removing node")
-        node_short_name = message.split(" ")[-1]
-        nodes = lookup_nodes(interface, node_short_name)
-        log_message = ""
-        if len(nodes) > 0:
-            for node in nodes:
-                logger.info(f"Removing node {node['user']['shortName']} - {node['num']}")
-                log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
-                db_helper.remove_node(node)
-                if node['num'] in interface.nodesByNum:
-                    logger.info(f"Removing node {node['user']['shortName']} - {node['num']} from interface")
-                    local_node = interface.getNode('^local')
-                    local_node.removeNode(node['num'])
-                try:
-                    deleted_node = lookup_node(interface, node_short_name)
-                    if deleted_node:
-                        logger.info(f"Node {node_short_name} still exists after removal.")
-                    else:
-                        logger.info(f"Node {node_short_name} successfully removed")
-                except Exception as e:
-                    logger.error(f"Error looking up node {node_short_name} after removal: {e}")
-            send_llm_message(interface, log_message, channel, to_id)
-            sitrep.log_message_sent("node-removed")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found. Unable to remove from my database.", channel, to_id)
-        return
+    # ...existing code...
     elif "request telemetry" in message or "requesttelemetry" in message:
         logger.info("Requesting telemetry")
         node_short_name = message.split(" ")[-1]

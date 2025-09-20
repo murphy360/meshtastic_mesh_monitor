@@ -18,9 +18,15 @@ class ForecastKeyword(KeywordHandler):
         from_node_num = packet['from']
         from_node = lookup_node(interface, from_node_num)
         local_node = interface.getNode('^local')
-        sitrep = packet.get('sitrep')
-        channel = packet.get('channel', 0)
-        to_id = packet.get('to', '^all')
+        #sitrep = packet.get('sitrep')
+        channel = packet['channel'] if 'channel' in packet else 0
+
+        # Determine to_id based on whether the message is direct or channel
+        if 'to' in packet and packet['to'] == local_node.nodeNum:
+            to_id = packet['from']
+        else:
+            to_id = "^all"
+            
         message_sender = MessageSender()
         weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
 
@@ -48,8 +54,8 @@ class ForecastKeyword(KeywordHandler):
                     return
                 message_text = f"Weather forecast for {from_node['user']['shortName']} ({from_node['user']['longName']}) in :\n\n{forecast_text}"
                 message_sender.send_message(interface, message_text, channel, to_id)
-                if sitrep:
-                    sitrep.log_message_sent("weather-forecast-requested")
+                #if sitrep:
+                    #sitrep.log_message_sent("weather-forecast-requested")
         except Exception as e:
             logger.error(f"Error getting weather forecast: {e}")
             message_sender.send_message(interface, f"I encountered an error getting the weather forecast. Please try again later.", channel, to_id)
