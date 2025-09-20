@@ -8,7 +8,7 @@ class TraceNodeKeyword(KeywordHandler):
         """
         Return a human-readable description of the trace node command.
         """
-        return "Sends a traceroute request to a node by short name."
+        return "Sends a traceroute request to a node by short name. Usage: trace <shortname>"
 
     def handle(self, interface, packet):
         logger = get_logger(__name__)
