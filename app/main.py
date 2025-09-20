@@ -1,4 +1,5 @@
 from utils.node_info_utils import lookup_node, lookup_nodes
+from utils.message_sender import send_position_request
 import os
 import time
 import threading
@@ -214,8 +215,6 @@ def onReceivePosition(packet, interface):
     on_receive_position(
         packet,
         interface,
-        lookup_node,
-        find_location_by_coordinates,
         db_helper,
         public_channel_number,
         admin_channel_number,
