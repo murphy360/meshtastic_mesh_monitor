@@ -19,6 +19,9 @@ from interfaces.weather_interface import WeatherGovInterface
 from interfaces.rss_interface import RSSInterface
 from interfaces.web_scraper_interface import WebScraperInterface
 from utils.logger import setup_logging, get_logger
+from utils.node_info_utils import lookup_node
+from utils.message_sender import MessageSender
+from utils.location_utils import LocationUtils
 from handlers.text_handler import on_receive_text
 from handlers.position_handler import on_receive_position
 from handlers.data_handler import on_receive_data
@@ -30,9 +33,6 @@ from handlers.routing_handler import on_receive_routing
 from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
-from utils.node_info_utils import lookup_node
-from utils.message_sender import MessageSender
-
 
 # Initialize unified logging system
 setup_logging()
@@ -76,6 +76,9 @@ message_sender = MessageSender()
 # Initialize Gemini interface
 gemini_interface = GeminiInterface()
 
+# Initialize location utils
+location_utils = LocationUtils()
+
 # Initialize weather interface
 weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
 
@@ -107,9 +110,9 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     global localNode, location, short_name, long_name, sitrep, initial_connect
     localNode = interface.getNode('^local')
     node_info = interface.getMyNodeInfo()
-    short_name = lookup_short_name(interface, localNode.nodeNum)
-    long_name = lookup_long_name(interface, localNode.nodeNum)
-    location = find_location_by_node_num(interface, localNode.nodeNum)
+    short_name = node_info['user']['shortName']
+    long_name = node_info['user']['longName']
+    location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
     gemini_interface.update_location(location)
     logger.info(f"\n\n \
                 **************************************************************\n \
@@ -227,11 +230,11 @@ def onReceiveData(packet, interface):
 
 def onReceiveUser(packet, interface):
     
-    on_receive_user(packet, interface, lookup_node)
+    on_receive_user(packet, interface)
 
 def onReceiveTelemetry(packet, interface):
 
-    on_receive_telemetry(packet, interface, lookup_node)
+    on_receive_telemetry(packet, interface)
 
 def onReceiveNeighborInfo(packet, interface):
     
@@ -302,9 +305,11 @@ def onReceive(packet, interface):
     heartbeat_counter = 0
     #logger.debug(f"Received packet: {packet}")
     from_node_num = packet['from']
-    node_short_name = lookup_short_name(interface, from_node_num)
-    node_long_name = lookup_long_name(interface, from_node_num)
+
     node = lookup_node(interface, from_node_num)
+    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    node_long_name = node['user']['longName'] if node and 'user' in node and 'longName' in node['user'] else 'Unknown'
+    
     if node is None:
         logger.warning(f"⚠️ Unknown node {from_node_num}, skipping packet processing")
         logger.debug(packet)
@@ -499,41 +504,6 @@ def check_node_health(interface, node):
                 logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
                 message_sender.send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
     
-def lookup_short_name(interface, node_num):
-    """
-    Lookup the short name of a node by its number.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The node number.
-
-    Returns:
-        str: The short name of the node.
-    """
-    #logger.info(f"Looking up short name for node number {node_num}")
-    for n in interface.nodes.values():
-        if n["num"] == node_num:
-            return n["user"]["shortName"]
-    return "Unknown"
-
-def lookup_long_name(interface, node_num):
-    """
-    Lookup the long name of a node by its number.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The node number.
-
-    Returns:
-        str: The long name of the node.
-    """
-    for n in interface.nodes.values():
-        if n["num"] == node_num:
-            return n["user"]["longName"]
-    return "Unknown"
-
-
-
 def time_since_last_heard(last_heard_time):
     """
     Calculate the time since a node was last heard.
@@ -562,65 +532,6 @@ def time_since_last_heard(last_heard_time):
     else: # More than a year, return years
         return f"{int(seconds // 31536000)}y"
 
-def find_location_by_coordinates(latitude, longitude):
-    logger.debug("Finding location by coordinates")
-    """
-    Find the location by latitude and longitude coordinates.
-
-    Args:
-        latitude (float): The latitude of the location.
-        longitude (float): The longitude of the location.
-
-    Returns:
-        str: The location name, or "Unknown" if the location cannot be determined.
-    """
-    try:
-        geolocator = geopy.Nominatim(user_agent="mesh-monitor", timeout=10)
-        location = geolocator.reverse((latitude, longitude))
-        if location and 'address' in location.raw:
-            address = location.raw['address']
-            for key in ['city', 'town', 'township', 'municipality', 'county']:
-                if key in address:
-                    return address[key]
-    except Exception as e:
-        logger.error(f"Error with geolookup: {e}")
-        return "Unknown"
-    
-    # If we can't find a location, return "Unknown"
-    return "Unknown"
-
-def find_location_by_node_num(interface, node_num):
-    """
-    Find the location of the local node.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The number of the local node.
-
-    Returns:
-        str: The location of the local node, or "Unknown" if the location cannot be determined.
-    """
-    logger.info(f"Finding location for node number {node_num}")
-    nodeLat, nodeLon = None, None
-    for node in interface.nodes.values():
-        if node["num"] == node_num:
-            if 'position' in node:
-                if 'latitude' in node['position'] and 'longitude' in node['position']:
-                    nodeLat = node["position"]["latitude"]
-                    nodeLon = node["position"]["longitude"]
-                else:
-                    return "Unknown"
-            break
-        else:
-            logger.info(f"Node {node_num} not found in interface nodes for geolookup")
-            return "Unknown"
-    if nodeLat is None or nodeLon is None:
-        logger.info(f"Node {node_num} does not have position data for geolookup")
-        return "Unknown"
-    else:
-        logger.info(f"Node {node_num} position for geolookup: {nodeLat}, {nodeLon}")   
-        return find_location_by_coordinates(nodeLat, nodeLon)
-
 def reply_to_direct_message(interface, message, channel, from_id):
     logger.info(f"Replying to direct message: {message}")
     node = lookup_node(interface, from_id)
@@ -638,8 +549,7 @@ def reply_to_direct_message(interface, message, channel, from_id):
         short_name = node['user']['shortName']
   
     logger.debug(f"Response: {response_text}")
-    message_sender.send_message(interface, response_text, channel, from_id)
-    
+    message_sender.send_message(interface, response_text, channel, from_id)   
     
 def reply_to_message(interface, message, message_id, channel, to_id, from_id):
     """
@@ -868,44 +778,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return    
-
-def send_trace_route(interface, node_num, channel, hop_limit=1):
-    """
-    Send a traceroute request to a specified node on public channel. Sends response to the channel that the request was received on.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The number of the node to trace.
-        channel (int): The channel to send responses to. 
-    """
-    global last_trace_sent_time
-    short_name = lookup_short_name(interface, node_num)
-    logger.info(f"Sending traceroute request to node {node_num} - {short_name} on channel {channel} with hop limit {hop_limit}")
-    try:
-        now = datetime.now(timezone.utc)
-        time_since_last_trace = now - last_trace_sent_time
-        if time_since_last_trace < timedelta(seconds=30):
-            logger.info(f"Traceroute request to node {node_num} skipped due to rate limiting (30 Seconds). Last trace sent {time_since_last_trace} ago.")
-            response_text = f"Traceroute request to node {node_num} skipped due to rate limiting (30 Seconds). Last trace sent {time_since_last_trace} ago."
-            send_llm_message(interface, response_text, channel, "^all")
-        else:
-            last_trace_sent_time = now  # Update last trace sent time
-            logger.info(f"Sending traceroute request to node {node_num} / {short_name} on channel {channel} with hop limit {hop_limit} and updating last trace sent time: {last_trace_sent_time}")
-            response_text = f"DPMM is sending a traceroute request to {node_num} / {short_name} with hop limit {hop_limit}. This will take a few seconds to complete or may time out. Please be patient."
-            send_llm_message(interface, response_text, channel, "^all")
-            interface.sendTraceRoute(node_num, hop_limit, public_channel_number)
-            logger.info(f"Traceroute completed {node_num} on channel {channel} with hop limit {hop_limit}")
-            
-    except Exception as e:
-        logger.error(f"Error sending traceroute request: {e}")
-        if "Timed out waiting for traceroute" in str(e):
-            response_text = f"Traceroute request to node {node_num} timed out"
-            send_llm_message(interface, response_text, channel, "^all")
-        else: 
-            admin_message = f"Error sending traceroute request to node {node_num} - {short_name}: {e}"
-            send_llm_message(interface, admin_channel_number, "^all")
-        
-    logger.info(f"leaving send_trace_route")
 
 def send_llm_callback(message, channel, to_id, file_path=None, url=None):
     """
