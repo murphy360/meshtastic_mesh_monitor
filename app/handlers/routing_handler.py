@@ -1,5 +1,6 @@
 from utils.logger import get_logger
 from datetime import datetime, timezone
+from utils.message_sender import MessageSender
 
 def on_receive_routing(packet, interface, lookup_node, send_message, admin_channel_number):
     """
@@ -7,14 +8,13 @@ def on_receive_routing(packet, interface, lookup_node, send_message, admin_chann
     Args:
         packet (dict): The received packet data.
         interface: The interface object representing the connection.
-        lookup_node (function): Function to lookup node object.
-        send_message (function): Function to send messages.
         admin_channel_number (int): Admin channel number.
     Safety:
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.
     """
     logger = get_logger(__name__)
+    message_sender = MessageSender()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
@@ -29,5 +29,5 @@ def on_receive_routing(packet, interface, lookup_node, send_message, admin_chann
     now = datetime.now(timezone.utc)
     now_string = now.strftime("%Y-%m-%d %H:%M:%S")
     admin_message = f"Routing Packet received from {node_short_name} at {now_string}"
-    send_message(interface, admin_message, admin_channel_number, "^all")
+    message_sender.send_message(interface, admin_message, admin_channel_number, "^all")
     return

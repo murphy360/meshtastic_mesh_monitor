@@ -30,7 +30,8 @@ from handlers.traceroute_handler import on_receive_traceroute
 from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
 from utils.node_info_utils import send_node_info, send_position_request
-from utils.message_sender import send_message
+from utils.message_sender import MessageSender
+
 
 # Initialize unified logging system
 setup_logging()
@@ -67,6 +68,9 @@ serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
 log_filename = f"/data/mesh_monitor_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
+
+# Message Sender
+message_sender = MessageSender()
 
 # Initialize Gemini interface
 gemini_interface = GeminiInterface()
@@ -236,8 +240,6 @@ def onReceiveNeighborInfo(packet, interface):
     on_receive_neighbor_info(
         packet,
         interface,
-        lookup_node,
-        send_message,
         admin_channel_number
     )
 
@@ -246,10 +248,8 @@ def onReceiveTraceRoute(packet, interface):
     on_receive_traceroute(
         packet,
         interface,
-        lookup_node,
         db_helper,
         sitrep,
-        send_message,
         send_llm_message,
         public_channel_number,
         admin_channel_number,
@@ -261,7 +261,6 @@ def onReceiveWaypoint(packet, interface):
     on_receive_waypoint(
         packet,
         interface,
-        lookup_node,
         send_llm_message,
         admin_channel_number
     )
@@ -269,16 +268,13 @@ def onReceiveWaypoint(packet, interface):
 def onReceiveNodeInfo(packet, interface):
     on_receive_node_info(
         packet,
-        interface,
-        lookup_node
+        interface
     )
 
 def onReceiveRouting(packet, interface):
     on_receive_routing(
         packet,
         interface,
-        lookup_node,
-        send_message,
         admin_channel_number
     )
 
@@ -286,8 +282,7 @@ def onReceiveRangeTest(packet, interface):
 
     on_receive_range_test(
         packet,
-        interface,
-        lookup_node
+        interface
     )
 
 def onReceive(packet, interface):

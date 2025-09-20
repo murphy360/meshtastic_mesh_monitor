@@ -1,8 +1,12 @@
 from utils.logger import get_logger
+from utils.message_sender import MessageSender
+from utils.node_info_utils import lookup_node
+
+message_sender = MessageSender()
 
 logger = get_logger(__name__)
 
-def on_receive_neighbor_info(packet, interface, lookup_node, send_message, admin_channel_number):
+def on_receive_neighbor_info(packet, interface, admin_channel_number):
     """
     Handler for neighbor info packets. Extracts node info and logs the event.
     Args:
@@ -31,5 +35,5 @@ def on_receive_neighbor_info(packet, interface, lookup_node, send_message, admin
     logger.warning(f"🔍 NEIGHBOR INFO received from {node_short_name} - {from_node_num}\n\n {neighbors}")
     # Alert admin if a node is reporting neighbors
     admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
-    send_message(interface, admin_message, admin_channel_number, "^all")
+    message_sender.send_message(interface, admin_message, admin_channel_number, "^all")
     return

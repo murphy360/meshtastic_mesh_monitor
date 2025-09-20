@@ -1,9 +1,11 @@
 from utils.logger import get_logger
 from datetime import datetime, timezone
+from utils.node_info_utils import lookup_node
+from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
-def on_receive_traceroute(packet, interface, lookup_node, db_helper, sitrep, send_message, send_llm_message, public_channel_number, admin_channel_number, last_trace_time):
+def on_receive_traceroute(packet, interface, db_helper, sitrep, send_llm_message, public_channel_number, admin_channel_number, last_trace_time):
     """
     Handler for traceroute packets. Extracts node info, processes trace data, and logs the event.
     Args:
@@ -21,7 +23,7 @@ def on_receive_traceroute(packet, interface, lookup_node, db_helper, sitrep, sen
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.
     """
-
+    message_sender = MessageSender()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
@@ -63,7 +65,7 @@ def on_receive_traceroute(packet, interface, lookup_node, db_helper, sitrep, sen
         if packet['to'] == localNode.nodeNum:
             logger.warning(f"🔍 TRACEROUTE received from {node_short_name} - responding")
             admin_message = f"Traceroute received from {node_short_name}"
-            send_message(interface, admin_message, admin_channel_number, "^all")
+            message_sender.send_message(interface, admin_message, admin_channel_number, "^all")
             reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
             send_llm_message(interface, reply_message, public_channel_number, from_node_num)
             db_helper.set_node_of_interest(node, True)
@@ -114,5 +116,5 @@ def on_receive_traceroute(packet, interface, lookup_node, db_helper, sitrep, sen
     )
     db_helper.update_node_connections(route_to, route_back, snr_towards, snr_back)
     logger.info(f"🗺️ TRACEROUTE: {message_string}")
-    send_message(interface, message_string, admin_channel_number, "^all")
+    message_sender.send_message(interface, message_string, admin_channel_number, "^all")
     return

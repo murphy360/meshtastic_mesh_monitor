@@ -1,6 +1,7 @@
 from utils.logger import get_logger
+from utils.node_info_utils import lookup_node
 
-def on_receive_range_test(packet, interface, lookup_node):
+def on_receive_range_test(packet, interface):
     """
     Handler for range test packets. Extracts node info and logs the event.
     Args:

@@ -1,7 +1,7 @@
 from utils.logger import get_logger
-from datetime import datetime, timezone
+from utils.node_info_utils import lookup_node
 
-def on_receive_node_info(packet, interface, lookup_node):
+def on_receive_node_info(packet, interface):
     """
     Handler for node info packets. Extracts node info and logs the event.
     Args:

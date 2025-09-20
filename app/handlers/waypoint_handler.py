@@ -1,9 +1,11 @@
+
 from utils.logger import get_logger
 from datetime import datetime, timezone
+from utils.node_info_utils import lookup_node
 
 logger = get_logger(__name__)
 
-def on_receive_waypoint(packet, interface, lookup_node, send_llm_message, admin_channel_number):
+def on_receive_waypoint(packet, interface, send_llm_message, admin_channel_number):
     """
     Handler for waypoint packets. Extracts node info and logs the event.
     Args:

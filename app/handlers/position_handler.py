@@ -1,8 +1,12 @@
 from utils.logger import get_logger
+from utils.node_info_utils import lookup_node
+from utils.location_utils import find_location_by_coordinates
+from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
-def on_receive_position(packet, interface, lookup_node, find_location_by_coordinates, db_helper, public_channel_number, admin_channel_number, send_llm_message, send_node_info):
+def on_receive_position(packet, interface, db_helper, public_channel_number, admin_channel_number, send_llm_message):
+    message_sender = MessageSender()
     localNode = interface.getNode('^local')
     from_node_num = packet['from']
     altitude = 0
@@ -108,7 +112,7 @@ def on_receive_position(packet, interface, lookup_node, find_location_by_coordin
         # If the node is not fast moving and not high altitude, check if it's marked as aircraft
         if db_helper.is_aircraft(node):
             logger.warning(f"🛩️ AIRCRAFT UNMARKED: {node_short_name} no longer meets aircraft criteria")
-            send_node_info(interface)
+            message_sender.send_node_info(interface)
             db_helper.set_aircraft(node, False)
             log_message += " - Aircraft Unmarked"
             admin_message += " - Aircraft Unmarked"

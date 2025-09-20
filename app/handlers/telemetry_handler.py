@@ -1,4 +1,5 @@
 from utils.logger import get_logger
+from utils.node_info_utils import lookup_node
 
 def on_receive_telemetry(packet, interface, lookup_node):
     """
@@ -6,7 +7,6 @@ def on_receive_telemetry(packet, interface, lookup_node):
     Args:
         packet (dict): The received packet data.
         interface: The interface object representing the connection.
-        lookup_node (function): Function to lookup node object.
     Safety:
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.

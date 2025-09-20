@@ -1,16 +1,16 @@
 import importlib
 import os
 from utils.logger import get_logger
+from utils.node_info_utils import lookup_node
 
 logger = get_logger(__name__)
 
-def on_receive_text(packet, interface, lookup_node, public_channel_number, reply_to_direct_message, reply_to_message):
+def on_receive_text(packet, interface, public_channel_number, reply_to_direct_message, reply_to_message):
     """
     Handler for text packets. Extracts node info and logs the event.
     Args:
         packet (dict): The received packet data.
         interface: The interface object representing the connection.
-        lookup_node (function): Function to lookup node object.
         public_channel_number (int): Public channel number.
         reply_to_direct_message (function): Function to reply to direct messages.
         reply_to_message (function): Function to reply to channel/broadcast messages.
