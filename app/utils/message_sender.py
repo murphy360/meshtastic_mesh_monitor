@@ -118,9 +118,8 @@ class MessageSender:
         try:
             interface.sendTraceRoute(
                 node_num,
-                hop_limit=hop_limit,
-                wantResponse=False,
-                channel=channel
+                hopLimit=hop_limit,
+                channelIndex=channel
             )
             logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
         except Exception as e:
