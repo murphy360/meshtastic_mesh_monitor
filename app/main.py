@@ -1,5 +1,4 @@
 from utils.node_info_utils import lookup_node, lookup_nodes
-from utils.message_sender import send_position_request
 import os
 import time
 import threading
@@ -619,21 +618,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send telemetry request.", channel, to_id)
         return
-    elif "trace node" in message or "tracenode" in message:
-        logger.info("Tracing node")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            sitrep.log_message_sent("node-traced")
-            hop_limit = 2
-            if "hopsAway" in node:
-                hop_limit = int(node["hopsAway"]) + 1
-            if hop_limit < 1:
-                hop_limit = 1
-            send_trace_route(interface, node['num'], channel, hop_limit)
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
-        return
     # 'setaircraft' and 'removeaircraft' are now handled by the modular keyword handler. Deprecated legacy block.
     # 'sendnodeinfo' and 'send node info' are now handled by the modular keyword handler. Deprecated legacy block.
     elif "send position" in message or "sendposition" in message:
@@ -641,7 +625,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         node_short_name = message.split(" ")[-1]
         node = lookup_node(interface, node_short_name)
         if node:
-            send_position_request(interface, node['num'], public_channel_number)
+            message_sender.send_position_request(interface, node['num'], public_channel_number)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
         return
@@ -683,7 +667,7 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
                 hop_limit = int(node["hopsAway"]) + 1
             if hop_limit < 1:
                 hop_limit = 1
-            send_trace_route(interface, node['num'], channel, hop_limit)
+            message_sender.send_trace_route(interface, node['num'], channel, hop_limit)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
         return    
