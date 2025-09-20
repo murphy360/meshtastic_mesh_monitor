@@ -116,11 +116,7 @@ class MessageSender:
         """
         logger.info(f"Sending traceroute request to node {node_num} with hop limit {hop_limit}")
         try:
-            interface.sendTraceRoute(
-                node_num,
-                hopLimit=hop_limit,
-                channelIndex=channel
-            )
+            interface.sendTraceRoute(node_num, hop_limit, channel)
             logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
         except Exception as e:
             logger.error(f"Error sending traceroute request: {e}")      
