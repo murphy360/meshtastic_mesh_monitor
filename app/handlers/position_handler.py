@@ -1,12 +1,14 @@
 from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
-from utils.location_utils import find_location_by_coordinates
+from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
 def on_receive_position(packet, interface, db_helper, public_channel_number, admin_channel_number, send_llm_message):
     message_sender = MessageSender()
+    location_utils = LocationUtils()
+    
     localNode = interface.getNode('^local')
     from_node_num = packet['from']
     altitude = 0
@@ -46,7 +48,7 @@ def on_receive_position(packet, interface, db_helper, public_channel_number, adm
         latitude = packet['decoded']['position']['latitude']
         longitude = packet['decoded']['position']['longitude']
         log_message += f" - Latitude: {latitude}, Longitude: {longitude}"
-        location = find_location_by_coordinates(latitude, longitude)
+        location = location_utils.find_location_by_coordinates(latitude, longitude)
         log_message += f" - Location: {location}"
         admin_message += f" Location: {location}"
 
