@@ -44,17 +44,17 @@ class SITREP:
     def set_interface(self, interface):
         self.interface = interface
         self.localNode = interface.getNode('^local')
+        self.logger.debug(f"SITREP: Local node set: {self.localNode}")
         self.localNodeInfo = interface.getMyNodeInfo()
-        # Check if localNode has user and shortName keys
-        if 'user' in self.localNode and 'shortName' in self.localNode['user']:
-            self.shortName = self.localNode['user']['shortName']
+        if isinstance(self.localNode, dict):
+            self.shortName = self.localNode['user']['shortName'] if 'user' in self.localNode and 'shortName' in self.localNode['user'] else None
+            self.longName = self.localNode['user']['longName'] if 'user' in self.localNode and 'longName' in self.localNode['user'] else None
+        elif hasattr(self.localNode, 'user'):
+            self.shortName = getattr(self.localNode.user, 'shortName', None)
+            self.longName = getattr(self.localNode.user, 'longName', None)
         else:
-            self.logger.warning(f"SITREP: Local node is missing user or shortName: {self.localNode}")
-        
-        if 'user' in self.localNode and 'longName' in self.localNode['user']:
-            self.longName = self.localNode['user']['longName']
-        else:
-            self.logger.warning(f"SITREP: Local node is missing user or longName: {self.localNode}")
+            self.shortName = None
+            self.longName = None
         self.logger.debug(f"SITREP interface set: {self.localNode}")
 
     def update_sitrep(self,is_routine_sitrep=False):
