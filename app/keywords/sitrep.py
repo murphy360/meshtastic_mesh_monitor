@@ -21,7 +21,8 @@ class SitrepKeyword(KeywordHandler):
 
         # Get local node info
         local_node = interface.getNode('^local')
-        sitrep = SITREP()
+        sitrep = SITREP.get_instance()
+        sitrep.set_interface(interface)
         sitrep.update_sitrep()
 
         message_sender = MessageSender()
