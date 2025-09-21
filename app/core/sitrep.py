@@ -39,12 +39,12 @@ class SITREP:
         self.known_nodes = []
         self.num_connections = 0
         self.extra_connections = {}
-        self.logger.debug("SITREP initialized")
+        self.logger.info("SITREP initialized")
 
     def set_interface(self, interface):
         self.interface = interface
         self.localNode = interface.getNode('^local')
-        self.logger.debug(f"SITREP: Local node set: {self.localNode}")
+        self.logger.info(f"SITREP: Local node set: {self.localNode}")
         self.localNodeInfo = interface.getMyNodeInfo()
         if isinstance(self.localNode, dict):
             self.shortName = self.localNode['user']['shortName'] if 'user' in self.localNode and 'shortName' in self.localNode['user'] else None
