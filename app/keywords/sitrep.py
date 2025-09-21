@@ -39,5 +39,4 @@ class SitrepKeyword(KeywordHandler):
             reply_to = '^all'
 
         # Send each SITREP line as a message
-        for line in sitrep.lines:
-            message_sender.send_message(interface, line, channel, reply_to)
+        sitrep.send_report(channel, reply_to)

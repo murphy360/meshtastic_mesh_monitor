@@ -1,5 +1,7 @@
 from utils.logger import get_logger
 from datetime import datetime, timezone
+from meshtastic import config_pb2, mesh_pb2, portnums_pb2
+import base64
 
 logger = get_logger(__name__)
 
@@ -73,7 +75,7 @@ class MessageSender:
             interface.sendData(
                 user,
                 destinationId=public_channel_number,
-                portNum=meshtastic.portnums_pb2.NODEINFO_APP,
+                portNum=portnums_pb2.NODEINFO_APP,
                 wantAck=False,
                 wantResponse=True
             )
