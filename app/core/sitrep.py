@@ -44,6 +44,7 @@ class SITREP:
 
     def set_interface(self, interface):
         self.interface = interface
+        self.logger.info(f"Setting SITREP interface")
         self.localNode = interface.getNode('^local')
         self.logger.info(f"SITREP: Local node set: {self.localNode}")
         self.localNodeInfo = interface.getMyNodeInfo()

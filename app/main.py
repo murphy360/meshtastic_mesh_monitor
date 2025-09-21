@@ -1032,6 +1032,8 @@ while True:
             sitrep.send_sitrep_if_new_day()
             # Used by meshtastic_mesh_visualizer to display nodes on a map
             sitrep.write_mesh_data_to_file()
+        elif sitrep is not None:
+            sitrep.set_interface(interface)
 
         # Check rss feed
         rss_interface.check_feeds_if_needed(
