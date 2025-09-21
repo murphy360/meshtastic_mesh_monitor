@@ -59,7 +59,7 @@ class PingKeyword(KeywordHandler):
         message_sender = MessageSender()
         # Use channel and to_id from packet if available, else defaults
         channel = packet.get('channel', 3)
-        logger.debug(f"PingKeyword: channel set to {channel}")
+        logger.info(f"PingKeyword: channel set to {channel}")
         
         # Check if this is a direct message or channel message
         if packet['to'] == local_node.nodeNum:
