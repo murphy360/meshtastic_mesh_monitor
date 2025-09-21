@@ -44,8 +44,17 @@ class SITREP:
     def set_interface(self, interface):
         self.interface = interface
         self.localNode = interface.getNode('^local')
-        self.shortName = self.localNode['user']['shortName']
-        self.longName = self.localNode['user']['longName']
+        self.localNodeInfo = interface.getMyNodeInfo()
+        # Check if localNode has user and shortName keys
+        if 'user' in self.localNode and 'shortName' in self.localNode['user']:
+            self.shortName = self.localNode['user']['shortName']
+        else:
+            self.logger.warning(f"SITREP: Local node is missing user or shortName: {self.localNode}")
+        
+        if 'user' in self.localNode and 'longName' in self.localNode['user']:
+            self.longName = self.localNode['user']['longName']
+        else:
+            self.logger.warning(f"SITREP: Local node is missing user or longName: {self.localNode}")
         self.logger.debug(f"SITREP interface set: {self.localNode}")
 
     def update_sitrep(self,is_routine_sitrep=False):
@@ -55,6 +64,9 @@ class SITREP:
         Args:
             is_routine_sitrep (bool): Flag to indicate if this is a routine SITREP.
         """
+        if self.interface is None:
+            self.logger.error("SITREP.update_sitrep called but interface is None!")
+            return
         self.sitrep_time = datetime.datetime.now()
         if is_routine_sitrep:
             self.sitrep_time = self.sitrep_time.replace(minute=0, second=0, microsecond=0)
@@ -413,6 +425,9 @@ class SITREP:
         Args:
             file_path (str): The path to the file.
         """
+        if self.interface is None:
+            self.logger.error("SITREP.write_mesh_data_to_file called but interface is None!")
+            return
         file_path = "/data/mesh_data.json"
         #self.logger.info(f"Writing SITREP to file: {file_path}")
         sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
