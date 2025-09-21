@@ -25,7 +25,6 @@ class SitrepKeyword(KeywordHandler):
         sitrep.set_interface(interface)
         sitrep.update_sitrep()
 
-        message_sender = MessageSender()
         channel = packet.get('channel', 0)
         from_node_num = packet['from']
         to_id = packet.get('to', '^all')
