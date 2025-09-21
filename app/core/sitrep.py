@@ -17,6 +17,7 @@ class SITREP:
         self.logger = get_logger(self.__class__.__name__)
         self.interface = None
         self.localNode = None
+        self.localNodeInfo = None
         self.shortName = None
         self.longName = None
         self.db_helper = SQLiteHelper("/data/mesh_monitor.db") 
@@ -46,15 +47,9 @@ class SITREP:
         self.localNode = interface.getNode('^local')
         self.logger.info(f"SITREP: Local node set: {self.localNode}")
         self.localNodeInfo = interface.getMyNodeInfo()
-        if isinstance(self.localNode, dict):
-            self.shortName = self.localNode['user']['shortName'] if 'user' in self.localNode and 'shortName' in self.localNode['user'] else None
-            self.longName = self.localNode['user']['longName'] if 'user' in self.localNode and 'longName' in self.localNode['user'] else None
-        elif hasattr(self.localNode, 'user'):
-            self.shortName = getattr(self.localNode.user, 'shortName', None)
-            self.longName = getattr(self.localNode.user, 'longName', None)
-        else:
-            self.shortName = None
-            self.longName = None
+        self.shortName = self.localNodeInfo['user']['shortName'] if 'user' in self.localNodeInfo and 'shortName' in self.localNodeInfo['user'] else None
+        self.longName = self.localNodeInfo['user']['longName'] if 'user' in self.localNodeInfo and 'longName' in self.localNodeInfo['user'] else None
+
         self.logger.debug(f"SITREP interface set: {self.localNode}")
 
     def update_sitrep(self,is_routine_sitrep=False):
@@ -85,7 +80,7 @@ class SITREP:
         self.lines.append(self.line3)
         self.line4 = "Line 4: Packets Received: " + str(self.count_packets_received())
         self.lines.append(self.line4)
-        self.line5 = "Line 5: Uptime: " + self.get_node_uptime(self.localNode) + ". Reconnections: " + str(self.num_connections)
+        self.line5 = "Line 5: Uptime: " + self.get_node_uptime(self.shortName) + ". Reconnections: " + str(self.num_connections)
         self.lines.append(self.line5)
         self.line6 = "Line 6: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line6)
@@ -282,7 +277,7 @@ class SITREP:
     def get_channels_monitored(self):
         return self.channels_monitored
 
-    def get_node_uptime(self, node):
+    def get_node_uptime(self, node_short_name):
         """
         Get the uptime of a node in Days, Hours, Minutes, Seconds.
         
@@ -292,7 +287,8 @@ class SITREP:
         Returns:
             str: The formatted uptime string.
         """
-        self.logger.debug(f"Getting Node Uptime for {node['user']['shortName']}")
+        node = lookup_node(self.interface, node_short_name)
+        self.logger.debug(f"Getting Node Uptime for {node_short_name}")
         uptime_seconds_total = int(node["deviceMetrics"]["uptimeSeconds"])
         uptime_days = uptime_seconds_total // 86400
         uptime_hours = (uptime_seconds_total % 86400) // 3600
