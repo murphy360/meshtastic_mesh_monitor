@@ -79,9 +79,9 @@ class SITREP:
         self.lines.append(self.reportHeader)
         self.line1 = "Line 1: Active Nodes: " + str(self.count_nodes_connected(60)) # 60 Minutes
         self.lines.append(self.line1)
-        self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2, self.interface)
+        self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2)
         self.lines.append(self.line2)
-        self.line3 = "Line 3: Nodes of Interest: " + self.build_node_of_interest_report(3, self.interface)
+        self.line3 = "Line 3: Nodes of Interest: " + self.build_node_of_interest_report(3)
         self.lines.append(self.line3)
         self.line4 = "Line 4: Packets Received: " + str(self.count_packets_received())
         self.lines.append(self.line4)
