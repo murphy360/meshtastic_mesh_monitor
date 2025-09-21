@@ -117,7 +117,7 @@ class SITREP:
             self.extra_connections = {}
             
             # Get all node connections from the database
-            connections = self.dbHelper.get_node_connections()
+            connections = self.db_helper.get_node_connections()
             
             self.logger.debug(f"Loading {len(connections)} connections from database")
             
@@ -171,12 +171,12 @@ class SITREP:
         return
 
     def update_nodes_of_interest_from_db(self):
-        self.nodes_of_interest = self.dbHelper.get_nodes_of_interest()
+        self.nodes_of_interest = self.db_helper.get_nodes_of_interest()
         self.logger.debug(f"Nodes of Interest: {self.nodes_of_interest}")
         return
 
     def update_aircraft_tracks_from_db(self):
-        self.aircraft_tracks = self.dbHelper.get_aircraft_nodes()
+        self.aircraft_tracks = self.db_helper.get_aircraft_nodes()
         return
 
     def build_aircraft_tracks_report(self, line_number):
