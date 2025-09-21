@@ -41,14 +41,14 @@ logger = get_logger(__name__)
 
 # Global variables
 localNode = ""
-sitrep = ""
+sitrep = SITREP()
 location = ""
 TCP_SERVER = os.getenv('TCP_SERVER', 'meshtastic.local')  # Default to meshtastic.local if not set
 connect_timeout = 60 # seconds
 short_name = 'Monitor'  # Overwritten in onConnection
 long_name = 'Mesh Monitor'  # Overwritten in onConnection
 db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
-sitrep = SITREP(localNode, short_name, long_name, db_helper)
+
 initial_connect = True
 initial_node_discovery_complete = False  # Track when initial node discovery is done
 public_channel_number = 0
@@ -124,11 +124,9 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
                     Public Key: {node_info['user']['publicKey']}\n \
                 **************************************************************\n \
                 **************************************************************\n\n ")
-
-    sitrep.set_local_node(localNode)
-    sitrep.set_short_name(short_name)
-    sitrep.set_long_name(long_name)
-    sitrep.update_sitrep(interface)
+    
+    sitrep.set_interface(interface)
+    sitrep.update_sitrep()
     sitrep.log_connect()
 
     if initial_connect:
@@ -569,12 +567,8 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
     # Dynamic keyword dispatch using KeywordHandler base class
  
     # Continue with legacy keyword handling
-    if message == "sitrep":
-        sitrep.update_sitrep(interface)
-        sitrep.send_report(interface, channel, to_id)
-        sitrep.log_message_sent("sitrep-requested")
-        return
-    elif message == "get forecast" or message == "getforecast" or message == "forecast":
+
+    if message == "get forecast" or message == "getforecast" or message == "forecast":
         from app.keywords.forecast import handle_forecast
         handle_forecast(interface, message, channel, to_id, from_id, sitrep)
         return
@@ -628,13 +622,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
             message_sender.send_position_request(interface, node['num'], public_channel_number)
         else:
             send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
-        return
-
-
-    elif message == "sitrep":
-        sitrep.update_sitrep(interface)
-        sitrep.send_report(interface, channel, to_id)
-        sitrep.log_message_sent("sitrep-requested")
         return
     
     elif "request telemetry" in message or "requesttelemetry" in message:
@@ -1039,11 +1026,12 @@ while True:
         send_weather_forecast_if_needed(interface, admin_channel_number)
 
         
-        # Send a routine sitrep every 24 hours at 00:00 UTC        
-        sitrep.send_sitrep_if_new_day(interface)
-
-        # Used by meshtastic_mesh_visualizer to display nodes on a map
-        sitrep.write_mesh_data_to_file(interface, "/data/mesh_data.json")
+               
+        if sitrep is not None and sitrep.interface is not None:
+            # Send a routine sitrep every 24 hours at 00:00 UTC 
+            sitrep.send_sitrep_if_new_day()
+            # Used by meshtastic_mesh_visualizer to display nodes on a map
+            sitrep.write_mesh_data_to_file()
 
         # Check rss feed
         rss_interface.check_feeds_if_needed(

@@ -2,15 +2,24 @@ import datetime
 import time
 import json
 from utils.logger import get_logger
+from core.database import SQLiteHelper
+from utils.node_info_utils import lookup_node
 
 class SITREP:
-    def __init__(self, localNode, shortName, longName, dbHelper):
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(SITREP, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
-        self.localNode = localNode
-        self.logger.debug(f"Local Node init: {localNode}")
-        self.shortName = shortName
-        self.longName = longName
-        self.dbHelper = dbHelper
+        self.interface = None
+        self.localNode = None
+        self.shortName = None
+        self.longName = None
+        self.db_helper = SQLiteHelper("/data/mesh_monitor.db") 
         self.messages_received = []
         self.packets_received = {"position_app_aircraft": 0}
         self.aircraft_tracks = {}
@@ -30,14 +39,20 @@ class SITREP:
         self.known_nodes = []
         self.num_connections = 0
         self.extra_connections = {}
-        self.logger.debug(f"SITREP initialized")
+        self.logger.debug("SITREP initialized")
 
-    def update_sitrep(self, interface, is_routine_sitrep=False):
+    def set_interface(self, interface):
+        self.interface = interface
+        self.localNode = interface.getNode('^local')
+        self.shortName = self.localNode['user']['shortName']
+        self.longName = self.localNode['user']['longName']
+        self.logger.debug(f"SITREP interface set: {self.localNode}")
+
+    def update_sitrep(self,is_routine_sitrep=False):
         """
         Update the SITREP report with the latest data.
         
         Args:
-            interface: The interface to interact with the mesh network.
             is_routine_sitrep (bool): Flag to indicate if this is a routine SITREP.
         """
         self.sitrep_time = datetime.datetime.now()
@@ -47,19 +62,18 @@ class SITREP:
         self.update_aircraft_tracks_from_db()
         self.update_connections_from_database()
         sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
-        node = self.lookup_node_by_short_name(interface, self.shortName)
         self.lines = []
         self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {sitrep_time_string} SITREP is as follows:"
         self.lines.append(self.reportHeader)
-        self.line1 = "Line 1: Active Nodes: " + str(self.count_nodes_connected(interface, 60, 1)) # 60 Minutes, any hops 
+        self.line1 = "Line 1: Active Nodes: " + str(self.count_nodes_connected(60, 1)) # 60 Minutes, any hops 
         self.lines.append(self.line1)
-        self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2, interface)
+        self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2, self.interface)
         self.lines.append(self.line2)
-        self.line3 = "Line 3: Nodes of Interest: " + self.build_node_of_interest_report(3, interface)
+        self.line3 = "Line 3: Nodes of Interest: " + self.build_node_of_interest_report(3, self.interface)
         self.lines.append(self.line3)
         self.line4 = "Line 4: Packets Received: " + str(self.count_packets_received())
         self.lines.append(self.line4)
-        self.line5 = "Line 5: Uptime: " + self.get_node_uptime(node) + ". Reconnections: " + str(self.num_connections)
+        self.line5 = "Line 5: Uptime: " + self.get_node_uptime(self.localNode) + ". Reconnections: " + str(self.num_connections)
         self.lines.append(self.line5)
         self.line6 = "Line 6: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line6)
@@ -71,7 +85,6 @@ class SITREP:
         #self.logger.info(f"Adding trace: {trace}")
         # Iterate through list of nodes in trace and use add_extra_connection to add connections
         for i in range(len(trace) - 1):
-            
             #self.logger.info(f"Adding extra connection between {trace[i]['user']['shortName']} and {trace[i + 1]['user']['shortName']}")
             self.add_extra_connection(trace[i]['user']['shortName'], trace[i + 1]['user']['shortName'])
     
@@ -166,7 +179,7 @@ class SITREP:
         self.aircraft_tracks = self.dbHelper.get_aircraft_nodes()
         return
 
-    def build_aircraft_tracks_report(self, line_number, interface):
+    def build_aircraft_tracks_report(self, line_number):
         """
         Build the aircraft tracks report.
         
@@ -183,7 +196,7 @@ class SITREP:
         line_letter = "A"
 
         for node_short_name in self.aircraft_tracks:
-            node = self.lookup_node_by_short_name(interface, node_short_name)
+            node = lookup_node(self.interface, node_short_name)
             report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
@@ -201,7 +214,7 @@ class SITREP:
             line_letter = chr(ord(line_letter) + 1)
         return report_string
 
-    def build_node_of_interest_report(self, line_number, interface):
+    def build_node_of_interest_report(self, line_number):
         """
         Build the nodes of interest report.
         
@@ -218,7 +231,7 @@ class SITREP:
         line_letter = "A"
 
         for node_short_name in self.nodes_of_interest:
-            node = self.lookup_node_by_short_name(interface, node_short_name)
+            node = lookup_node(self.interface, node_short_name)
             report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
@@ -235,18 +248,6 @@ class SITREP:
                 report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
         return report_string
-
-    def set_local_node(self, localNode):
-        self.localNode = localNode
-        return
-
-    def set_short_name(self, shortName):
-        self.shortName = shortName
-        return
-
-    def set_long_name(self, longName):
-        self.longName = longName
-        return
 
     def get_date_time_in_zulu(self, date):
         """
@@ -327,7 +328,7 @@ class SITREP:
         #self.logger.info(f"Packet Received: {packet_type}, Count: {self.packets_received[packet_type]}")
         return
 
-    def is_packet_from_node_of_interest(self, interface, packet):
+    def is_packet_from_node_of_interest(self, packet):
         """
         Check if the packet is from a node of interest.
         
@@ -339,13 +340,17 @@ class SITREP:
             bool: True if the packet is from a node of interest, False otherwise.
         """
         self.logger.debug("is_packet_from_node_of_interest")
-        from_node_short_name = self.lookup_short_name(interface, packet['from'])
+        from_node = lookup_node(self.interface, packet['from'])
+        if not from_node:
+            return False
+        from_node_short_name = from_node['user']['shortName'] 
+        
         if from_node_short_name in self.nodes_of_interest:
             self.logger.info(f"Node of Interest Detected: {from_node_short_name}")  # Keep this as info - it's important
             return True
         return False
 
-    def is_packet_from_new_node(self, interface, packet):
+    def is_packet_from_new_node(self, packet):
         """
         Check if the packet is from a new node.
         
@@ -358,7 +363,10 @@ class SITREP:
         """
         self.logger.debug("is_packet_from_new_node")
         self.logger.debug(f"Checking if packet is from a new node")
-        from_node_short_name = self.lookup_short_name(interface, packet['from'])
+        from_node = lookup_node(self.interface, packet['from'])
+        if not from_node:
+            return False
+        from_node_short_name = from_node['user']['shortName']
         if from_node_short_name not in self.known_nodes:
             self.logger.info(f"New Node Detected Sitrep: {from_node_short_name}")  # Keep this as info - it's important
             self.known_nodes.append(from_node_short_name)
@@ -398,14 +406,14 @@ class SITREP:
         """
         return sum(self.messages_sent.values())
 
-    def write_mesh_data_to_file(self, interface, file_path):
+    def write_mesh_data_to_file(self):
         """
         Write the mesh data to a file.
         
         Args:
-            interface: The interface to interact with the mesh network.
             file_path (str): The path to the file.
         """
+        file_path = "/data/mesh_data.json"
         #self.logger.info(f"Writing SITREP to file: {file_path}")
         sitrep_time_string = self.get_date_time_in_zulu(self.sitrep_time)
         mesh_data = {
@@ -416,15 +424,12 @@ class SITREP:
         }
         self_data = {}
 
-        localNode = self.lookup_node_by_short_name(interface, self.shortName)
-        if localNode is None:
-            self.logger.info(f"Local Node not found in interface.nodes")
-            return
+       
         self_data["id"] = self.shortName
         self_data["connections"] = []
         mesh_data["nodes"].append(self_data)
 
-        for node in interface.nodes.values():
+        for node in self.interface.nodes.values():
             #self.logger.info(f"Writing Node: {node}")
             #self.logger.info(f"Writing Node: {node['user']['shortName']}")
             try:
@@ -508,7 +513,7 @@ class SITREP:
         #self.logger.info(f"SITREP written to file: {file_path}")
         #self.logger.info(f"File Contents: {mesh_data}")
 
-    def count_nodes_connected(self, interface, time_threshold_minutes, hop_threshold):
+    def count_nodes_connected(self, time_threshold_minutes):
         """
         Count the number of nodes connected within a time threshold and hop threshold.
         
@@ -524,7 +529,7 @@ class SITREP:
         response_string = ""
         qualifying_nodes = []
         
-        for node in interface.nodes.values():
+        for node in self.interface.nodes.values():
             log_message = f"\nNode ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
             if self.localNode.nodeNum == node["num"]:
                 log_message += " - Local Node, skipping"
@@ -596,42 +601,8 @@ class SITREP:
         date_time = self.get_date_time_in_zulu(datetime.datetime.fromtimestamp(last_heard))
         return f"{time_difference_hours}:{time_difference_minutes}"
 
-    def lookup_short_name(self, interface, node_num):
-        """
-        Lookup the short name of a node by its number.
-        
-        Args:
-            interface: The interface to interact with the mesh network.
-            node_num (int): The node number.
-        
-        Returns:
-            str: The short name of the node.
-        """
-        #self.logger.info(f"Sitrep: Looking up short name for node: {node_num}")
-        for node in interface.nodes.values():
-            if node["num"] == node_num:
-                node_short_name = node["user"]["shortName"]
-                self.logger.debug(f"Node found: {node_short_name}")
-                return node_short_name
-        return "Unknown"
-
-    def lookup_node_by_short_name(self, interface, short_name):
-        """
-        Lookup a node by its short name.
-        
-        Args:
-            interface: The interface to interact with the mesh network.
-            short_name (str): The short name of the node.
-        
-        Returns:
-            dict: The node data if found, None otherwise.
-        """
-        for node in interface.nodes.values():
-            if node["user"]["shortName"] == short_name:
-                return node
-        return None
     
-    def send_sitrep_if_new_day(self, interface):
+    def send_sitrep_if_new_day(self):
         """
         Check if a new day has started since the last SITREP. If so, send a new SITREP.
 
@@ -642,15 +613,15 @@ class SITREP:
         # Check if the day has changed
         if now.date() != self.sitrep_time.date():
             self.logger.info("📊 SITREP: New day started - sending routine report")
-            self.update_sitrep(interface, is_routine_sitrep=True)
-            self.send_report(interface, 1, '^all')
+            self.update_sitrep(is_routine_sitrep=True)
+            self.send_report(1, '^all')
 
         return False
 
-    def send_report(self, interface, channelId, to_id):
+    def send_report(self, channelId, to_id):
         for line in self.lines:
             self.logger.info(f"📊 SITREP SEND: {line}")
-            interface.sendText(f"{line}", channelIndex=channelId, destinationId=to_id)
+            self.interface.sendText(f"{line}", channelIndex=channelId, destinationId=to_id)
             time.sleep(5) # sleep for 5 seconds between each line
     
     def write_node_info_to_file(node_info, file_path):

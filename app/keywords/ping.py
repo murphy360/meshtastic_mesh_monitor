@@ -58,7 +58,7 @@ class PingKeyword(KeywordHandler):
         # Send reply using MessageSender
         message_sender = MessageSender()
         # Use channel and to_id from packet if available, else defaults
-        channel = packet.get('channel', 3)
+        channel = packet.get('channel', 0)
         logger.info(f"PingKeyword: channel set to {channel}")
         
         # Check if this is a direct message or channel message
