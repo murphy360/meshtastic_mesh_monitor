@@ -34,7 +34,7 @@ from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
 
 # Initialize unified logging system
-setup_logging()
+setup_logging(log_level="DEBUG")
 logger = get_logger(__name__)
 
 ## Logging is now handled via utils.logger.get_logger
