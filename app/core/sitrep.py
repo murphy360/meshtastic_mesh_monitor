@@ -65,7 +65,7 @@ class SITREP:
         self.lines = []
         self.reportHeader = f"CQ CQ CQ de {self.shortName}.  My {sitrep_time_string} SITREP is as follows:"
         self.lines.append(self.reportHeader)
-        self.line1 = "Line 1: Active Nodes: " + str(self.count_nodes_connected(60, 1)) # 60 Minutes, any hops 
+        self.line1 = "Line 1: Active Nodes: " + str(self.count_nodes_connected(60)) # 60 Minutes
         self.lines.append(self.line1)
         self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2, self.interface)
         self.lines.append(self.line2)
