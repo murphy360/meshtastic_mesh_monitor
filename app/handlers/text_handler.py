@@ -5,7 +5,7 @@ from utils.node_info_utils import lookup_node
 
 logger = get_logger(__name__)
 
-def on_receive_text(packet, interface, public_channel_number, reply_to_direct_message, reply_to_message):
+def on_receive_text(packet, interface, public_channel_number, reply_to_direct_message):
     """
     Handler for text packets. Extracts node info and logs the event.
     Args:
@@ -60,10 +60,10 @@ def on_receive_text(packet, interface, public_channel_number, reply_to_direct_me
             logger.info(f"Channel message from {node_short_name}: '{message_string}'")
             channelId = int(packet['channel'])
             check_keywords(interface, packet)
-            #reply_to_message(interface, message_string, message_id, channelId, "^all", from_node_num)
-        elif packet['toId'] == "^all": # Message sent to all nodes
+        else:
+            # Unhandled case, possibly a broadcast message
             logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
-            reply_to_message(interface, message_string, message_id, 0, "^all", from_node_num)
+            
 
 def check_keywords(interface, packet):
     """

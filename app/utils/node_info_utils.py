@@ -15,13 +15,13 @@ def lookup_nodes(interface, node_generic_identifier):
     Returns:
         list: A list of nodes that match the identifier.
     """
-    logger.info(f"[NodeLookupUtils] Looking up nodes: {node_generic_identifier}")
+    logger.info(f"[lookup_nodes] Looking up nodes: {node_generic_identifier}")
     nodes = []
     if isinstance(node_generic_identifier, int):
         for n in interface.nodes.values():
             node_num = n["num"]
             if node_generic_identifier == node_num:
-                logger.debug(f"[NodeLookupUtils] Node found by number: {n['user']['shortName']} - {n['num']}")
+                logger.debug(f"[lookup_nodes] Node found by number: {n['user']['shortName']} - {n['num']}")
                 nodes.append(n)
     else:
         node_generic_identifier_lower = str(node_generic_identifier).lower()
@@ -31,7 +31,7 @@ def lookup_nodes(interface, node_generic_identifier):
             node_num = n["num"]
             node_user_id = n["user"]["id"]
             if node_generic_identifier_lower in [node_short_name, node_long_name, str(node_num), node_user_id.lower()]:
-                logger.debug(f"[NodeLookupUtils] Node found by name/ID: {n['user']['shortName']} - {n['num']}")
+                logger.debug(f"[lookup_nodes] Node found by name/ID: {n['user']['shortName']} - {n['num']}")
                 nodes.append(n)
     return nodes
 
@@ -45,9 +45,9 @@ def lookup_node(interface, node_generic_identifier):
         dict: The first matching node, or None if no nodes match.
     """
     
-    logger.info(f"[NodeLookupUtils] Looking up node: {node_generic_identifier}")
+    logger.info(f"[lookup_node] Looking up node: {node_generic_identifier}")
     nodes = lookup_nodes(interface, node_generic_identifier)
     if len(nodes) > 0:
-        logger.debug(f"[NodeLookupUtils] Found {len(nodes)} nodes matching {node_generic_identifier}")
+        logger.debug(f"[lookup_node] Found {len(nodes)} nodes matching {node_generic_identifier}")
         return nodes[0]
     return None

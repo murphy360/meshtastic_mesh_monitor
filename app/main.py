@@ -204,8 +204,7 @@ def onReceiveText(packet, interface):
         packet,
         interface,
         public_channel_number,
-        reply_to_direct_message,
-        reply_to_message
+        reply_to_direct_message
     )
 
 def onReceivePosition(packet, interface):
@@ -548,93 +547,6 @@ def reply_to_direct_message(interface, message, channel, from_id):
     logger.debug(f"Response: {response_text}")
     message_sender.send_message(interface, response_text, channel, from_id)   
     
-def reply_to_message(interface, message, message_id, channel, to_id, from_id):
-    """
-    Reply to a received message.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        message (str): The received message.
-        channel (int): The channel to send the reply to.
-        to_id (str): The ID of the recipient.
-        from_id (int): The ID of the sender.
-    """
-    message = message.lower()
-    logger.info(f"Replying to message: {message}")
-    from_node = lookup_node(interface, from_id)
-    local_node = interface.getNode('^local')
-
-    # Dynamic keyword dispatch using KeywordHandler base class
- 
-    # Continue with legacy keyword handling
-
-    if message == "get forecast" or message == "getforecast" or message == "forecast":
-        from app.keywords.forecast import handle_forecast
-        handle_forecast(interface, message, channel, to_id, from_id, sitrep)
-        return
-    elif "request telemetry" in message or "requesttelemetry" in message:
-        logger.info("Requesting telemetry")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        want_response = True
-        if node:
-            sitrep.log_message_sent("telemetry-requested")
-            try:
-                interface.sendTelemetry(node['num'], want_response, public_channel_number, "device_metrics")
-                logger.info(f"Telemetry request sent to node {node_short_name} - {node['num']}")
-            except Exception as e:
-                logger.error(f"Error sending telemetry request to node {node_short_name}: {e}")
-                return
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send telemetry request.", channel, to_id)
-        return
-    # 'setaircraft' and 'removeaircraft' are now handled by the modular keyword handler. Deprecated legacy block.
-    # 'sendnodeinfo' and 'send node info' are now handled by the modular keyword handler. Deprecated legacy block.
-    elif "send position" in message or "sendposition" in message:
-        logger.info("Sending position request")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            message_sender.send_position_request(interface, node['num'], public_channel_number)
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send position request.", channel, to_id)
-        return
-    
-    elif "request telemetry" in message or "requesttelemetry" in message:
-        logger.info("Requesting telemetry")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        want_response = True
-
-        if node:
-            sitrep.log_message_sent("telemetry-requested")
-            try:
-                interface.sendTelemetry(node['num'], want_response, public_channel_number, "device_metrics")
-                logger.info(f"Telemetry request sent to node {node_short_name} - {node['num']}")
-            except Exception as e:
-                logger.error(f"Error sending telemetry request to node {node_short_name}: {e}")
-                return
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send telemetry request.", channel, to_id)
-        return
-    
-    # Trace Node
-    elif "trace node" in message or "tracenode" in message:
-        logger.info("Tracing node")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            sitrep.log_message_sent("node-traced")
-            hop_limit = 2
-            if "hopsAway" in node:
-                hop_limit = int(node["hopsAway"]) + 1
-            if hop_limit < 1:
-                hop_limit = 1
-            message_sender.send_trace_route(interface, node['num'], channel, hop_limit)
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found in my database. Unable to send traceroute request.", channel, to_id)
-        return    
-
 def send_llm_callback(message, channel, to_id, file_path=None, url=None):
     """
     Callback function to send a message to the LLM and receive a response.
