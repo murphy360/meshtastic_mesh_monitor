@@ -2,7 +2,6 @@ import base64
 import meshtastic
 from meshtastic.protobuf import mesh_pb2, config_pb2
 from utils.logger import get_logger
-from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
