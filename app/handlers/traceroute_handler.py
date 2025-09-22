@@ -5,7 +5,7 @@ from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
-def on_receive_traceroute(packet, interface, db_helper, sitrep, send_llm_message, public_channel_number, admin_channel_number, last_trace_time):
+def on_receive_traceroute(packet, interface, db_helper, sitrep, public_channel_number, admin_channel_number, last_trace_time):
     """
     Handler for traceroute packets. Extracts node info, processes trace data, and logs the event.
     Args:
@@ -67,7 +67,7 @@ def on_receive_traceroute(packet, interface, db_helper, sitrep, send_llm_message
             admin_message = f"Traceroute received from {node_short_name}"
             message_sender.send_message(interface, admin_message, admin_channel_number, "^all")
             reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
-            send_llm_message(interface, reply_message, public_channel_number, from_node_num)
+            message_sender.send_llm_message(interface, reply_message, public_channel_number, from_node_num)
             db_helper.set_node_of_interest(node, True)
     if 'snrTowards' in trace:
         for hop in trace['snrTowards']:

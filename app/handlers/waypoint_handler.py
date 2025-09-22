@@ -2,10 +2,11 @@
 from utils.logger import get_logger
 from datetime import datetime, timezone
 from utils.node_info_utils import lookup_node
+from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
-def on_receive_waypoint(packet, interface, send_llm_message, admin_channel_number):
+def on_receive_waypoint(packet, interface, admin_channel_number):
     """
     Handler for waypoint packets. Extracts node info and logs the event.
     Args:
@@ -18,7 +19,7 @@ def on_receive_waypoint(packet, interface, send_llm_message, admin_channel_numbe
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.
     """
-
+    message_sender = MessageSender()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
@@ -42,8 +43,8 @@ def on_receive_waypoint(packet, interface, send_llm_message, admin_channel_numbe
     logger.info(f"Waypoint ID: {id}, Latitude: {latitude}, Longitude: {longitude}, Expire: {expire}, Name: {name}, Description: {description}")
     if expire == 1:
         logger.info(f"Waypoint {name} is expired")
-        send_llm_message(interface, f"Waypoint {name} is expired", admin_channel_number, "^all")
+        message_sender.send_llm_message(interface, f"Waypoint {name} is expired", admin_channel_number, "^all")
     else:
         expire_time = datetime.fromtimestamp(expire, tz=timezone.utc)
         logger.info(f"Waypoint {name} expires at {expire_time}")
-        send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", admin_channel_number, "^all")
+        message_sender.send_llm_message(interface, f"Waypoint {name}, {description} expires at {expire_time}", admin_channel_number, "^all")

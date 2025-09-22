@@ -6,6 +6,19 @@ from core.base_interfaces import BaseInterface
 from utils.logger import get_logger
 
 class GeminiInterface(BaseInterface):
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(GeminiInterface, cls).__new__(cls)
+        return cls._instance
+
+    @classmethod
+    def get_instance(cls, location: str = "Unknown Location", config_manager=None):
+        if cls._instance is None:
+            cls._instance = cls(location=location, config_manager=config_manager)
+        return cls._instance
+
     def __init__(self, location: str = "Unknown Location", config_manager=None):
         """
         Initialize the Gemini AI interface.

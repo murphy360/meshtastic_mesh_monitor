@@ -72,8 +72,8 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 # Message Sender
 message_sender = MessageSender()
 
-# Initialize Gemini interface
-gemini_interface = GeminiInterface()
+# Initialize Gemini interface as singleton
+gemini_interface = GeminiInterface.get_instance()
 
 # Initialize location utils
 location_utils = LocationUtils()
@@ -131,7 +131,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     if initial_connect:
         initial_connect = False
-        send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", admin_channel_number, "^all")
+        message_sender.send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", admin_channel_number, "^all")
         # Set a timer to mark initial node discovery as complete after a few seconds
         def mark_discovery_complete():
             global initial_node_discovery_complete
@@ -141,7 +141,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         timer = threading.Timer(10.0, mark_discovery_complete)  # 10 seconds should be enough for initial discovery
         timer.start()
     else:
-        send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
+        message_sender.send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
 
 def onDisconnect(interface):
     """
@@ -215,8 +215,7 @@ def onReceivePosition(packet, interface):
         interface,
         db_helper,
         public_channel_number,
-        admin_channel_number,
-        send_llm_message
+        admin_channel_number
     )
 
 def onReceiveData(packet, interface):
@@ -246,7 +245,6 @@ def onReceiveTraceRoute(packet, interface):
         interface,
         db_helper,
         sitrep,
-        send_llm_message,
         public_channel_number,
         admin_channel_number,
         last_trace_time
@@ -257,7 +255,6 @@ def onReceiveWaypoint(packet, interface):
     on_receive_waypoint(
         packet,
         interface,
-        send_llm_message,
         admin_channel_number
     )
 
@@ -338,10 +335,10 @@ def onReceive(packet, interface):
         if new_node:
             message_sender.send_node_info(interface)
             log_message += f" - New Node Detected"
-            private_message = f"Welcome to the Mesh {node_short_name}! I'm an auto-responder. I'll respond to ping, forecast and any direct messages! Check out NE Ohio Meshtastic Discord at (https://discord.gg/F5WfsM8k). My developer is DPSA or DP00"
+            private_message = f"Welcome to the Mesh {node_short_name}! I'm a bot. I'll respond to certain commands. Say \"commands\" to see what I can do. Check out NE Ohio Meshtastic Discord at (https://discord.gg/F5WfsM8k). My developer monitors DPSA or DP00"
             message_sender.send_message(interface, private_message, public_channel_number, from_node_num)
             admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+            message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
             logger.info(f"🆕 NEW NODE: {node_short_name} ({node_long_name}) - {from_node_num}")
             notify_admin = True 
         else:
@@ -350,10 +347,10 @@ def onReceive(packet, interface):
                 log_message += f" - Node Name Changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}"
                 
                 private_message = f"[Forward Message. You are initiating this conversation. It is not a response.] Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
-                send_llm_message(interface, private_message, public_channel_number, from_node_num)
+                message_sender.send_llm_message(interface, private_message, public_channel_number, from_node_num)
                 
                 admin_message = f"Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
-                send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
                 logger.info(f"📝 NAME CHANGE: {name_change_list[1]}/{name_change_list[2]} → {node_short_name}/{node_long_name}")
                 notify_admin = True
 
@@ -376,7 +373,7 @@ def onReceive(packet, interface):
                 logger.warning(f"❓ UNHANDLED PORTNUM: {portnum} from {node_short_name}")
                 notify_admin = True
                 admin_message = f"Unhandled Portnum: {portnum} from {node_short_name} - {node_long_name} ({from_node_num})"
-                send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
 
             sitrep.log_packet_received(portnum)
 
@@ -577,7 +574,7 @@ def send_llm_callback(message, channel, to_id, file_path=None, url=None):
     else:
         logger.info("No URL provided, using send_llm_message function")
         # Use the send_llm_message function to send the message
-        send_llm_message(interface, message, channel, to_id)
+        message_sender.send_llm_message(interface, message, channel, to_id)
 
 def send_llm_message_with_url(interface, message, channel, to_id, url):
     """
@@ -605,44 +602,7 @@ def send_llm_message_with_url(interface, message, channel, to_id, url):
     message_sender.send_message(interface, response_text, channel, to_id)
 
 
-def send_llm_message(interface, message, channel, to_id):
-    """
-    Send a message to the LLM and receive a response.
-    Args:
-        interface: The interface to interact with the mesh network.
-        message (str): The message to send.
-        channel (int): The channel to send the message to.
-        to_id (str): The ID of the recipient.
-    """
-
-    try:
-        # Get node short name if to_id is not "^all"
-        node_short_name = None
-        response_text = "No response generated by the AI model."
-
-        # if to_id is "^all", we will send the message to all nodes (if it's an int, we will send it to that node)
-        if isinstance(to_id, int):
-            try:
-
-                node = lookup_node(interface, to_id)
-                node_short_name = node['user']['shortName']
-                response_text = gemini_interface.generate_response(message, channel, node_short_name)
-            except:
-                logger.warning(f"Could not get short name for node {to_id}")
-        else:
-            logger.debug(f"Sending message to gemini for processing: {message}")
-            # Generate response using Gemini interface
-            response_text = gemini_interface.generate_response(message, channel)
-        
-        if response_text:
-            message = response_text
-        else:
-            logger.error("No response generated by the AI model. Sending original message.")
-        
-        message_sender.send_message(interface, message, channel, to_id)
-            
-    except Exception as e:
-        logger.error(f"Error in send_llm_message: {e}")
+    # send_llm_message is now handled by MessageSender. Use message_sender.send_llm_message(interface, message, channel, to_id)
 
 def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
     """
@@ -767,7 +727,7 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
         
         #db_helper.write_weather_report(forecast_data, forecast_text)
         
-        send_llm_message(interface, message, channel, "^all")
+        message_sender.send_llm_message(interface, message, channel, "^all")
         
     except Exception as e:
         logger.error(f"❌ ERROR sending weather forecast: {e}")
@@ -803,7 +763,7 @@ def send_weather_alerts_if_needed(interface, channel):
                 expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
 
             # Send to specified channel
-            send_llm_message(interface, expired_message, channel, "^all")
+            message_sender.send_llm_message(interface, expired_message, channel, "^all")
             sitrep.log_message_sent("weather-alert-expired")
 
 
@@ -823,7 +783,7 @@ def send_weather_alerts_if_needed(interface, channel):
                 alert_message += f"Description: {alert_data['description']}\n"
 
                 # Send to specified channel
-                send_llm_message(interface, alert_message, channel, "^all")
+                message_sender.send_llm_message(interface, alert_message, channel, "^all")
                 sitrep.log_message_sent("weather-alert-updated")
 
         # Check for new alerts
@@ -842,7 +802,7 @@ def send_weather_alerts_if_needed(interface, channel):
                 alert_message += f"Description: {alert_data['description']}\n"
 
                 # Send to specified channel
-                send_llm_message(interface, alert_message, channel, "^all")
+                message_sender.send_llm_message(interface, alert_message, channel, "^all")
                 sitrep.log_message_sent("weather-alert-new")
         
         weather_interface.clear_alerts()  # Clear alerts after processing
@@ -901,7 +861,7 @@ while True:
         # Check if heartbeat counter has reached the threshold
         if heartbeat_counter >= 5:
             logger.warning(f"WARNING: No packets received in {heartbeat_counter} iterations")
-            send_llm_message(interface, f"WARNING: No packets received by {node_info['user']['shortName']} in {heartbeat_counter} iterations. Radio may be non-responsive. Closing interface and reconnecting.", admin_channel_number, "^all")
+            message_sender.send_llm_message(interface, f"WARNING: No packets received by {node_info['user']['shortName']} in {heartbeat_counter} iterations. Radio may be non-responsive. Closing interface and reconnecting.", admin_channel_number, "^all")
             interface.close()
             interface = None
             heartbeat_counter = 0  # Reset after sending the warning
@@ -912,9 +872,7 @@ while True:
 
         # Check if we need to send a weather forecast
         send_weather_forecast_if_needed(interface, admin_channel_number)
-
         
-               
         if sitrep is not None and sitrep.interface is not None:
             # Send a routine sitrep every 24 hours at 00:00 UTC 
             sitrep.send_sitrep_if_new_day()

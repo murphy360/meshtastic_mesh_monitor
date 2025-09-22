@@ -5,10 +5,10 @@ from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
-def on_receive_position(packet, interface, db_helper, public_channel_number, admin_channel_number, send_llm_message):
+def on_receive_position(packet, interface, db_helper, public_channel_number, admin_channel_number):
     message_sender = MessageSender()
     location_utils = LocationUtils()
-    
+
     localNode = interface.getNode('^local')
     from_node_num = packet['from']
     altitude = 0
@@ -108,8 +108,8 @@ def on_receive_position(packet, interface, db_helper, public_channel_number, adm
             log_message += " - Aircraft Detected"
             admin_message += " - Aircraft Detected"
             user_message = f"{node_short_name} I am tracking you as an aircraft at {altitude}m altitude in {location} at {ground_speed}. Please Confirm."
-            send_llm_message(interface, user_message, public_channel_number, node['num'])
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+            message_sender.send_llm_message(interface, user_message, public_channel_number, node['num'])
+            message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
     elif not is_fast_moving and not is_high_altitude:
         # If the node is not fast moving and not high altitude, check if it's marked as aircraft
         if db_helper.is_aircraft(node):
@@ -119,8 +119,8 @@ def on_receive_position(packet, interface, db_helper, public_channel_number, adm
             log_message += " - Aircraft Unmarked"
             admin_message += " - Aircraft Unmarked"
             user_message = f"{node_short_name} Your speed and altitude indicates that you are not an aircraft. I am no longer tracking you as an aircraft. Please confirm."
-            send_llm_message(interface, user_message, public_channel_number, node['num'])
-            send_llm_message(interface, admin_message, admin_channel_number, "^all")
+            message_sender.send_llm_message(interface, user_message, public_channel_number, node['num'])
+            message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
 
     # Only log detailed position info for aircraft or debug mode
     if is_fast_moving or is_high_altitude:

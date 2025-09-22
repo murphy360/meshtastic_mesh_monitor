@@ -1,6 +1,8 @@
 from utils.logger import get_logger
+from interfaces.gemini_interface import GeminiInterface
 from datetime import datetime, timezone
 from meshtastic import config_pb2, mesh_pb2, portnums_pb2
+from utils.node_info_utils import lookup_node
 import base64
 
 logger = get_logger(__name__)
@@ -12,6 +14,32 @@ class MessageSender:
     def __init__(self, lookup_short_name=None, send_llm_message=None):
         self.lookup_short_name = lookup_short_name
         self.send_llm_message = send_llm_message
+        self.gemini_interface = GeminiInterface.get_instance()
+
+    def send_llm_message(self, interface, message, channel, to_id):
+        """
+        Placeholder for sending messages via LLM (if implemented).
+        """
+        # Check if to_id is not "^all" and lookup_short_name is provided
+        if to_id != "^all" and self.lookup_short_name:
+            to_node = lookup_node(interface, to_id)
+            node_name = "Unknown"
+            if to_node and 'user' in to_node and 'shortName' in to_node['user']:
+                node_name = to_node['user']['shortName']
+                
+            message = f"@{node_name} {message}"
+            response = self.gemini_interface.generate_response(message, channel, node_name)
+        else: 
+            response = self.gemini_interface.generate_response(message, channel)
+
+        if response:
+            logger.info(f"LLM Response: {response}")
+            self.send_message(interface, response, channel, to_id)
+        else:
+            logger.warning("LLM did not return a response.")
+            self.send_message(interface, message, channel, to_id)
+
+        
 
     def send_message(self, interface, message, channel, to_id):
         """
