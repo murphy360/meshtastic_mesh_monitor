@@ -572,30 +572,6 @@ def reply_to_message(interface, message, message_id, channel, to_id, from_id):
         from app.keywords.forecast import handle_forecast
         handle_forecast(interface, message, channel, to_id, from_id, sitrep)
         return
-    elif "set node of interest" in message or "setnoi" in message:
-        logger.info("Setting node of interest")
-        node_short_name = message.split(" ")[-1].lower()
-        send_llm_message(interface, f"Setting {node_short_name} as a node of interest", channel, to_id)
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_node_of_interest(node, True)
-            send_llm_message(interface, f"{node_short_name} is now a node of interest", channel, to_id)
-            sitrep.log_message_sent("node-of-interest-set")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found. Please use the short name", channel, to_id)
-        return
-    elif "remove node of interest" in message or "removenoi" in message:
-        logger.info("Removing node of interest")
-        node_short_name = message.split(" ")[-1]
-        node = lookup_node(interface, node_short_name)
-        if node:
-            db_helper.set_node_of_interest(node, False)
-            send_llm_message(interface, f"{node_short_name} is no longer a node of interest", channel, to_id)
-            sitrep.log_message_sent("node-of-interest-unset")
-        else:
-            send_llm_message(interface, f"Node {node_short_name} not found", channel, to_id)
-        return
-    # ...existing code...
     elif "request telemetry" in message or "requesttelemetry" in message:
         logger.info("Requesting telemetry")
         node_short_name = message.split(" ")[-1]

@@ -8,6 +8,7 @@ class SetnodeofinterestKeyword(KeywordHandler):
     def handle(self, interface, packet):
         db_helper = SQLiteHelper("/data/mesh_monitor.db")
         logger = get_logger(__name__)
+        message_sender = MessageSender()
         channel = packet['channel'] if 'channel' in packet else 0
         local_node = interface.getNode('^local')
         if 'to' in packet and packet['to'] == local_node.nodeNum:
@@ -23,14 +24,20 @@ class SetnodeofinterestKeyword(KeywordHandler):
         args = message_string.split()
 
         if len(args) < 3:
+            message_sender.send_message(interface, "Invalid command format. Usage: setnodeofinterest <node_identifier> <true/false>", channel, to_id)
             return
         node_identifier = args[1]
         set_as_interest = args[2].lower()
         if set_as_interest not in ['true', 'false']:
+            message_sender.send_message(interface, f"Invalid argument for set_as_interest: {set_as_interest}. Must be 'true' or 'false'.", channel, to_id)
             return
 
         node = lookup_node(interface, node_identifier)
-        message_sender = MessageSender()
+        if not node:
+            logger.error(f"Node {node_identifier} not found")
+            message_sender.send_message(interface, f"Node {node_identifier} not found", channel, to_id)
+            return
+        
         if node:
             db_helper.set_node_of_interest(node, set_as_interest == 'true')
             if set_as_interest == 'true':
