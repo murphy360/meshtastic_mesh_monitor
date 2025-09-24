@@ -61,8 +61,10 @@ def on_receive_text(packet, interface, public_channel_number, reply_to_direct_me
             channelId = int(packet['channel'])
             check_keywords(interface, packet)
         else:
-            # Unhandled case, possibly a broadcast message
+            # Unhandled case, possibly publick channel
             logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
+            logger.info(packet)
+            check_keywords(interface, packet)
             
 
 def check_keywords(interface, packet):
