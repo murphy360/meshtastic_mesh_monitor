@@ -1,6 +1,7 @@
 from utils.logger import get_logger
 from interfaces.gemini_interface import GeminiInterface
-from datetime import datetime, time, timezone
+from datetime import datetime, timezone
+import time
 from meshtastic import config_pb2, mesh_pb2, portnums_pb2
 from utils.node_info_utils import lookup_node
 import base64
