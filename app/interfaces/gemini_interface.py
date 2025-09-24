@@ -47,7 +47,11 @@ class GeminiInterface(BaseInterface):
         self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
 
     def update_base_system_instruction(self):
-        """Update the base system instruction with the current location"""
+        """
+        Update the base system instruction with the current location.
+        Logs the current location and instruction.
+        """
+        self.logger.info(f"update_base_system_instruction called. location={self.location}")
         self.base_system_instruction = (
             "You are an AI named DPMM (Don't Panic Mesh Monitor). "
             "You are a knowledgeable and professional radio enthusiast. "
@@ -63,22 +67,27 @@ class GeminiInterface(BaseInterface):
     
 
     def update_location(self, new_location: str):
-        """Update the bot's location and recreate the chat models"""
+        """
+        Update the bot's location and recreate the chat models.
+        Logs the old and new location.
+        """
+        self.logger.info(f"update_location called. new_location={new_location}")
         if new_location == self.location:
             return
-            
         self.logger.info(f"Updating location from {self.location} to {new_location}")
         self.location = new_location
-        
         self.update_base_system_instruction()
-        
         # Recreate chats with updated location
         self.public_chat = self._create_public_chat()
         self.admin_chat = self._create_admin_chat()
         self.private_chats = {}  # Clear private chats so they'll be recreated with new location
     
     def _create_public_chat(self):
-        """Create a chat for public channel communications"""
+        """
+        Create a chat for public channel communications.
+        Logs the system instruction used.
+        """
+        self.logger.info(f"_create_public_chat called. instruction={self.base_system_instruction}")
         public_instruction = self.base_system_instruction + (
             "You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
 
@@ -96,7 +105,11 @@ class GeminiInterface(BaseInterface):
         )
     
     def _create_admin_chat(self):
-        """Create a chat for admin channel communications"""
+        """
+        Create a chat for admin channel communications.
+        Logs the system instruction used.
+        """
+        self.logger.info(f"_create_admin_chat called. instruction={self.base_system_instruction}")
         admin_instruction = self.base_system_instruction + (
             "You are tasked with monitoring a meshtastic mesh network and are currently working directly "
             "with administrators on a private admin channel. Be more technical and detailed in your responses "
@@ -115,10 +128,13 @@ class GeminiInterface(BaseInterface):
         )
     
     def get_or_create_private_chat(self, node_short_name: str):
-        """Get an existing private chat or create a new one for direct communications with a node"""
+        """
+        Get an existing private chat or create a new one for direct communications with a node.
+        Logs the node_short_name.
+        """
+        self.logger.info(f"get_or_create_private_chat called. node_short_name={node_short_name}")
         if node_short_name not in self.private_chats:
             self.logger.info(f"Creating new private chat with {node_short_name}")
-            
             private_instruction = self.base_system_instruction + (
                 f"You are currently in a private encrypted conversation with {node_short_name}. "
                 f"While this is a conversation with a specific node, you may still be asked to forward messages "
@@ -126,7 +142,6 @@ class GeminiInterface(BaseInterface):
                 f"You may be slightly more casual in your responses, but still maintain professionalism. "
                 "Do not label responses with 'Private Chat' or similar tags."
             )
-            
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
                 model=self.gemini_model,
                 config=types.GenerateContentConfig(
@@ -138,33 +153,25 @@ class GeminiInterface(BaseInterface):
 
     def summarize_pdf(self, path_to_pdf: str) -> str:
         """
-        Summarize the content of a PDF document
-        
-        Args:
-            path_to_pdf: The file path to the PDF document
-
-        Returns:
-            A summary of the PDF content
+        Summarize the content of a PDF document.
+        Logs the file path and summary result.
         """
+        self.logger.info(f"summarize_pdf called. path_to_pdf={path_to_pdf}")
         try:
             uploaded_file = self.gemini_client.files.upload(file=path_to_pdf)
-
             if not uploaded_file:
                 self.logger.error("Failed to upload PDF file.")
                 return "Error uploading PDF file."
-
         except Exception as e:
             self.logger.error(f"Error reading PDF file: {e}")
             return "Error reading PDF file."
-
         try:
             response = self.gemini_client.models.generate_content(
                 model=self.gemini_model,
                 contents=[f"Summarize this PDF File in {self.max_message_length} characters or less", uploaded_file]
             )
-            self.logger.debug(f"Response: {response}")
+            self.logger.info(f"summarize_pdf returning: {response.text}")
             return response.text
-
         except Exception as e:
             self.logger.error(f"Error summarizing PDF: {e}")
             return "Error summarizing PDF content."
@@ -172,44 +179,33 @@ class GeminiInterface(BaseInterface):
     
     def generate_response(self, message: str, channel_id: int, node_short_name: Optional[str] = None) -> str:
         """
-        Generate a response using the appropriate chat model based on the channel and recipient
-        
-        Args:
-            message: The message to process
-            channel_id: The channel ID (0 for public, 1 for admin, etc.)
-            node_short_name: The short name of the node for private chats
-            
-        Returns:
-            The generated response text
+        Generate a response using the appropriate chat model based on the channel and recipient.
+        Logs the arguments and the response text.
         """
+        self.logger.info(f"generate_response called. message={message}, channel_id={channel_id}, node_short_name={node_short_name}")
         try:
             response_text = None
-            
             # Private message to a specific node (takes precedence over channel ID)
             if node_short_name:
                 self.logger.info(f"Generating response for private chat with {node_short_name}")
                 private_chat = self.get_or_create_private_chat(node_short_name)
                 response = private_chat.send_message(message)
                 response_text = response.text
-            
             # Admin channel
             elif channel_id == 1:  # admin_channel_number
                 self.logger.info("Generating response for admin channel")
                 response = self.admin_chat.send_message(message)
                 response_text = response.text
-            
             # Public channel
             elif channel_id == 0:  # public_channel_number
                 self.logger.info("Generating response for public channel")
                 response = self.public_chat.send_message(message)
                 response_text = response.text
-            
             # For any other case, fall back to a generic content generation
             else:
                 generic_instruction = self.base_system_instruction + (
                     " You are preparing a message for transmission on the mesh network."
                 )
-                
                 response = self.gemini_client.models.generate_content(
                     model=self.gemini_model,
                     config=types.GenerateContentConfig(
@@ -219,14 +215,11 @@ class GeminiInterface(BaseInterface):
                     contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
                 )
                 response_text = response.candidates[0].content.parts[0].text.strip()
-            
             if not response_text:
                 self.logger.error("No response generated by the AI model.")
                 return "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while!"
-                
-            self.logger.debug(f"Generated response: {response_text}")
+            self.logger.info(f"generate_response returning: {response_text}")
             return response_text
-        
         except Exception as e:
             self.logger.error(f"Error generating response: {e}")
             if "503" in str(e) or "Service Unavailable" in str(e):
@@ -234,7 +227,11 @@ class GeminiInterface(BaseInterface):
             return f"(Error with AI response: {message})"
 
     def test_connection(self) -> bool:
-        """Test if the interface can connect to the Gemini API."""
+        """
+        Test if the interface can connect to the Gemini API.
+        Logs the result.
+        """
+        self.logger.info("test_connection called.")
         try:
             # Try a simple request to test connectivity
             response = self.gemini_client.models.generate_content(
@@ -245,14 +242,20 @@ class GeminiInterface(BaseInterface):
                 ),
                 contents="Hello"
             )
-            return response is not None
+            result = response is not None
+            self.logger.info(f"test_connection returning: {result}")
+            return result
         except Exception as e:
             self.logger.error(f"Connection test failed: {e}")
             return False
 
     def get_status(self) -> Dict[str, Any]:
-        """Get the current status of the Gemini interface."""
-        return {
+        """
+        Get the current status of the Gemini interface.
+        Logs the status dict returned.
+        """
+        self.logger.info("get_status called.")
+        status = {
             "interface_type": "GeminiInterface",
             "location": self.location,
             "max_message_length": self.max_message_length,
@@ -261,3 +264,5 @@ class GeminiInterface(BaseInterface):
             "private_chats_count": len(self.private_chats),
             "connection_status": self.test_connection()
         }
+        self.logger.info(f"get_status returning: {status}")
+        return status

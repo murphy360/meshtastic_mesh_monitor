@@ -73,7 +73,7 @@ last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Ini
 message_sender = MessageSender()
 
 # Initialize Gemini interface as singleton
-gemini_interface = GeminiInterface.get_instance()
+gemini_interface = None
 
 # Initialize location utils
 location_utils = LocationUtils()
@@ -106,13 +106,14 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     """
     logger.info("Connection established")
-    global localNode, location, short_name, long_name, sitrep, initial_connect
+    global localNode, location, short_name, long_name, sitrep, initial_connect, gemini_interface
     localNode = interface.getNode('^local')
     node_info = interface.getMyNodeInfo()
     short_name = node_info['user']['shortName']
     long_name = node_info['user']['longName']
     location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
-    gemini_interface.update_location(location)
+    gemini_interface = GeminiInterface.get_instance(location=location)
+    logger.info(gemini_interface.get_status())
     logger.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
