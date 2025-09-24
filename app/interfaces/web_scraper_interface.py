@@ -9,7 +9,7 @@ import sys
 from config.config_manager import ConfigManager
 from utils.logger import get_logger
 from utils.message_sender import MessageSender
-from interfaces import gemini_interface
+from interfaces.gemini_interface import GeminiInterface
 
 
 class WebScraperInterface:
@@ -35,7 +35,7 @@ class WebScraperInterface:
         self.initial_check_complete = {}  # Track whether initial check is complete
         self.discard_initial_items = discard_initial_items
         # Initialize Gemini interface as singleton
-        self.gemini_interface = gemini_interface
+        self.gemini_interface = GeminiInterface.get_instance()
         # Message Sender
         self.message_sender = MessageSender()
         
@@ -474,7 +474,7 @@ class WebScraperInterface:
                         self.logger.info(f"Sending message for {website_id}: {message}")
                         # Send message
                         self.logger.info(message)
-                        
+
                         if item.get('url', None):
                             self.message_sender.send_llm_message_with_url(self, message, channel, destination, item.get('url', None))
                         else:
