@@ -11,9 +11,7 @@ class MessageSender:
     """
     Utility class for sending messages to nodes/channels, including chunking and error handling.
     """
-    def __init__(self, lookup_short_name=None, send_llm_message=None):
-        self.lookup_short_name = lookup_short_name
-        self.send_llm_message = send_llm_message
+    def __init__(self):
         self.gemini_interface = GeminiInterface.get_instance()
 
     def send_llm_message(self, interface, message, channel, to_id):
