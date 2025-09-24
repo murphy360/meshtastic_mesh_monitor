@@ -11,7 +11,6 @@ def on_receive_data(packet, interface):
         - Ignores packets from the local node.
     """
     logger = get_logger(__name__)
-    logger.info(f"[on_receive_data] onReceiveData called for node {packet['from']}")
     from_node_num = packet['from']
     node = None
     node_short_name = "Unknown"
@@ -28,9 +27,9 @@ def on_receive_data(packet, interface):
         logger.warning(f"[on_receive_data] onReceiveData: Node {from_node_num} not found, skipping data handling.")
         return
     if localNode.nodeNum == from_node_num:
+        logger.info(f"[on_receive_data] Received data from local node {from_node_num}. Ignoring packet.")
         # Ignore packets from local node
         return
     if node and 'user' in node and 'shortName' in node['user']:
         node_short_name = node['user']['shortName']
-
-    logger.info(f"[on_receive_data] onReceiveData completed for node {node_short_name} - {from_node_num}")
+        logger.info(f"[on_receive_data] Received data from {node_short_name} - {from_node_num}.")

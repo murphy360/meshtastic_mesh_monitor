@@ -24,4 +24,4 @@ def on_receive_telemetry(packet, interface):
         # Ignore packets from local node
         return
     node_short_name = node["user"]["shortName"].lower()
-    logger.info(f"[HANDLER] onReceiveTelemetry completed for node {node_short_name} - {from_node_num}")
+    logger.info(f"[on_receive_telemetry] onReceiveTelemetry completed for node {node_short_name} - {from_node_num}")
