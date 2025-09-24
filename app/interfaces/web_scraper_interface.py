@@ -8,6 +8,9 @@ import re
 import sys
 from config.config_manager import ConfigManager
 from utils.logger import get_logger
+from utils.message_sender import MessageSender
+from interfaces import gemini_interface
+
 
 class WebScraperInterface:
     """Interface for scraping websites and monitoring for changes."""
@@ -23,6 +26,7 @@ class WebScraperInterface:
         """
         self.logger = get_logger(self.__class__.__name__)
         self.config_manager = config_manager
+        self.interface = None  # Mesh network interface
         self.websites = {}  # Dict to store website configurations
         self.website_intervals = {}  # Store custom check intervals per website
         self.last_check_time = {}
@@ -30,6 +34,10 @@ class WebScraperInterface:
         self.previous_items = {}  # Store previous content to detect changes
         self.initial_check_complete = {}  # Track whether initial check is complete
         self.discard_initial_items = discard_initial_items
+        # Initialize Gemini interface as singleton
+        self.gemini_interface = gemini_interface
+        # Message Sender
+        self.message_sender = MessageSender()
         
         # Load websites from configuration if config manager is provided
         if self.config_manager is None:
@@ -67,7 +75,16 @@ class WebScraperInterface:
                 self.logger.error(f"Error loading scrapers from configuration: {e}")
         else:
             self.logger.warning("No configuration manager provided for web scrapers")
-    
+    def set_interface(self, interface: Any):
+        """
+        Set the mesh network interface for sending messages.
+        
+        Args:
+            interface: The mesh network interface object
+        """
+        self.interface = interface
+        self.logger.info("Mesh network interface set for WebScraperInterface")
+
     def add_website(self, website_id: str, url: str, css_selector: str = None, 
                    extractor_type: str = "generic", custom_parser: Callable = None):
         """
@@ -399,7 +416,6 @@ class WebScraperInterface:
         return None
     
     def scrape_websites_if_needed(self, 
-                                 message_callback: Callable[[str, int, str], None],
                                  channel: int,
                                  destination: str,
                                  log_callback: Callable[[str], None] = None) -> Dict[str, List[Dict[str, Any]]]:
@@ -436,9 +452,11 @@ class WebScraperInterface:
                                 clean_filename = re.sub(r'[\\/*?:"<>|]', '', item['title'].strip())                    
                                 pdf_path = f"/data/{website_id}/{clean_filename}.pdf"
                                 self.download_pdf(item['url'], pdf_path)
+                                pdf_summary = self.gemini_interface.summarize_pdf(pdf_path)
                             # Format link items
                             self.logger.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}")
                             message = f"New {item['title']} on Site: {website_id.replace('_', ' ').title()}"
+                            message += f"\n\n{pdf_summary}" if pdf_path and pdf_summary else ""
                         elif 'content' in item:
                             # Format text content
                             self.logger.info(f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄")
@@ -456,8 +474,12 @@ class WebScraperInterface:
                         self.logger.info(f"Sending message for {website_id}: {message}")
                         # Send message
                         self.logger.info(message)
-                        message_callback(message, channel, destination, pdf_path, item.get('url', None))
-
+                        
+                        if item.get('url', None):
+                            self.message_sender.send_llm_message_with_url(self, message, channel, destination, item.get('url', None))
+                        else:
+                            self.message_sender.send_llm_message(self, self.interface, message, channel, '^all')
+                        
                         if log_callback:
                             log_callback(f"web-scrape-{website_id}")
         
