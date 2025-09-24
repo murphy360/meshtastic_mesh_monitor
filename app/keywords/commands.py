@@ -2,11 +2,16 @@ from keywords.base import KeywordHandler
 from utils.message_sender import MessageSender
 import importlib
 import os
+from utils.logger import get_logger
 
 class CommandsKeyword(KeywordHandler):
+
+    logger = get_logger(__name__)
+
     def __init__(self):
         self.keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
         self.keywords = self._load_keywords()
+        self.logger.info(f"Loaded keywords: {list(self.keywords.keys())}")
 
     def _load_keywords(self):
         """
@@ -27,9 +32,11 @@ class CommandsKeyword(KeywordHandler):
                             keywords[keyword_name] = obj()
                 except Exception:
                     pass
+        self.logger.info(f"[load_keywords] Keywords loaded: {list(keywords.keys())}")
         return keywords
 
     def get_description(self):
+        self.logger.info("[get_description] Providing description for commands keyword.")
         return "Lists all available commands, their descriptions, or details for a specific command. Usage: 'commands', 'commands describe', or 'commands <keyword>'."
 
     def handle(self, interface, packet):
@@ -77,4 +84,5 @@ class CommandsKeyword(KeywordHandler):
             # Channel message, reply to channel
             to_id = "^all"
         sender = MessageSender()
+        self.logger.info(f"[HANDLE] Sending reply: {reply}")
         sender.send_message(interface, reply, channel, to_id)
