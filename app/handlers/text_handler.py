@@ -18,13 +18,13 @@ def on_receive_text(packet, interface, public_channel_number, reply_to_direct_me
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.
     """
-    logger.debug(f"[FUNCTION] onReceiveText")
 
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
+    logger.info(f"[on_receive_text] onReceiveText called for node {from_node_num}")
     localNode = interface.getNode('^local')
     if node is None:
-        logger.warning(f"[HANDLER] onReceiveText: Node {from_node_num} not found, skipping text handling.")
+        logger.warning(f"[on_receive_text] onReceiveText: Node {from_node_num} not found, skipping text handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
@@ -71,7 +71,7 @@ def check_keywords(interface, packet):
     """
     message = packet['decoded']['payload'].decode('utf-8').strip().lower()
     potential_keywords = message.split() # first word could be a keyword
-    logger.debug(f"[FUNCTION] check_keywords")
+    logger.info(f"[check_keywords] Checking for keywords in message: '{message}'")
     # Move up one directory from handlers to app, then into keywords
     keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
     keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]

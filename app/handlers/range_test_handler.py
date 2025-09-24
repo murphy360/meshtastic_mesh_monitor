@@ -14,12 +14,12 @@ def on_receive_range_test(packet, interface):
     """
     logger = get_logger(__name__)
 
-    logger.debug(f"[HANDLER] onReceiveRangeTest called for node {packet['from']}")
+    logger.info(f"[on_receive_range_test] onReceiveRangeTest called for node {packet['from']}")
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
     if node is None:
-        logger.warning(f"[HANDLER] onReceiveRangeTest: Node {from_node_num} not found, skipping range test handling.")
+        logger.warning(f"[on_receive_range_test] onReceiveRangeTest: Node {from_node_num} not found, skipping range test handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node

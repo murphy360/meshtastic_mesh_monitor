@@ -4,8 +4,6 @@ from utils.node_info_utils import lookup_node
 
 message_sender = MessageSender()
 
-logger = get_logger(__name__)
-
 def on_receive_neighbor_info(packet, interface, admin_channel_number):
     """
     Handler for neighbor info packets. Extracts node info and logs the event.
@@ -19,12 +17,13 @@ def on_receive_neighbor_info(packet, interface, admin_channel_number):
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.
     """
-
+    logger = get_logger(__name__)
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
+    logger.info(f"[on_receive_neighbor_info] onReceiveNeighborInfo called for node {from_node_num}")
     if node is None:
-        logger.warning(f"[HANDLER] onReceiveNeighborInfo: Node {from_node_num} not found, skipping neighbor info handling.")
+        logger.warning(f"[on_receive_neighbor_info] onReceiveNeighborInfo: Node {from_node_num} not found, skipping neighbor info handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node

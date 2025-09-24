@@ -14,7 +14,7 @@ def lookup_nodes(interface, node_generic_identifier):
     Returns:
         list: A list of nodes that match the identifier.
     """
-    logger.info(f"[lookup_nodes] Looking up nodes: {node_generic_identifier}")
+    logger.debug(f"[lookup_nodes] Looking up nodes: {node_generic_identifier}")
     nodes = []
     if isinstance(node_generic_identifier, int):
         for n in interface.nodes.values():
@@ -44,8 +44,10 @@ def lookup_node(interface, node_generic_identifier):
         dict: The first matching node, or None if no nodes match.
     """
     
-    logger.info(f"[lookup_node] Looking up node: {node_generic_identifier}")
+    logger.debug(f"[lookup_node] Looking up node: {node_generic_identifier}")
     nodes = lookup_nodes(interface, node_generic_identifier)
+    if len(nodes) > 1:
+        logger.warning(f"[lookup_node] Multiple nodes found matching {node_generic_identifier}. Returning the first match.")
     if len(nodes) > 0:
         logger.debug(f"[lookup_node] Found {len(nodes)} nodes matching {node_generic_identifier}")
         return nodes[0]

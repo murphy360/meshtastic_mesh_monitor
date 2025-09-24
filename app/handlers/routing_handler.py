@@ -18,8 +18,9 @@ def on_receive_routing(packet, interface, lookup_node, send_message, admin_chann
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     localNode = interface.getNode('^local')
+    logger.info(f"[on_receive_routing] onReceiveRouting called for node {from_node_num}")
     if node is None:
-        logger.warning(f"[HANDLER] onReceiveRouting: Node {from_node_num} not found, skipping routing handling.")
+        logger.warning(f"[on_receive_routing] onReceiveRouting: Node {from_node_num} not found, skipping routing handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node

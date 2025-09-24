@@ -13,9 +13,9 @@ def on_receive_user(packet, interface):
     """
     logger = get_logger(__name__)
     
-
     from_node_num = packet['from']
     localNode = interface.getNode('^local')
+    logger.info(f"[on_receive_user] onReceiveUser called for node {from_node_num}")
     node = lookup_node(interface, from_node_num)
     if node is None:
         logger.warning(f"[HANDLER] onReceiveUser: Node {from_node_num} not found, skipping user handling.")

@@ -12,13 +12,13 @@ def on_receive_telemetry(packet, interface):
         - Ignores packets from the local node.
     """
     logger = get_logger(__name__)
-
-    logger.debug(f"[HANDLER] onReceiveTelemetry called for node {packet['from']}")
     from_node_num = packet['from']
     localNode = interface.getNode('^local')
+    logger.info(f"[on_receive_telemetry] onReceiveTelemetry called for node {from_node_num}")
+
     node = lookup_node(interface, from_node_num)
     if node is None:
-        logger.warning(f"[HANDLER] onReceiveTelemetry: Node {from_node_num} not found, skipping telemetry handling.")
+        logger.warning(f"[on_receive_telemetry] onReceiveTelemetry: Node {from_node_num} not found, skipping telemetry handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node

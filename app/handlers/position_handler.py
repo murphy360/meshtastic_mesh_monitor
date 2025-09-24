@@ -3,11 +3,12 @@ from utils.node_info_utils import lookup_node
 from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
 
-logger = get_logger(__name__)
+
 
 def on_receive_position(packet, interface, db_helper, public_channel_number, admin_channel_number):
     message_sender = MessageSender()
     location_utils = LocationUtils()
+    logger = get_logger(__name__)
 
     localNode = interface.getNode('^local')
     from_node_num = packet['from']
@@ -16,11 +17,12 @@ def on_receive_position(packet, interface, db_helper, public_channel_number, adm
     is_fast_moving = False
     is_high_altitude = False
     location = "Unknown"
-    log_message = f"[HANDLER] onReceivePosition from node {from_node_num}"
+    logger.info(f"[on_receive_position] onReceivePosition called for node {from_node_num}")
+    log_message = f"[on_receive_position] onReceivePosition from node {from_node_num}"
 
     node = lookup_node(interface, from_node_num)
     if node is None:
-        logger.warning(f"[HANDLER] onReceivePosition: Node {from_node_num} not found, skipping position handling.")
+        logger.warning(f"[on_receive_position] onReceivePosition: Node {from_node_num} not found, skipping position handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node

@@ -4,8 +4,6 @@ from datetime import datetime, timezone
 from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 
-logger = get_logger(__name__)
-
 def on_receive_waypoint(packet, interface, admin_channel_number):
     """
     Handler for waypoint packets. Extracts node info and logs the event.
@@ -19,9 +17,11 @@ def on_receive_waypoint(packet, interface, admin_channel_number):
         - Skips handling if node cannot be found.
         - Ignores packets from the local node.
     """
+    logger = get_logger(__name__)
     message_sender = MessageSender()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
+    logger.info(f"[on_receive_waypoint] onReceiveWaypoint called for node {from_node_num}")
     localNode = interface.getNode('^local')
     if node is None:
         logger.warning(f"[HANDLER] onReceiveWaypoint: Node {from_node_num} not found, skipping waypoint handling.")
