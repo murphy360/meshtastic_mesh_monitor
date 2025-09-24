@@ -18,8 +18,8 @@ class MessageSender:
         """
         Placeholder for sending messages via LLM (if implemented).
         """
-        # Check if to_id is not "^all" and lookup_short_name is provided
-        if to_id != "^all" and self.lookup_short_name:
+        # Check if to_id is not "^all"
+        if to_id != "^all":
             to_node = lookup_node(interface, to_id)
             node_name = "Unknown"
             if to_node and 'user' in to_node and 'shortName' in to_node['user']:
@@ -71,10 +71,8 @@ class MessageSender:
                     return
                 logger.error(f"Error sending message: {e}")
                 return
-            node_name = to_id
-            if self.lookup_short_name and to_id != "^all":
-                node_name = self.lookup_short_name(interface, to_id)
-            logger.info(f"Packet Sent: {message} to channel {channel} and node {node_name}")
+           
+            
 
     def send_node_info(interface, public_channel_number=1, admin_channel_number=2):
         """
