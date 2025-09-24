@@ -1,6 +1,6 @@
 from utils.logger import get_logger
 from interfaces.gemini_interface import GeminiInterface
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from meshtastic import config_pb2, mesh_pb2, portnums_pb2
 from utils.node_info_utils import lookup_node
 import base64
@@ -54,6 +54,8 @@ class MessageSender:
                 chunk = f"({current_chunk}/{total_messages}) {chunk}"
                 try:
                     interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
+                    # wait a bit between chunks to avoid overwhelming the network
+                    time.sleep(0.5)
                 except Exception as e:
                     logger.error(f"Error sending chunk: {e}")
                     return
