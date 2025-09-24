@@ -39,7 +39,7 @@ class GeminiInterface(BaseInterface):
         self.gemini_model = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
         self.location = location
         self.max_message_length = 200  # Maximum message length for transmission
-        self.max_output_tokens = 70  # Maximum output tokens for responses
+        self.max_output_tokens = 100  # Maximum output tokens for responses
         self.update_base_system_instruction()
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
         self.public_chat = self._create_public_chat()
