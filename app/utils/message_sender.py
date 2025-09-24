@@ -159,7 +159,7 @@ class MessageSender:
 
         self.send_message(interface, response_text, channel, to_id)
 
-    def send_trace_route(self, interface, node_num, channel, hop_limit=2):
+    def send_trace_route(self, interface, node_num, channel, hop_limit=2, to_id="^all"):
         """
         Send a traceroute request to a specified node.
 
@@ -174,6 +174,8 @@ class MessageSender:
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
         except Exception as e:
+            user_reponse = f"Error sending traceroute request: {e}"
+            self.send_llm_message(interface, user_reponse, channel, to_id)
             logger.error(f"Error sending traceroute request: {e}")      
 
             
