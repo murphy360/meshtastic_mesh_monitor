@@ -235,11 +235,7 @@ class GeminiInterface(BaseInterface):
         try:
             # Try a simple request to test connectivity
             response = self.gemini_client.models.generate_content(
-                model=genai.GenerativeModel(
-                    model_name="gemini-2.0-flash-exp",
-                    system_instruction="Test connection",
-                    max_output_tokens=5
-                ),
+                model=self.gemini_model,
                 contents="Hello"
             )
             result = response is not None
