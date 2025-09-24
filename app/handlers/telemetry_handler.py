@@ -14,14 +14,12 @@ def on_receive_telemetry(packet, interface):
     logger = get_logger(__name__)
     from_node_num = packet['from']
     localNode = interface.getNode('^local')
-    logger.info(f"[on_receive_telemetry] onReceiveTelemetry called for node {from_node_num}")
-
     node = lookup_node(interface, from_node_num)
+    node_short_name = node["user"]["shortName"].lower() if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    logger.info(f"[on_receive_telemetry] onReceiveTelemetry called for node {node_short_name} - {from_node_num}")
     if node is None:
         logger.warning(f"[on_receive_telemetry] onReceiveTelemetry: Node {from_node_num} not found, skipping telemetry handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    node_short_name = node["user"]["shortName"].lower()
-    logger.info(f"[on_receive_telemetry] onReceiveTelemetry completed for node {node_short_name} - {from_node_num}")

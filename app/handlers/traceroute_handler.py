@@ -26,7 +26,8 @@ def on_receive_traceroute(packet, interface, db_helper, sitrep, public_channel_n
     message_sender = MessageSender()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
-    logger.info(f"[on_receive_traceroute] onReceiveTraceroute called for node {from_node_num}")
+    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    logger.info(f"[on_receive_traceroute] onReceiveTraceroute called for node {node_short_name} - {from_node_num}")
     localNode = interface.getNode('^local')
     if node is None:
         logger.warning(f"[on_receive_traceroute] onReceiveTraceroute: Node {from_node_num} not found, skipping traceroute handling.")
@@ -34,9 +35,6 @@ def on_receive_traceroute(packet, interface, db_helper, sitrep, public_channel_n
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-
-    logger.debug(f"[HANDLER] onReceiveTraceroute from {node_short_name} - {from_node_num}")
     trace = packet['decoded']['traceroute']
     route_to = []
     snr_towards = []

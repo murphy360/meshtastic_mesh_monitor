@@ -21,7 +21,8 @@ def on_receive_text(packet, interface, public_channel_number, reply_to_direct_me
 
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
-    logger.info(f"[on_receive_text] onReceiveText called for node {from_node_num}")
+    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    logger.info(f"[on_receive_text] onReceiveText called for node {node_short_name} - {from_node_num}")
     localNode = interface.getNode('^local')
     if node is None:
         logger.warning(f"[on_receive_text] onReceiveText: Node {from_node_num} not found, skipping text handling.")
@@ -29,7 +30,6 @@ def on_receive_text(packet, interface, public_channel_number, reply_to_direct_me
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
     channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
     if 'channel' in packet:
         channelId = packet['channel']

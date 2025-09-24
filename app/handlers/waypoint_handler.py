@@ -21,7 +21,8 @@ def on_receive_waypoint(packet, interface, admin_channel_number):
     message_sender = MessageSender()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
-    logger.info(f"[on_receive_waypoint] onReceiveWaypoint called for node {from_node_num}")
+    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    logger.info(f"[on_receive_waypoint] onReceiveWaypoint called for node {node_short_name} - {from_node_num}")
     localNode = interface.getNode('^local')
     if node is None:
         logger.warning(f"[HANDLER] onReceiveWaypoint: Node {from_node_num} not found, skipping waypoint handling.")
@@ -29,9 +30,6 @@ def on_receive_waypoint(packet, interface, admin_channel_number):
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-
-    logger.info(f"[HANDLER] onReceiveWaypoint from {node_short_name} - {from_node_num}")
     waypoint = packet.get('decoded', {}).get('waypoint', {})
     logger.info(f"Waypoint: {waypoint}")
     id = waypoint.get('id')

@@ -17,22 +17,18 @@ def on_receive_position(packet, interface, db_helper, public_channel_number, adm
     is_fast_moving = False
     is_high_altitude = False
     location = "Unknown"
-    logger.info(f"[on_receive_position] onReceivePosition called for node {from_node_num}")
-    log_message = f"[on_receive_position] onReceivePosition from node {from_node_num}"
-
     node = lookup_node(interface, from_node_num)
+    node_short_name = node["user"]["shortName"].lower() if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    logger.info(f"[on_receive_position] onReceivePosition called for node {node_short_name} - {from_node_num}")
+    log_message = f"[on_receive_position] onReceivePosition from node {node_short_name} - {from_node_num}"
     if node is None:
         logger.warning(f"[on_receive_position] onReceivePosition: Node {from_node_num} not found, skipping position handling.")
         return
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    
-    node_short_name = node["user"]["shortName"].lower()
-    node_long_name = node["user"]["longName"].lower()
-
+    node_long_name = node["user"]["longName"].lower() if node and 'user' in node and 'longName' in node['user'] else 'Unknown'
     admin_message = f"Node {node_short_name} ({node_long_name}) has sent a position update."
-
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return

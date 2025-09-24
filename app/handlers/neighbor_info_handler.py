@@ -20,19 +20,16 @@ def on_receive_neighbor_info(packet, interface, admin_channel_number):
     logger = get_logger(__name__)
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
+    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    logger.info(f"[on_receive_neighbor_info] onReceiveNeighborInfo called for node {node_short_name} - {from_node_num}")
     localNode = interface.getNode('^local')
     if node is None:
         logger.warning(f"[on_receive_neighbor_info] onReceiveNeighborInfo: Node {from_node_num} not found, skipping neighbor info handling.")
         return
     if localNode.nodeNum == from_node_num:
-        logger.info(f"[on_receive_neighbor_info] Received neighbor info from local node {from_node_num}. Ignoring packet.")
+        logger.info(f"[on_receive_neighbor_info] Received neighbor info from local node {node_short_name} - {from_node_num}. Ignoring packet.")
         # Ignore packets from local node
         return
-    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-
-    neighbors = packet.get('decoded', {}).get('neighbors', None)
-    logger.info(f"[on_receive_neighbor_info] Received neighbor info from {node_short_name} - {from_node_num}: {neighbors}")
-    logger.info(f"[on_receive_neighbor_info] Neighbor info packet: {packet}")
     # Alert admin if a node is reporting neighbors
     admin_message = f"Node {node_short_name} is reporting neighbors.  Please investigate."
     message_sender.send_message(interface, admin_message, admin_channel_number, "^all")

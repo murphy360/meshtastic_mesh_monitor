@@ -13,10 +13,10 @@ def on_receive_range_test(packet, interface):
         - Ignores packets from the local node.
     """
     logger = get_logger(__name__)
-
-    logger.info(f"[on_receive_range_test] onReceiveRangeTest called for node {packet['from']}")
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
+    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+    logger.info(f"[on_receive_range_test] onReceiveRangeTest called for node {node_short_name} - {from_node_num}")
     localNode = interface.getNode('^local')
     if node is None:
         logger.warning(f"[on_receive_range_test] onReceiveRangeTest: Node {from_node_num} not found, skipping range test handling.")
@@ -24,12 +24,5 @@ def on_receive_range_test(packet, interface):
     if localNode.nodeNum == from_node_num:
         # Ignore packets from local node
         return
-    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-    sequence = None
-    try:
-        sequence = packet['decoded']['text'].split(" ")[1]
-    except Exception:
-        sequence = "Unknown"
-    logger.info(f"[HANDLER] onReceiveRangeTest completed for node {node_short_name} - {from_node_num} - Sequence: {sequence}")
     # Additional logic can be added here as needed
     return
