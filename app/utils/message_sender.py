@@ -57,7 +57,7 @@ class MessageSender:
                 try:
                     interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
                     # wait a bit between chunks to avoid overwhelming the network
-                    time.sleep(2)
+                    time.sleep(3)
                 except Exception as e:
                     logger.error(f"Error sending chunk: {e}")
                     return
