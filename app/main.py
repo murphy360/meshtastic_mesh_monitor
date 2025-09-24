@@ -884,6 +884,7 @@ while True:
             Connection Timeout: {connect_timeout}\n \
             Heartbeat Counter: {heartbeat_counter}\n \
             Last Weather Forecast Sent: {last_forecast_sent_time}\n \
+            Gemini Chats: {gemini_interface.get_private_chats_string()}\n \
         **************************************************************\n \
         **************************************************************\n\n ")
 
