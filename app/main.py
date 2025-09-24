@@ -112,6 +112,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     short_name = node_info['user']['shortName']
     long_name = node_info['user']['longName']
     location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
+    logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
     gemini_interface = GeminiInterface.get_instance(location=location)
     logger.info(gemini_interface.get_status())
     logger.info(f"\n\n \

@@ -99,8 +99,7 @@ class GeminiInterface(BaseInterface):
         return self.gemini_client.chats.create(
             model=self.gemini_model,
             config=types.GenerateContentConfig(
-                system_instruction=public_instruction,
-                max_output_tokens=self.max_output_tokens
+                system_instruction=public_instruction
             )
         )
     
@@ -122,8 +121,7 @@ class GeminiInterface(BaseInterface):
         return self.gemini_client.chats.create(
             model=self.gemini_model,
             config=types.GenerateContentConfig(
-                system_instruction=admin_instruction,
-                max_output_tokens=self.max_output_tokens
+                system_instruction=admin_instruction
             )
         )
     
@@ -145,8 +143,7 @@ class GeminiInterface(BaseInterface):
             self.private_chats[node_short_name] = self.gemini_client.chats.create(
                 model=self.gemini_model,
                 config=types.GenerateContentConfig(
-                    system_instruction=private_instruction,
-                    max_output_tokens=self.max_output_tokens
+                    system_instruction=private_instruction
                 )
             )
         return self.private_chats[node_short_name]
@@ -209,8 +206,7 @@ class GeminiInterface(BaseInterface):
                 response = self.gemini_client.models.generate_content(
                     model=self.gemini_model,
                     config=types.GenerateContentConfig(
-                        system_instruction=generic_instruction,
-                        max_output_tokens=self.max_output_tokens
+                        system_instruction=generic_instruction
                     ),
                     contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
                 )
