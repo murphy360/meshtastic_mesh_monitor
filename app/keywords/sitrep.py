@@ -4,10 +4,13 @@ from utils.message_sender import MessageSender
 from core.sitrep import SITREP
 
 class SitrepKeyword(KeywordHandler):
+    logger = get_logger(__name__)
+
     def get_description(self):
         """
         Return a human-readable description of the sitrep command.
         """
+        self.logger.info("[get_description] Providing description for sitrep keyword.")
         return "Responds with a Situational Report (SITREP). Usage: sitrep"
 
     def handle(self, interface, packet):
@@ -16,8 +19,7 @@ class SitrepKeyword(KeywordHandler):
 
         This function updates the SITREP report and sends it to the channel or directly to the user, following the pattern in PingKeyword.
         """
-        logger = get_logger(__name__)
-        logger.info("SitrepKeyword handler invoked.")
+        self.logger.info("[handle] SitrepKeyword handler invoked.")
 
         # Get local node info
         local_node = interface.getNode('^local')
@@ -38,4 +40,5 @@ class SitrepKeyword(KeywordHandler):
             reply_to = '^all'
 
         # Send each SITREP line as a message
+        self.logger.info(f"[handle] Sending SITREP report to channel {channel}, reply_to {reply_to}")
         sitrep.send_report(channel, reply_to)

@@ -9,9 +9,10 @@ class CommandsKeyword(KeywordHandler):
     logger = get_logger(__name__)
 
     def __init__(self):
+        self.logger.info(f"[__init__] CommandsKeyword initialized.")
         self.keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
         self.keywords = self._load_keywords()
-        self.logger.info(f"Loaded keywords: {list(self.keywords.keys())}")
+        
 
     def _load_keywords(self):
         """

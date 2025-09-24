@@ -2,7 +2,7 @@ from utils.logger import get_logger
 from datetime import datetime, timezone
 from utils.message_sender import MessageSender
 
-def on_receive_routing(packet, interface, lookup_node, send_message, admin_channel_number):
+def on_receive_routing(packet, interface, admin_channel_number):
     """
     Handler for routing packets. Extracts node info and logs the event.
     Args:
@@ -16,7 +16,7 @@ def on_receive_routing(packet, interface, lookup_node, send_message, admin_chann
     logger = get_logger(__name__)
     message_sender = MessageSender()
     from_node_num = packet['from']
-    node = lookup_node(interface, from_node_num)
+    node = MessageSender.lookup_node(interface, from_node_num)
     node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
     logger.info(f"[on_receive_routing] onReceiveRouting called for node {node_short_name} - {from_node_num}")
     localNode = interface.getNode('^local')

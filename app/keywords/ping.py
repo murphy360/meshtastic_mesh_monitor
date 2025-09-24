@@ -6,10 +6,14 @@ from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 
 class PingKeyword(KeywordHandler):
+
+    logger = get_logger(__name__)
+
     def get_description(self):
         """
         Return a human-readable description of the ping command.
         """
+        self.logger.info("[get_description] Providing description for ping keyword.")
         return "Responds with a pong and, if available, location/distance from sender"
     def handle(self, interface, packet):
         """
@@ -25,15 +29,15 @@ class PingKeyword(KeywordHandler):
         Returns:
             None
         """
-        logger = get_logger(__name__)
-        logger.info("PingKeyword handler invoked.")
+
+        self.logger.info("[handle] PingKeyword handler invoked.")
 
         # Extract sender and local node info
         from_node_num = packet['from']
         local_node = interface.getNode('^local')
         from_node = lookup_node(interface, from_node_num)
         if not from_node:
-            logger.warning(f"PingKeyword: Could not find from_node for num {from_node_num}")
+            self.logger.warning(f"[handle] Could not find from_node for num {from_node_num}")
             return
 
         # Get short names
@@ -59,7 +63,7 @@ class PingKeyword(KeywordHandler):
         message_sender = MessageSender()
         # Use channel and to_id from packet if available, else defaults
         channel = packet.get('channel', 0)
-        logger.info(f"PingKeyword: channel set to {channel}")
+        self.logger.info(f"[handle] channel set to {channel}")
         
         # Check if this is a direct message or channel message
         if packet['to'] == local_node.nodeNum:

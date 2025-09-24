@@ -4,10 +4,13 @@ from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils
 
 class TestKeyword(KeywordHandler):
+    logger = get_logger(__name__)
+
     def get_description(self):
         """
         Return a human-readable description of the test command.
         """
+        self.logger.info("[get_description] Providing description for test keyword.")
         return "Responds with a test confirmation message."
 
     def handle(self, interface, packet):
@@ -20,8 +23,7 @@ class TestKeyword(KeywordHandler):
         Returns:
             None
         """
-        logger = get_logger(__name__)
-        logger.info("TestKeyword handler invoked.")
+        self.logger.info("[handle] TestKeyword handler invoked.")
 
         # Extract sender and local node info
         from_node_num = packet['from']
@@ -47,11 +49,12 @@ class TestKeyword(KeywordHandler):
         # Send reply using MessageSender
         message_sender = MessageSender()
         channel = packet.get('channel', 0)
-        logger.info(f"TestKeyword: channel set to {channel}")
-        
+        self.logger.info(f"[handle] channel set to {channel}")
+
         # Check if this is a direct message or channel message
         if packet['to'] == local_node.nodeNum:
             to_id = from_node_num
         else:
             to_id = "^all"
+        self.logger.info(f"[handle] Sending reply: {reply}")
         message_sender.send_message(interface, reply, channel, to_id)
