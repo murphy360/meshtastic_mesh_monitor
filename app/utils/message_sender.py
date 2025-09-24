@@ -51,12 +51,13 @@ class MessageSender:
             logger.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
             current_chunk = 1
             for chunk in message_chunks:
-                logger.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
+                
                 chunk = f"({current_chunk}/{total_messages}) {chunk}"
+                logger.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
                 try:
                     interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
                     # wait a bit between chunks to avoid overwhelming the network
-                    time.sleep(0.5)
+                    time.sleep(2)
                 except Exception as e:
                     logger.error(f"Error sending chunk: {e}")
                     return
