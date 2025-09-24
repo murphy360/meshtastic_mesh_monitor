@@ -29,6 +29,8 @@ class GeminiInterface(BaseInterface):
         """
         super().__init__(config_manager=config_manager, cache_duration_seconds=0)  # No caching for AI responses
         
+        self.logger = get_logger(__name__)
+        self.logger.info(f"Initializing GeminiInterface at location: {location}")
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not self.gemini_api_key:
             self.logger.error("GEMINI_API_KEY environment variable not set")
