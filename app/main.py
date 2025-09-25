@@ -491,12 +491,12 @@ def check_node_health(interface, node):
         elif battery_level > 50:
             logger.info(f"Battery level is returning to normal for node {node['user']['shortName']} - {battery_level}%")
             # Clear any active alerts for this node
-            send_llm_callback = False
+            should_send_message= False
             for key in list(active_health_alerts.keys()):
                 if key.startswith(f"battery_{node['num']}"):
-                    send_llm_callback = True
+                    should_send_message = True
                     del active_health_alerts[key]
-            if send_llm_callback:
+            if should_send_message:
                 logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
                 message_sender.send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
     
@@ -548,40 +548,6 @@ def reply_to_direct_message(interface, message, channel, from_id):
     logger.debug(f"Response: {response_text}")
     message_sender.send_message(interface, response_text, channel, from_id)   
     
-def send_llm_callback(message, channel, to_id, file_path=None, url=None):
-    """
-    Callback function to send a message to the LLM and receive a response.
-    Args:
-        message (str): The message to send.
-        channel (int): The channel to send the message to.
-        to_id (str): The ID of the recipient.
-    """
-    logger.info(f"send_llm_callback called with message: {message}, channel: {channel}, to_id: {to_id}")
-
-    if file_path:
-        logger.info(f"File path provided: {file_path}")
-        # Here you can handle the file if needed, e.g., upload it or process it.
-        # For now, we will just log it.
-        pdf_summary = gemini_interface.summarize_pdf(file_path)
-        message = f"{message}\nSummary: {pdf_summary}"
-
-    # Get the interface from the global variable
-    global interface
-    if interface is None:
-        logger.error("Interface is not initialized. Cannot send LLM callback.")
-        return
-    
-    # If a URL is provided, use the send_llm_message_with_url function
-    if url:
-        logger.info(f"URL provided: {url}")
-        message_sender.send_llm_message_with_url(interface, message, channel, to_id, url)
-    else:
-        logger.info("No URL provided, using send_llm_message function")
-        # Use the send_llm_message function to send the message
-        message_sender.send_llm_message(interface, message, channel, to_id)
-
-    # send_llm_message_with_url is now handled by MessageSender. Use message_sender.send_llm_message_with_url(interface, message, channel, to_id, url)
-
 def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
     """
     Send a thumbs up reaction to a message.
@@ -861,7 +827,6 @@ while True:
 
         # Check rss feed
         rss_interface.check_feeds_if_needed(
-            message_callback=send_llm_callback,
             channel=admin_channel_number,
             destination="^all"
         )

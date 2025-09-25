@@ -4,10 +4,14 @@ from typing import Dict, List, Any
 import xml.etree.ElementTree as ET
 from core.base_interfaces import FeedInterface
 from utils.logger import get_logger
+from utils.message_sender import MessageSender
+
 
 class RSSInterface(FeedInterface):
     """Interface for accessing and monitoring RSS feeds."""
     
+    message_sender = MessageSender()
+
     def __init__(self, discard_initial_items: bool = True, config_manager=None):
         """
         Initialize the RSS interface.
@@ -55,24 +59,9 @@ class RSSInterface(FeedInterface):
                         self.logger.warning(f"Invalid feed configuration: missing id or url - {feed_config}")
             except Exception as e:
                 self.logger.error(f"Error loading feeds from configuration: {e}")
-                self._load_default_feeds()
         else:
-            self.logger.warning("No configuration manager provided, using default feeds")
-            self._load_default_feeds()
+            self.logger.warning("No configuration manager provided. No feeds loaded.")
 
-    def _load_default_feeds(self):
-        """Load default RSS feeds if configuration is not available."""
-        default_feeds = {
-            "twinsburg_calendar": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=58&CID=All-calendar.xml",
-            "twinsburg_news": "https://www.mytwinsburg.com/RSSFeed.aspx?ModID=65&CID=All-0"
-        }
-        
-        for feed_id, feed_url in default_feeds.items():
-            # Use base class method to add feeds
-            self.add_feed(feed_id, feed_url, 3600)  # 1 hour interval in seconds
-            self.last_poll_time[feed_id] = datetime.now(timezone.utc) - self.check_interval
-            
-        self.logger.debug(f"RSS Interface initialized with {len(self.feeds)} default feeds")
 
     def parse_feed(self, feed_content: str) -> List[Dict[str, str]]:
         """
@@ -185,15 +174,15 @@ class RSSInterface(FeedInterface):
         
         return new_items
     
-    def check_feeds_if_needed(self, message_callback, channel: int, destination: str):
+    def check_feeds_if_needed(self, channel: int, destination: str):
         """
         Check all configured RSS feeds if the check interval has elapsed.
         
         Args:
-            message_callback: Function to call with new items found
             channel: Channel ID for sending messages
             destination: Destination ID for messages (usually "^all")
         """
+
         now = datetime.now(timezone.utc)
         
         for feed_id, last_check in self.last_poll_time.items():
@@ -210,8 +199,8 @@ class RSSInterface(FeedInterface):
                         message += f"Link: {item.get('link', 'No Link')}\n"
                         message += f"Description: {item.get('description', 'No Description')}\n"
                         message += f"Published: {item.get('pubDate', 'No Date')}\n"
-                        
-                        message_callback(message, channel, destination)
+                        # Use MessageSender to send the message
+                        self.message_sender.send_llm_message(self.interface, message, channel, destination)
                 else:
                     self.logger.debug(f"No new items found in RSS feed '{feed_id}'")
 
