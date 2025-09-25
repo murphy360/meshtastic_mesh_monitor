@@ -46,6 +46,7 @@ class StatusKeyword(KeywordHandler):
         # There is no getConnectionStatus() method, so we instantiate DeviceConnectionStatus and show its fields
         status = connection_status_pb2.DeviceConnectionStatus()
         status_dict = self._protobuf_to_dict(status)
+        self.logger.debug(f"[handle] Connection status dict: {json.dumps(status_dict, indent=2)}")
 
         # Pretty print the status dict as a message
         def pretty_print_status(data, indent=0):
