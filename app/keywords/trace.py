@@ -19,6 +19,7 @@ class TraceKeyword(KeywordHandler):
         #sitrep = packet['sitrep'] if 'sitrep' in packet else None
         channel = packet['channel'] if 'channel' in packet else 0
         to_id = packet['to'] if 'to' in packet else '^all'
+        original_message_id = packet.get('id')
         # Extract message and args from decoded payload
         if 'decoded' not in packet or 'payload' not in packet['decoded']:
             self.logger.error("[handle] No decoded payload found in packet for trace keyword.")
@@ -38,7 +39,7 @@ class TraceKeyword(KeywordHandler):
             hop_limit = 4
 
             try:
-                message_sender.send_trace_route(interface, node['num'], channel, hop_limit, to_id)
+                message_sender.send_trace_route(interface, node['num'], channel, hop_limit, to_id, original_message_id)
                 self.logger.info(f"[handle] Traceroute request sent to node {node_identifier} - {node['num']} with hop_limit {hop_limit}")
             except Exception as e:
                 self.logger.error(f"[handle] Error sending traceroute request to node {node_identifier}: {e}")

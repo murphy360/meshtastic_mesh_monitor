@@ -158,7 +158,7 @@ class MessageSender:
         time.sleep(3)
         self.send_message(interface, f"Link: {url}", channel, to_id)
 
-    def send_trace_route(self, interface, node_num, channel, hop_limit=2, to_id="^all"):
+    def send_trace_route(self, interface, node_num, channel, hop_limit=2, to_id="^all", original_message_id=None):
         """
         Send a traceroute request to a specified node.
 
@@ -173,6 +173,8 @@ class MessageSender:
         if node and 'user' in node and 'shortName' in node['user']:
             node_name = node['user']['shortName']
         try:
+            if original_message_id:
+                self.send_llm_reply(interface, channel, original_message_id, to_id, f"Sending traceroute request to node {node_name} - {node_num}")
             self.logger.info(f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit}")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             self.logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
@@ -184,8 +186,60 @@ class MessageSender:
             else:
                 user_response = f"Error sending traceroute request to {node_name}: {e}"
                 self.logger.error(f"Error sending traceroute request: {e}") 
+            
+            if original_message_id:
+                self.send_llm_reply(interface, channel, original_message_id, to_id, user_response)
+            else: 
+                self.send_llm_message(interface, user_response, channel, to_id)
 
-            self.send_llm_message(interface, user_response, channel, to_id)
+    def send_llm_reply(self, interface, channel, original_message_id, to_id, reply_text):
+        """
+        Send a reply to a message using sendData with replyId.
+        Args:
+            interface: The interface to interact with the mesh network.
+            channel (int): The channel to send the message to.
+            original_message_id (str|int): The ID of the original message to reply to.
+            to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
+            reply_text (str): The text of the reply message.
+        """
+        self.logger.info(f"send_llm_reply called with original_message_id: {original_message_id}, to_id: {to_id}, reply_text: {reply_text}")
+        response = self.gemini_interface.generate_response(reply_text, channel)
+        if response:
+            self.logger.info(f"LLM Reply Response: {response}")
+            self.send_reply(interface, channel, original_message_id, to_id, response)
+        else:
+            self.logger.warning("LLM did not return a response for reply.")
+            self.send_reply(interface, channel, original_message_id, to_id, reply_text)
+
+    def send_reply(self, interface, channel, original_message_id, to_id, reply_text):
+        """
+        Send a reply to a message using sendData with replyId.
+        Args:
+            interface: The interface to interact with the mesh network.
+            channel (int): The channel to send the message to.
+            original_message_id (str|int): The ID of the original message to reply to.
+            to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
+            reply_text (str): The text of the reply message.
+        """
+        self.logger.info(f"Sending reply to node {to_id} with original message ID {original_message_id}")
+        try:
+            # Prepare reply as a Data protobuf, ensure UTF-8 encoding and set reply_id
+            from meshtastic.protobuf import mesh_pb2, portnums_pb2
+            data_message = mesh_pb2.Data(
+                payload=reply_text.encode("utf-8"),
+                reply_id=original_message_id
+            )
+            sent_packet = interface.sendData(
+                data_message,
+                destinationId=to_id,
+                channelIndex=channel,
+                portNum=portnums_pb2.TEXT_MESSAGE_APP,
+                wantResponse=False,
+                wantAck=False
+            )
+            self.logger.info(f"Sent reply packet: {sent_packet}")
+        except Exception as e:
+            self.logger.error(f"Error sending reply: {e}")
                
     def send_thumbs_up_reply(self, interface, channel, original_message_id, to_id):
         """

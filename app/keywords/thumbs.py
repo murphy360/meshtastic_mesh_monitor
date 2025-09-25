@@ -27,10 +27,10 @@ class ThumbsKeyword(KeywordHandler):
 
         # Use the message ID from the packet itself
         self.logger.info(f"[handle] Packet contents: {packet}")
-        message_id = packet.get('id')
-        if not message_id:
+        original_message_id = packet.get('id')
+        if not original_message_id:
             self.logger.error("[handle] No message ID found in packet for thumbs keyword.")
             self.message_sender.send_message(interface, "No message ID found in packet for thumbs keyword.", channel, to_id)
             return
-        self.logger.info(f"[handle] Sending thumbs up for message ID: {message_id}")
-        self.message_sender.send_thumbs_up_reply(interface, channel, message_id, to_id)
+        self.logger.info(f"[handle] Sending thumbs up for message ID: {original_message_id}")
+        self.message_sender.send_thumbs_up_reply(interface, channel, original_message_id, to_id)
