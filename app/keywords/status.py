@@ -70,4 +70,4 @@ class StatusKeyword(KeywordHandler):
             reply = "No connection status available."
             self.logger.warning("[handle] No connection status available.")
 
-        self.message_sender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_llm_message(interface, reply, channel, to_id)
