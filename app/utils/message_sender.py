@@ -6,14 +6,18 @@ from meshtastic import config_pb2, mesh_pb2, portnums_pb2
 from utils.node_info_utils import lookup_node
 import base64
 
-logger = get_logger(__name__)
+
 
 class MessageSender:
     """
     Utility class for sending messages to nodes/channels, including chunking and error handling.
     """
+
+    
+
     def __init__(self):
-        self.gemini_interface = GeminiInterface.get_instance()
+        gemini_interface = GeminiInterface.get_instance()
+        logger = get_logger(__name__)
 
     def send_llm_message(self, interface, message, channel, to_id):
         """
@@ -21,21 +25,23 @@ class MessageSender:
         """
         # Check if to_id is not "^all"
         if to_id != "^all":
+            self.logger.info(f"send_llm_message called with message: {message}, channel: {channel}, to_id: {to_id}")
             to_node = lookup_node(interface, to_id)
             node_name = "Unknown"
             if to_node and 'user' in to_node and 'shortName' in to_node['user']:
                 node_name = to_node['user']['shortName']
                 
-            message = f"@{node_name} {message}"
+            message = f"{node_name}, {message}"
             response = self.gemini_interface.generate_response(message, channel, node_name)
         else: 
+            self.logger.info(f"send_llm_message called with message: {message}, channel: {channel}, to_id: {to_id}")
             response = self.gemini_interface.generate_response(message, channel)
 
         if response:
-            logger.info(f"LLM Response: {response}")
+            self.logger.info(f"LLM Response: {response}")
             self.send_message(interface, response, channel, to_id)
         else:
-            logger.warning("LLM did not return a response.")
+            self.logger.warning("LLM did not return a response.")
             self.send_message(interface, message, channel, to_id)
 
         
@@ -48,32 +54,32 @@ class MessageSender:
         if len(message) > 240:
             message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
             total_messages = len(message_chunks)
-            logger.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
+            self.logger.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
             current_chunk = 1
             for chunk in message_chunks:
                 
                 chunk = f"({current_chunk}/{total_messages}) {chunk}"
-                logger.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
+                self.logger.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
                 try:
                     interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
                     # wait a bit between chunks to avoid overwhelming the network
                     time.sleep(3)
                 except Exception as e:
-                    logger.error(f"Error sending chunk: {e}")
+                    self.logger.error(f"Error sending chunk: {e}")
                     return
                 current_chunk += 1
         else:
-            logger.debug(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
+            self.logger.debug(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
             try:
                 sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
-                logger.debug(f"Sent message: {sent_message}")
+                self.logger.debug(f"Sent message: {sent_message}")
             except Exception as e:
                 if "Data payload too big" in str(e):
-                    logger.error("Message too long to send. Please shorten the message.")
+                    self.logger.error("Message too long to send. Please shorten the message.")
                     if self.send_llm_message:
                         self.send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
                     return
-                logger.error(f"Error sending message: {e}")
+                self.logger.error(f"Error sending message: {e}")
                 return
            
             
@@ -87,7 +93,7 @@ class MessageSender:
             public_channel_number (int): The public channel to send node info to.
             admin_channel_number (int): The admin channel to send error messages to.
         """
-        logger.info(f"Sending node info on public channel {public_channel_number}")
+        self.logger.info(f"Sending node info on public channel {public_channel_number}")
         try:
             user = mesh_pb2.User()
             local_node_user = interface.nodesByNum[interface.localNode.nodeNum]['user']
@@ -95,10 +101,10 @@ class MessageSender:
             user.long_name = local_node_user['longName']
             user.short_name = local_node_user['shortName']
             user.hw_model = mesh_pb2.HardwareModel.Value(local_node_user['hwModel'])
-            logger.info(f"User ID: {user.id}")
+            self.logger.info(f"User ID: {user.id}")
             user.public_key = base64.b64decode(local_node_user['publicKey'])
             if 'role' in local_node_user and local_node_user['role']:
-                logger.info(f"User role: {local_node_user['role']}")
+                self.logger.info(f"User role: {local_node_user['role']}")
                 user.role = config_pb2.Config.DeviceConfig.Role.Value(local_node_user['role'])
             interface.sendData(
                 user,
@@ -107,9 +113,9 @@ class MessageSender:
                 wantAck=False,
                 wantResponse=True
             )
-            logger.info(f"Node info sent to public channel {public_channel_number}")
+            self.logger.info(f"Node info sent to public channel {public_channel_number}")
         except Exception as e:
-            logger.error(f"Error sending node info to public channel {public_channel_number}: {e}")
+            self.logger.error(f"Error sending node info to public channel {public_channel_number}: {e}")
             sender = MessageSender()
             message = f"Error sending node info to public channel: {e}"
             sender.send_message(interface, message, admin_channel_number, "^all")
@@ -124,7 +130,7 @@ class MessageSender:
             node_num (int): The number of the node to send the request to.
             public_channel_number (int): The channel to send the request on (default: 0).
         """
-        logger.info(f"Sending position request to node {node_num}")
+        self.logger.info(f"Sending position request to node {node_num}")
         try:
             interface.sendPosition(
                 destinationId=node_num,
@@ -132,7 +138,7 @@ class MessageSender:
                 channelIndex=public_channel_number
             )
         except Exception as e:
-            logger.error(f"Error sending position request: {e}")
+            self.logger.error(f"Error sending position request: {e}")
     
     def send_llm_message_with_url(self, interface, message, channel, to_id, url):
         """
@@ -173,13 +179,14 @@ class MessageSender:
         node_name = "Unknown"
         if node and 'user' in node and 'shortName' in node['user']:
             node_name = node['user']['shortName']
-        logger.info(f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit}")
         try:
+            logger.info(f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit}")
             interface.sendTraceRoute(node_num, hop_limit, channel)
             logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
         except Exception as e:
             user_reponse = f"Error sending traceroute request to {node_name}: {e}"
+            logger.error(f"Error sending traceroute request: {e}")   
             self.send_llm_message(interface, user_reponse, channel, to_id)
-            logger.error(f"Error sending traceroute request: {e}")      
+               
 
             
