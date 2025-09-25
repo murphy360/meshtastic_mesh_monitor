@@ -7,6 +7,7 @@ from utils.node_info_utils import lookup_node
 import base64
 
 class MessageSender:
+
     logger = get_logger(__name__)
 
     def __init__(self):
@@ -186,5 +187,34 @@ class MessageSender:
 
             self.send_llm_message(interface, user_response, channel, to_id)
                
-
+    def send_thumbs_up_reply(self, interface, channel, original_message_id, to_id):
+        """
+        Send a thumbs up reaction to a message using sendData with replyId.
+        Args:
+            interface: The interface to interact with the mesh network.
+            channel (int): The channel to send the message to.
+            original_message_id (str|int): The ID of the original message to react to.
+            to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
+        """
+        self.logger.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
+        try:
+            # Prepare thumbs up as a Data protobuf
+            from meshtastic.protobuf import mesh_pb2, portnums_pb2
+            data_message = mesh_pb2.Data(
+                payload="👍".encode(),
+                reply_id=original_message_id,
+                emoji=True
+            )
+            sent_packet = interface.sendData(
+                data_message,
+                destinationId=to_id,
+                channelIndex=channel,
+                portNum=portnums_pb2.TEXT_MESSAGE_APP,
+                wantResponse=False,
+                wantAck=False,
+                replyId=original_message_id
+            )
+            self.logger.info(f"Sent thumbs up packet: {sent_packet}")
+        except Exception as e:
+            self.logger.error(f"Error sending thumbs up: {e}")
             
