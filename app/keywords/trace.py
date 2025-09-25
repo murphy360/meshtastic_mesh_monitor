@@ -35,11 +35,8 @@ class TraceKeyword(KeywordHandler):
 
         node = lookup_node(interface, node_identifier)
         if node:
-            hop_limit = 2
-            if "hopsAway" in node:
-                hop_limit = int(node["hopsAway"]) + 1
-            if hop_limit < 1:
-                hop_limit = 1
+            hop_limit = 4
+
             try:
                 message_sender.send_trace_route(interface, node['num'], channel, hop_limit, to_id)
                 self.logger.info(f"[handle] Traceroute request sent to node {node_identifier} - {node['num']} with hop_limit {hop_limit}")
