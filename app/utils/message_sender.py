@@ -202,7 +202,7 @@ class MessageSender:
             from meshtastic.protobuf import mesh_pb2, portnums_pb2
             data_message = mesh_pb2.Data(
                 payload="👍".encode("utf-8"),
-                reply_id=original_message_id,
+                #reply_id=original_message_id,
                 emoji=True
             )
             sent_packet = interface.sendData(
