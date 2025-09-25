@@ -43,6 +43,8 @@ def on_receive_traceroute(packet, interface, db_helper, sitrep, public_channel_n
     message_string = ""
     originator_node = lookup_node(interface, packet['from'])
     traced_node = lookup_node(interface, packet['to'])
+    
+    logger.info(f"[on_receive_traceroute] {packet}")
 
     logger.debug(f"Trace Route Packet: {trace}")
 
