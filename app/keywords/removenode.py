@@ -27,17 +27,21 @@ class RemovenodeKeyword(KeywordHandler):
 
         # Extract node to remove short name from message
         node_short_name = message.split(" ")[-1]
+        self.logger.info(f"[handle] Attempting to remove node with short name: {node_short_name}")
         nodes = lookup_nodes(interface, node_short_name)
+        self.logger.info(f"[handle] Found {len(nodes)} nodes matching short name '{node_short_name}'")
         log_message = ""
         if len(nodes) > 0:
             for node in nodes:
                 self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']}")
-                log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
+                
                 RemovenodeKeyword.db_helper.remove_node(node)
                 if node['num'] in interface.nodesByNum:
+                    log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
                     self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']} from interface")
                     local_node = interface.getNode('^local')
                     local_node.removeNode(node['num'])
+                
                 try:
                     deleted_node = lookup_node(interface, node_short_name)
                     if deleted_node:
@@ -47,9 +51,11 @@ class RemovenodeKeyword(KeywordHandler):
                 except Exception as e:
                     self.logger.error(f"[handle] Error looking up node {node_short_name} after removal: {e}")
             
+            self.logger.info(f"[handle] Sending confirmation message.")
             message_sender.send_message(interface, log_message, channel, to_id)
             
             #if sitrep:
                 #sitrep.log_message_sent("node-removed")
         else:
+            self.logger.info(f"[handle] Node {node_short_name} not found in my database. Unable to remove.")
             message_sender.send_message(interface, f"Node {node_short_name} not found. Unable to remove from my database.", channel, to_id)
