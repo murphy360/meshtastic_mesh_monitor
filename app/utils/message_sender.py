@@ -235,7 +235,9 @@ class MessageSender:
                 channelIndex=channel,
                 portNum=portnums_pb2.TEXT_MESSAGE_APP,
                 wantResponse=False,
-                wantAck=False
+                wantAck=False,
+                reply_id=original_message_id
+
             )
             self.logger.info(f"Sent reply packet: {sent_packet}")
         except Exception as e:
@@ -265,7 +267,8 @@ class MessageSender:
                 channelIndex=channel,
                 portNum=portnums_pb2.TEXT_MESSAGE_APP,
                 wantResponse=False,
-                wantAck=False
+                wantAck=False,
+                reply_id=original_message_id
             )
             self.logger.info(f"Sent thumbs up packet: {sent_packet}")
         except Exception as e:
