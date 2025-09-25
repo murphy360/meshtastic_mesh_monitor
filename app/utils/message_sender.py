@@ -19,13 +19,13 @@ class MessageSender:
         self.logger.info(f"send_llm_message called with message: {message}, channel: {channel}, to_id: {to_id}")
         if to_id != "^all":
             to_node = lookup_node(interface, to_id)
-            node_name = "Unknown"
             if to_node and 'user' in to_node and 'shortName' in to_node['user']:
                 node_name = to_node['user']['shortName']
-            message = f"{node_name}, {message}"
-            response = self.gemini_interface.generate_response(message, channel, node_name)
-        else:
-            response = self.gemini_interface.generate_response(message, channel)
+                message = f"{node_name}, {message}"
+                response = self.gemini_interface.generate_response(message, channel, node_name)
+                return
+            
+        response = self.gemini_interface.generate_response(message, channel)
 
         if response:
             self.logger.info(f"LLM Response: {response}")
@@ -174,9 +174,15 @@ class MessageSender:
             interface.sendTraceRoute(node_num, hop_limit, channel)
             self.logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
         except Exception as e:
-            user_reponse = f"Error sending traceroute request to {node_name}: {e}"
-            self.logger.error(f"Error sending traceroute request: {e}")   
-            self.send_llm_message(interface, user_reponse, channel, to_id)
+            user_response = f"Error sending traceroute request to {node_name}: {e}"
+            if e == "Timed out waiting for traceroute":
+                user_response = f"Timed out waiting for traceroute response from {node_name}. Try again later."
+                self.logger.warning(user_response)
+            else:
+                user_response = f"Error sending traceroute request to {node_name}: {e}"
+                self.logger.error(f"Error sending traceroute request: {e}") 
+
+            self.send_llm_message(interface, user_response, channel, to_id)
                
 
             
