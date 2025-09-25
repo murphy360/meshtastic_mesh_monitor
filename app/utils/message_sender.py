@@ -198,11 +198,11 @@ class MessageSender:
         """
         self.logger.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
         try:
-            # Prepare thumbs up as a Data protobuf
+            # Prepare thumbs up as a Data protobuf, ensure UTF-8 encoding and set reply_id
             from meshtastic.protobuf import mesh_pb2, portnums_pb2
             data_message = mesh_pb2.Data(
-                payload="👍".encode(),
-                #reply_id=original_message_id,
+                payload="👍".encode("utf-8"),
+                reply_id=original_message_id,
                 emoji=True
             )
             sent_packet = interface.sendData(
@@ -211,8 +211,7 @@ class MessageSender:
                 channelIndex=channel,
                 portNum=portnums_pb2.TEXT_MESSAGE_APP,
                 wantResponse=False,
-                wantAck=False,
-                replyId=original_message_id
+                wantAck=False
             )
             self.logger.info(f"Sent thumbs up packet: {sent_packet}")
         except Exception as e:
