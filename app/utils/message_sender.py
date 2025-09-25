@@ -201,7 +201,7 @@ class MessageSender:
             # Prepare thumbs up as a Data protobuf
             from meshtastic.protobuf import mesh_pb2, portnums_pb2
             data_message = mesh_pb2.Data(
-                payload="👍".encode(),
+                payload="👍",
                 reply_id=original_message_id,
                 emoji=True
             )
