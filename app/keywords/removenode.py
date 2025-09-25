@@ -4,7 +4,7 @@ from utils.message_sender import MessageSender
 from utils.logger import get_logger
 from core.database import SQLiteHelper
 
-class RemoveNodeKeyword(KeywordHandler):
+class RemovenodeKeyword(KeywordHandler):
         
     db_helper = SQLiteHelper("/data/mesh_monitor.db")
     logger = get_logger(__name__)
@@ -33,7 +33,7 @@ class RemoveNodeKeyword(KeywordHandler):
             for node in nodes:
                 self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']}")
                 log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
-                RemoveNodeKeyword.db_helper.remove_node(node)
+                RemovenodeKeyword.db_helper.remove_node(node)
                 if node['num'] in interface.nodesByNum:
                     self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']} from interface")
                     local_node = interface.getNode('^local')
