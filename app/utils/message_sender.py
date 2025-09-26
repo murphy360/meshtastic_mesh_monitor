@@ -7,6 +7,7 @@ from utils.node_info_utils import lookup_node
 import base64
 
 class MessageSender:
+    
 
     logger = get_logger(__name__)
 
@@ -158,6 +159,31 @@ class MessageSender:
         # wait 3 seconds to avoid overwhelming the network
         time.sleep(3)
         self.send_message(interface, f"Link: {url}", channel, to_id)
+
+    def send_direct_reply(self, interface, message, channel, from_id):
+        """
+        Reply to a direct message. Logic moved from main.py.
+        Args:
+            interface: The mesh network interface object.
+            message (str): The message to reply with.
+            channel (int): The channel to send the reply on.
+            from_id: The node ID to reply to.
+            gemini_interface: Optional GeminiInterface instance for LLM response.
+        """
+        self.logger.info(f"Replying to direct message: {message}")
+        node = lookup_node(interface, from_id)
+        response_text = ""
+        if node is None:
+            response_text = "I'm sorry, I couldn't find your user information. I am an auto-responder and I can only respond to ping and direct messages."
+            self.logger.warning(f"Node not found for from_id {from_id}, sending default response")
+            self.send_message(interface, response_text, channel, from_id)
+            return
+        if 'user' in node and 'shortName' in node['user']:
+            self.logger.info(f"Node found: {node['user']['shortName']} - {node['num']}")
+            short_name = node['user']['shortName']
+            response_text = self.gemini_interface.generate_response(message, channel, short_name)
+        self.logger.debug(f"Response: {response_text}")
+        self.send_message(interface, response_text, channel, from_id)
 
     def send_trace_route(self, interface, node_num, channel, hop_limit=2, to_id="^all", original_message_id=None):
         """

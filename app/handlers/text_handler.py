@@ -1,69 +1,69 @@
-import importlib
-import os
-from utils.logger import get_logger
+from handlers.base_handler import BaseHandler
 from utils.node_info_utils import lookup_node
 
-logger = get_logger(__name__)
+class TextHandler(BaseHandler):
+    def __init__(self):
+        super().__init__()
 
-def on_receive_text(packet, interface, public_channel_number, reply_to_direct_message):
-    """
-    Handler for text packets. Extracts node info and logs the event.
-    Args:
-        packet (dict): The received packet data.
-        interface: The interface object representing the connection.
-        public_channel_number (int): Public channel number.
-        reply_to_direct_message (function): Function to reply to direct messages.
-        reply_to_message (function): Function to reply to channel/broadcast messages.
-    Safety:
-        - Skips handling if node cannot be found.
-        - Ignores packets from the local node.
-    """
+    def on_receive(self, packet, interface, public_channel_number=None):
+        """
+        Handler for text packets. Extracts node info and logs the event.
+        Args:
+            packet (dict): The received packet data.
+            interface: The interface object representing the connection.
+            public_channel_number (int): Public channel number.
+            reply_to_direct_message (function): Function to reply to direct messages.
+            reply_to_message (function): Function to reply to channel/broadcast messages.
+        Safety:
+            - Skips handling if node cannot be found.
+            - Ignores packets from the local node.
+        """
+        from_node_num = packet['from']
+        node = lookup_node(interface, from_node_num)
+        node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
+        self.logger.info(f"[on_receive_text] onReceiveText called for node {node_short_name} - {from_node_num}")
+        localNode = interface.getNode('^local')
+        if node is None:
+            self.logger.warning(f"[on_receive_text] onReceiveText: Node {from_node_num} not found, skipping text handling.")
+            return
+        if localNode.nodeNum == from_node_num:
+            # Ignore packets from local node
+            return
+        channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
+        if 'channel' in packet:
+            channelId = packet['channel']
 
-    from_node_num = packet['from']
-    node = lookup_node(interface, from_node_num)
-    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-    logger.info(f"[on_receive_text] onReceiveText called for node {node_short_name} - {from_node_num}")
-    localNode = interface.getNode('^local')
-    if node is None:
-        logger.warning(f"[on_receive_text] onReceiveText: Node {from_node_num} not found, skipping text handling.")
-        return
-    if localNode.nodeNum == from_node_num:
-        # Ignore packets from local node
-        return
-    channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
-    if 'channel' in packet:
-        channelId = packet['channel']
+            self.logger.debug(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num} - Channel: {channelId}")
 
-    logger.debug(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num} - Channel: {channelId}")
+            if 'decoded' in packet:
+                portnum = packet['decoded']['portnum']
+                payload = packet['decoded']['payload']
+                bitfield = packet['decoded']['bitfield']
+                message_bytes = packet['decoded']['payload']
+                message_string = message_bytes.decode('utf-8')
+                message_id = packet['id']
+                self.logger.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
 
-    if 'decoded' in packet:
-        portnum = packet['decoded']['portnum']
-        payload = packet['decoded']['payload']
-        bitfield = packet['decoded']['bitfield']
-        message_bytes = packet['decoded']['payload']
-        message_string = message_bytes.decode('utf-8')
-        message_id = packet['id']
-        logger.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
-    else:
-        logger.debug(f"Packet does not contain decoded data")
-        return
+                if message_string == "👍":
+                    self.logger.debug(packet)
 
-    if message_string == "👍":
-        logger.debug(packet)
-
-    if 'toId' in packet:
-        to_id = packet['to']
-        if to_id == localNode.nodeNum: # Message sent directly to local node
-            logger.info(f"Direct message received from {node_short_name}: '{message_string}'")
-            reply_to_direct_message(interface, message_string, channelId, packet['from'])
-        elif 'channel' in packet: # Message sent to a channel
-            logger.info(f"Channel message from {node_short_name}: '{message_string}'")
-            channelId = int(packet['channel'])
-            check_keywords(interface, packet)
+                if 'toId' in packet:
+                    to_id = packet['to']
+                    if to_id == localNode.nodeNum: # Message sent directly to local node
+                        self.logger.info(f"Direct message received from {node_short_name}: '{message_string}'")
+                        self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
+                    elif 'channel' in packet: # Message sent to a channel
+                        self.logger.info(f"Channel message from {node_short_name}: '{message_string}'")
+                        channelId = int(packet['channel'])
+                        check_keywords(interface, packet)
+            else:
+                self.logger.debug(f"Packet does not contain decoded data")
+                return
+                
         else:
-            # Unhandled case, possibly publick channel
-            logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
-            logger.info(packet)
+            # Unhandled case, possibly public channel
+            self.logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
+            self.logger.info(packet)
             check_keywords(interface, packet)
             
 

@@ -21,7 +21,7 @@ from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils
-from handlers.text_handler import on_receive_text
+from handlers.text_handler import TextHandler
 from handlers.position_handler import on_receive_position
 from handlers.data_handler import on_receive_data
 from handlers.user_handler import on_receive_user
@@ -210,11 +210,11 @@ def onNodeUpdate(node, interface):
 def onReceiveText(packet, interface):
     logger.debug(f"[FUNCTION] onReceiveText")
     # Pass all required dependencies to the handler
-    on_receive_text(
+    text_handler = TextHandler()
+    text_handler.on_receive(
         packet,
         interface,
-        public_channel_number,
-        reply_to_direct_message
+        public_channel_number
     )
 
 def onReceivePosition(packet, interface):
@@ -490,25 +490,7 @@ def time_since_last_heard(last_heard_time):
     else: # More than a year, return years
         return f"{int(seconds // 31536000)}y"
 
-def reply_to_direct_message(interface, message, channel, from_id):
-    logger.info(f"Replying to direct message: {message}")
-    node = lookup_node(interface, from_id)
-    response_text = ""
-    if node is None:
-        response_text = "I'm sorry, I couldn't find your user information. I am an auto-responder and I can only respond to ping and direct messages."
-        logger.warning(f"Node not found for from_id {from_id}, sending default response")
-        message_sender.send_message(interface, response_text, channel, from_id)
-        return
-    
-    if 'user' in node and 'shortName' in node['user']:
-        # If the node has a user field, use the short name from there
-        logger.info(f"Node found: {node['user']['shortName']} - {node['num']}")
-        short_name = node['user']['shortName']
-        # Gemini interface response
-        response_text = gemini_interface.generate_response(message, channel, short_name)
-  
-    logger.debug(f"Response: {response_text}")
-    message_sender.send_message(interface, response_text, channel, from_id)   
+
     
 def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
     """
