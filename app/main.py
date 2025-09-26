@@ -40,14 +40,18 @@ logger.info("=" * 60)
 logger.info("🚀 STARTING MESH MONITOR")
 logger.info("=" * 60)
 
+db_helper = SQLiteHelper.get_instance()
+sitrep = SITREP()
+
 ## Logging is now handled via utils.logger.get_logger
 
 # Global variables
 localNode = ""
-sitrep = SITREP()
+
 TCP_SERVER = os.getenv('TCP_SERVER', 'meshtastic.local')  # Default to meshtastic.local if not set
 connect_timeout = 60 # seconds
-db_helper = SQLiteHelper.get_instance()
+
+
 
 initial_connect = True
 initial_node_discovery_complete = False  # Track when initial node discovery is done
@@ -66,7 +70,7 @@ last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
-log_filename = f"/data/mesh_monitor_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
+
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
 
 # Message Sender
@@ -111,7 +115,11 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     long_name = node_info['user']['longName']
     location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
     logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
-    gemini_interface = GeminiInterface.get_instance(location=location)
+    if gemini_interface is None:
+        gemini_interface = GeminiInterface.get_instance(location=location)
+    else: 
+        gemini_interface.update_location(location)
+    
     logger.info(gemini_interface.get_status())
     logger.info(f"\n\n \
                 **************************************************************\n \
@@ -403,49 +411,7 @@ def onLog(line, interface):
     Args:
         line (str): The log message.
     """
-    #logger.info(f"Log: {line}")
-    # write to file
-    with open(log_filename, 'a') as f:
-        f.write(f"{line}\n")
-
-def should_trace_node(node, interface):
-    """
-    Determine if a node should be traced based on the last trace time and hops away.
-
-    Args:
-        node_num (int): The node number.
-
-    Returns:
-        bool: True if the node should be traced, False otherwise.
-    """
-    global last_trace_time, trace_interval 
-    node_num = node['num']
-    now = datetime.now(timezone.utc)
-
-    # Check if the node has hopsAway attribute. If not, we should trace it.
-    if "hopsAway" not in node:
-        logger.info(f"Node {node['user']['shortName']} does not have hopsAway attribute, should trace")
-        return True
-    
-    # If node has hopsAway attribute, check if it is greater less than or equal to 1. We should not trace it if it is less than or equal to 1.
-    if node["hopsAway"] < 1:
-        #logger.info(f"Node {node['user']['shortName']} has hopsAway < 1, should not trace")
-        return False
-
-    # Check if we have ever traced this node. If not, we should trace it.
-    if not node_num in last_trace_time:
-        logger.info(f"Node {node['user']['shortName']} has never been traced before, should trace")
-        return True
-    
-    # Check if the node has been traced within the trace interval. If it has been traced recently, we should not trace it.
-    if now - last_trace_time[node_num] <= trace_interval:
-        #logger.info(f"Node {node['user']['shortName']} has been traced within {trace_interval}, should not trace")
-        return False
-    else:
-        # If the node has not been traced within the trace interval, we should trace it.
-        logger.info(f"Node {node['user']['shortName']} has not been traced within {trace_interval}, hopsAway: {node['hopsAway']}, should trace")
-        return True
-
+    logger.debug(f"[onLog] {line}")
 
 def check_node_health(interface, node):
     """
@@ -459,7 +425,7 @@ def check_node_health(interface, node):
         node (dict): The node data.
     """  
     
-    #logger.info(f"Checking health of node {node['user']['shortName']}")
+    logger.debug(f"Checking health of node {node['user']['shortName']}")
     if "deviceMetrics" not in node:
         logger.info(f"Node {node['user']['shortName']} does not have device metrics")
         return
