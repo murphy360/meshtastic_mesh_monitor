@@ -42,12 +42,9 @@ logger = get_logger(__name__)
 # Global variables
 localNode = ""
 sitrep = SITREP()
-location = ""
 TCP_SERVER = os.getenv('TCP_SERVER', 'meshtastic.local')  # Default to meshtastic.local if not set
 connect_timeout = 60 # seconds
-short_name = 'Monitor'  # Overwritten in onConnection
-long_name = 'Mesh Monitor'  # Overwritten in onConnection
-db_helper = SQLiteHelper("/data/mesh_monitor.db")  # Instantiate the SQLiteHelper class
+db_helper = SQLiteHelper.get_instance()
 
 initial_connect = True
 initial_node_discovery_complete = False  # Track when initial node discovery is done
@@ -106,7 +103,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     """
     logger.info("Connection established")
-    global localNode, location, short_name, long_name, sitrep, initial_connect, gemini_interface
+    global localNode, sitrep, initial_connect, gemini_interface
     localNode = interface.getNode('^local')
     node_info = interface.getMyNodeInfo()
     short_name = node_info['user']['shortName']
@@ -217,7 +214,6 @@ def onReceivePosition(packet, interface):
     on_receive_position(
         packet,
         interface,
-        db_helper,
         public_channel_number,
         admin_channel_number
     )
@@ -247,7 +243,6 @@ def onReceiveTraceRoute(packet, interface):
     on_receive_traceroute(
         packet,
         interface,
-        db_helper,
         sitrep,
         public_channel_number,
         admin_channel_number,
@@ -613,11 +608,9 @@ def send_weather_forecast_if_needed(interface, channel):
 
     Args:
         interface: The interface to interact with the mesh network.
-        latitude (float): The latitude of the location.
-        longitude (float): The longitude of the location.
-        node_short_name (str): The short name of the node to send the forecast to.
-        node_long_name (str): The long name of the node to send the forecast to.
         channel (int): The channel to send the message to.
+
+    This function automatically determines the local node's latitude, longitude, short name, and long name, and sends a weather forecast if enough time has passed since the last forecast.
     """
     global last_forecast_sent_time
     
@@ -811,32 +804,35 @@ while True:
             heartbeat_counter = 0  # Reset after sending the warning
             continue  # Skip the rest of the loop and try to reconnect
     
-        # Check for weather alerts
-        send_weather_alerts_if_needed(interface, admin_channel_number)
+        # Only if initial connection is established
+        if initial_connect == False:
 
-        # Check if we need to send a weather forecast
-        send_weather_forecast_if_needed(interface, admin_channel_number)
+            # Check for weather alerts
+            send_weather_alerts_if_needed(interface, admin_channel_number)
 
-        if sitrep is not None and sitrep.interface is not None:
-            # Send a routine sitrep every 24 hours at 00:00 UTC 
-            sitrep.send_sitrep_if_new_day()
-            # Used by meshtastic_mesh_visualizer to display nodes on a map
-            sitrep.write_mesh_data_to_file()
-        elif sitrep is not None:
-            sitrep.set_interface(interface)
+            # Check if we need to send a weather forecast
+            send_weather_forecast_if_needed(interface, admin_channel_number)
 
-        # Check rss feed
-        rss_interface.check_feeds_if_needed(
-            channel=admin_channel_number,
-            destination="^all"
-        )
+            if sitrep is not None and sitrep.interface is not None:
+                # Send a routine sitrep every 24 hours at 00:00 UTC 
+                sitrep.send_sitrep_if_new_day()
+                # Used by meshtastic_mesh_visualizer to display nodes on a map
+                sitrep.write_mesh_data_to_file()
+            elif sitrep is not None:
+                sitrep.set_interface(interface)
 
-        # Check for website updates
-        web_scraper.scrape_websites_if_needed(
-            admin_channel_number,  # or public_channel_number if you prefer
-            "^all",
-            sitrep.log_message_sent
-        )
+            # Check rss feed
+            rss_interface.check_feeds_if_needed(
+                channel=admin_channel_number,
+                destination="^all"
+            )
+
+            # Check for website updates
+            web_scraper.scrape_websites_if_needed(
+                admin_channel_number,  # or public_channel_number if you prefer
+                "^all",
+                sitrep.log_message_sent
+            )
 
         logger.info(f"\n\n \
         **************************************************************\n \
@@ -848,6 +844,9 @@ while True:
             Public Key: {node_info['user']['publicKey']}\n \
             Connection Timeout: {connect_timeout}\n \
             Heartbeat Counter: {heartbeat_counter}\n \
+            Initial Connect: {initial_connect}\n \
+            Initial Node Discovery Complete: {initial_node_discovery_complete}\n \
+            Total Nodes in Database: {db_helper.get_node_count()}\n \
             Last Weather Forecast Sent: {last_forecast_sent_time}\n \
             Gemini Chats: {gemini_interface.get_private_chats_string()}\n \
         **************************************************************\n \

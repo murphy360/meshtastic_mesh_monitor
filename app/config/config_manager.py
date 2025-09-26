@@ -32,12 +32,10 @@ class ConfigManager:
                 self.logger.info(f"Configuration loaded from {self.config_file_path}")
                 return config
             else:
-                self.logger.warning(f"Configuration file not found at {self.config_file_path}, using defaults")
-                return self._get_default_config()
+                self.logger.warning(f"Configuration file not found at {self.config_file_path}, Not using config file.")
         except Exception as e:
-            self.logger.error(f"Error loading configuration: {e}")
-            self.logger.info("Using default configuration")
-            return self._get_default_config()
+            self.logger.error(f"Error loading configuration: {e} Not using config file.")
+        return None
     
     def _get_default_config(self) -> Dict[str, Any]:
         """Return default configuration if no config file is found."""

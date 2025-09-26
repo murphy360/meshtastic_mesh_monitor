@@ -2,14 +2,15 @@ from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
+from core.database import SQLiteHelper
 
 
 
-def on_receive_position(packet, interface, db_helper, public_channel_number, admin_channel_number):
+def on_receive_position(packet, interface, public_channel_number, admin_channel_number):
     message_sender = MessageSender()
     location_utils = LocationUtils()
     logger = get_logger(__name__)
-
+    db_helper = SQLiteHelper.get_instance()
     localNode = interface.getNode('^local')
     from_node_num = packet['from']
     altitude = 0

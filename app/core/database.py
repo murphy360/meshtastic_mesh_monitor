@@ -1,15 +1,26 @@
 import datetime
 import sqlite3
-import logging  # Backward compatibility
 from utils.logger import get_logger
 
-# Get logger instance
-logger = get_logger(__name__)
-
 class SQLiteHelper:
-    def __init__(self, db_name):
-        self.logger = get_logger(self.__class__.__name__)
-        self.db_name = db_name
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            db_name = "/data/mesh_monitor.db"
+            cls._instance = cls(db_name)
+        return cls._instance
+
+    def __new__(cls, db_name, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(SQLiteHelper, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        # Get logger instance
+        self.logger = get_logger(__name__)
+        self.db_name = "/data/mesh_monitor.db"
         self.connect()
         self.create_table("node_database", "key INTEGER PRIMARY KEY, num TEXT, id TEXT, shortname TEXT, longname TEXT, macaddr TEXT, hwModel TEXT, lastHeard TEXT, batteryLevel TEXT, voltage TEXT, channelUtilization TEXT, airUtilTx TEXT, uptimeSeconds TEXT, nodeOfInterest BOOLEAN, aircraft BOOLEAN, created_at TEXT, updated_at TEXT")
         self.create_table("packet_database", "key INTEGER PRIMARY KEY, packet_type TEXT, created_at TEXT, updated_at TEXT, from_node TEXT, to_node TEXT, decoded TEXT, channel TEXT")
@@ -17,7 +28,8 @@ class SQLiteHelper:
         self.create_table("weather_report_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, short_report TEXT, long_report TEXT")
         self.create_table("traceroute_database", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, originator_node TEXT, destination_node TEXT, route_to TEXT, route_back TEXT, snr_to TEXT, snr_back TEXT, hop_count INTEGER")
         self.create_table("node_connections", "key INTEGER PRIMARY KEY, created_at TEXT, updated_at TEXT, node1 TEXT, node2 TEXT, connection_type TEXT, snr REAL, last_seen TEXT, hop_count INTEGER") 
-
+        self.create_table("private_chats", "key INTEGER PRIMARY KEY, created_at TEXT, message_id TEXT, from_node_num TEXT, to_node_num TEXT, message TEXT, model TEXT")
+        
 
     def connect(self):
         """
@@ -623,6 +635,21 @@ class SQLiteHelper:
         """
         self.conn.close()
 
+    def get_node_count(self):
+        """
+        Get the total number of nodes in the node database.
+
+        Returns:
+            int: The total number of nodes.
+        """
+        self.logger.info("Getting node count")
+        query = "SELECT COUNT(*) FROM node_database"
+        cursor = self.conn.execute(query)
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        return 0
+    
     def get_nodes_of_interest(self):
         """
         Get all nodes of interest from the node database.
@@ -653,6 +680,42 @@ class SQLiteHelper:
         for result in results:
             aircraft.append(result[0])
         return aircraft
+    
+    def write_private_message(self, message_id, from_node_num, to_node_num, message, model):
+        """
+        Write a private message to the database.
+
+        Args:
+            message_id (str): The unique ID of the message.
+            from_node_num (str): The node number of the sender.
+            to_node_num (str): The node number of the recipient.
+            message (str): The message content.
+            model (str): The model used to generate the message.
+        """
+        now = datetime.datetime.now()
+        created_at = now.strftime("%Y-%m-%d %H:%M:%S")
+        updated_at = created_at
+        query = "INSERT INTO private_chats (created_at, message_id, from_node_num, to_node_num, message, model) VALUES (?, ?, ?, ?, ?, ?)"
+        self.conn.execute(query, (created_at, message_id, from_node_num, to_node_num, message, model))
+        self.conn.commit()
+        self.logger.info(f"Private message from {from_node_num} to {to_node_num} added: {message_id}")
+
+    def get_private_messages(self, node_num):
+        """
+        Get all private messages for a specific node. Node in either the sender or recipient.
+
+        Args:
+            node_num (str): The node number to get messages for.
+        Returns:
+            list: A list of private messages.
+        """
+        messages = []
+        query = "SELECT * FROM private_chats WHERE from_node_num = ? OR to_node_num = ? ORDER BY created_at DESC"
+        cursor = self.conn.execute(query, (node_num, node_num))
+        results = cursor.fetchall()
+        for result in results:
+            messages.append(result)
+        return messages
 
 # Example usage
 if __name__ == "__main__":

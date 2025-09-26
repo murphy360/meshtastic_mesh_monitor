@@ -1,3 +1,4 @@
+from core.database import SQLiteHelper
 from utils.logger import get_logger
 from datetime import datetime, timezone
 from utils.node_info_utils import lookup_node
@@ -5,7 +6,7 @@ from utils.message_sender import MessageSender
 
 logger = get_logger(__name__)
 
-def on_receive_traceroute(packet, interface, db_helper, sitrep, public_channel_number, admin_channel_number, last_trace_time):
+def on_receive_traceroute(packet, interface, sitrep, public_channel_number, admin_channel_number, last_trace_time):
     """
     Handler for traceroute packets. Extracts node info, processes trace data, and logs the event.
     Args:
@@ -24,6 +25,7 @@ def on_receive_traceroute(packet, interface, db_helper, sitrep, public_channel_n
         - Ignores packets from the local node.
     """
     message_sender = MessageSender()
+    db_helper = SQLiteHelper.get_instance()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
@@ -43,7 +45,7 @@ def on_receive_traceroute(packet, interface, db_helper, sitrep, public_channel_n
     message_string = ""
     originator_node = lookup_node(interface, packet['from'])
     traced_node = lookup_node(interface, packet['to'])
-    
+
     logger.info(f"[on_receive_traceroute] {packet}")
 
     logger.debug(f"Trace Route Packet: {trace}")
