@@ -299,5 +299,4 @@ class MessageSender:
             )
             self.logger.info(f"Sent thumbs up packet: {sent_packet}")
         except Exception as e:
-            self.logger.error(f"Error sending thumbs up: {e}")
-            
+            self.logger.error(f"Error sending thumbs up: {e}")     
