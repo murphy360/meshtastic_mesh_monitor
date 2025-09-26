@@ -265,6 +265,6 @@ class GeminiInterface(BaseInterface):
         Get a printable string of private chat node short names with newlines in between.
         """
         chat_names = '\n'.join(self.private_chats.keys())
-    self._logger.info(f"private_chats_string returning: {chat_names}") 
-        return chat_names 
+        self._logger.info(f"private_chats_string returning: {chat_names}")
+        return chat_names
 
