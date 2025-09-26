@@ -38,6 +38,7 @@ class BaseInterface(ABC):
         self.cache_expiry: Dict[str, datetime] = {}
         self.cache_duration = timedelta(seconds=cache_duration_seconds)
         self.logger = get_logger(self.__class__.__name__)
+        self.logger.info(f"Initialized {self.__class__.__name__}
         
         # Initialize config manager if not provided
         if self.config_manager is None:
