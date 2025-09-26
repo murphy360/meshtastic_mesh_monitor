@@ -1,4 +1,4 @@
-from keywords.base import KeywordHandler
+from keywords.keyword_handler import KeywordHandler
 from utils.message_sender import MessageSender
 from meshtastic.protobuf import connection_status_pb2
 import json

@@ -1,4 +1,4 @@
-from keywords.base import KeywordHandler
+from keywords.keyword_handler import KeywordHandler
 from utils.message_sender import MessageSender
 from utils.node_info_utils import send_node_info
 

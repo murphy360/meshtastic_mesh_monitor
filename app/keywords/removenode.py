@@ -1,4 +1,4 @@
-from keywords.base import KeywordHandler
+from keywords.keyword_handler import KeywordHandler
 from utils.node_info_utils import lookup_node, lookup_nodes
 from utils.message_sender import MessageSender
 from core.database import SQLiteHelper
