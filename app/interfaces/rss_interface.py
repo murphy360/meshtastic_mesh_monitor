@@ -10,9 +10,10 @@ from utils.message_sender import MessageSender
 class RSSInterface(FeedInterface):
     """Interface for accessing and monitoring RSS feeds."""
     
-    message_sender = MessageSender()
+    # message_sender will be instantiated in __init__
 
     def __init__(self, discard_initial_items: bool = True, config_manager=None):
+        self.message_sender = MessageSender()
         """
         Initialize the RSS interface.
         
