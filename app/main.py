@@ -17,7 +17,7 @@ from interfaces.gemini_interface import GeminiInterface
 from interfaces.weather_interface import WeatherGovInterface
 from interfaces.rss_interface import RSSInterface
 from interfaces.web_scraper_interface import WebScraperInterface
-from utils.logger import setup_logging, get_logger
+from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils

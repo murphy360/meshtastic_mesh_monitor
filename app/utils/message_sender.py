@@ -11,6 +11,7 @@ class MessageSender:
     logger = get_logger(__name__)
 
     def __init__(self):
+        self.logger.info(f"Initializing MessageSender")
         self.gemini_interface = GeminiInterface.get_instance()
 
     def send_llm_message(self, interface, message, channel, to_id):
@@ -157,7 +158,7 @@ class MessageSender:
         # wait 3 seconds to avoid overwhelming the network
         time.sleep(3)
         self.send_message(interface, f"Link: {url}", channel, to_id)
-        
+
     def send_trace_route(self, interface, node_num, channel, hop_limit=2, to_id="^all", original_message_id=None):
         """
         Send a traceroute request to a specified node.
