@@ -2,12 +2,12 @@
 from keywords.base import KeywordHandler
 from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
-from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 
 class PingKeyword(KeywordHandler):
 
-    logger = get_logger(__name__)
+    def __init__(self):
+        super().__init__()
 
     def get_description(self):
         """

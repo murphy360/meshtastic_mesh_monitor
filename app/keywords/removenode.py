@@ -1,13 +1,13 @@
 from keywords.base import KeywordHandler
 from utils.node_info_utils import lookup_node, lookup_nodes
 from utils.message_sender import MessageSender
-from utils.logger import get_logger
 from core.database import SQLiteHelper
 
 class RemovenodeKeyword(KeywordHandler):
         
-    db_helper = SQLiteHelper("/data/mesh_monitor.db")
-    logger = get_logger(__name__)
+    def __init__(self):
+        super().__init__()
+        self.db_helper = SQLiteHelper("/data/mesh_monitor.db")
 
     def get_description(self):
         """

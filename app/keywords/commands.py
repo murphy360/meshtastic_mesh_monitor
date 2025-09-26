@@ -2,13 +2,11 @@ from keywords.base import KeywordHandler
 from utils.message_sender import MessageSender
 import importlib
 import os
-from utils.logger import get_logger
 
 class CommandsKeyword(KeywordHandler):
 
-    logger = get_logger(__name__)
-
     def __init__(self):
+        super().__init__()
         self.logger.info(f"[__init__] CommandsKeyword initialized.")
         self.keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
         self.keywords = self._load_keywords()

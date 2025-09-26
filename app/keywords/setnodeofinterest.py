@@ -1,13 +1,14 @@
 from keywords.base import KeywordHandler
-from utils.logger import get_logger
 from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 from core.database import SQLiteHelper
 
 class SetnodeofinterestKeyword(KeywordHandler):
-    logger = get_logger(__name__)
-    db_helper = SQLiteHelper("/data/mesh_monitor.db")
-    message_sender = MessageSender()
+
+    def __init__(self):
+        super().__init__()
+        self.db_helper = SQLiteHelper()
+        self.message_sender = MessageSender()
 
     def handle(self, interface, packet):
         self.logger.info("[handle] SetnodeofinterestKeyword handler invoked.")

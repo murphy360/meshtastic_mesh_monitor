@@ -1,10 +1,10 @@
 from keywords.base import KeywordHandler
 from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
-from utils.logger import get_logger
 
 class TraceKeyword(KeywordHandler):
-    logger = get_logger(__name__)
+    def __init__(self):
+        super().__init__()
 
     def get_description(self):
         """

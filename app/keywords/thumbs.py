@@ -1,10 +1,10 @@
 from keywords.base import KeywordHandler
-from utils.logger import get_logger
 from utils.message_sender import MessageSender
 
 class ThumbsKeyword(KeywordHandler):
-    logger = get_logger(__name__)
-    message_sender = MessageSender()
+    def __init__(self):
+        super().__init__()
+        self.message_sender = MessageSender()
 
     def get_description(self):
         """

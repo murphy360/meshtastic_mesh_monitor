@@ -1,10 +1,10 @@
 from keywords.base import KeywordHandler
-from utils.logger import get_logger
 from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils
 
 class TestKeyword(KeywordHandler):
-    logger = get_logger(__name__)
+    def __init__(self):
+        super().__init__()
 
     def get_description(self):
         """
