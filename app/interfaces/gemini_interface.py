@@ -7,8 +7,10 @@ from utils.logger import get_logger
 
 class GeminiInterface(BaseInterface):
     _instance = None
+    _logger = get_logger(__name__)
 
     def __new__(cls, *args, **kwargs):
+
         if cls._instance is None:
             cls._instance = super(GeminiInterface, cls).__new__(cls)
         return cls._instance
@@ -28,11 +30,11 @@ class GeminiInterface(BaseInterface):
         """
         super().__init__(cache_duration_seconds=0)  # No caching for AI responses
 
-        self.logger = get_logger(__name__)
-        self.logger.info(f"Initializing GeminiInterface at location: {location}")
+
+        self._logger.info(f"Initializing GeminiInterface at location: {location}")
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not self.gemini_api_key:
-            self.logger.error("GEMINI_API_KEY environment variable not set")
+            self._logger.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
 
         self.gemini_model = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
@@ -50,7 +52,7 @@ class GeminiInterface(BaseInterface):
         Update the base system instruction with the current location.
         Logs the current location and instruction.
         """
-        self.logger.info(f"update_base_system_instruction called. location={self.location}")
+        self._logger.info(f"update_base_system_instruction called. location={self.location}")
         self.base_system_instruction = (
             "You are an AI named DPMM (Don't Panic Mesh Monitor). "
             "You are a knowledgeable and professional radio enthusiast. "
@@ -70,10 +72,10 @@ class GeminiInterface(BaseInterface):
         Update the bot's location and recreate the chat models.
         Logs the old and new location.
         """
-        self.logger.info(f"update_location called. new_location={new_location}")
+        self._logger.info(f"update_location called. new_location={new_location}")
         if new_location == self.location:
             return
-        self.logger.info(f"Updating location from {self.location} to {new_location}")
+        self._logger.info(f"Updating location from {self.location} to {new_location}")
         self.location = new_location
         self.update_base_system_instruction()
         # Recreate chats with updated location
@@ -263,6 +265,6 @@ class GeminiInterface(BaseInterface):
         Get a printable string of private chat node short names with newlines in between.
         """
         chat_names = '\n'.join(self.private_chats.keys())
-        self.logger.info(f"private_chats_string returning: {chat_names}") 
+    self._logger.info(f"private_chats_string returning: {chat_names}") 
         return chat_names 
 
