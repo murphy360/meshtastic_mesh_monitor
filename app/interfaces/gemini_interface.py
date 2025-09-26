@@ -14,21 +14,20 @@ class GeminiInterface(BaseInterface):
         return cls._instance
 
     @classmethod
-    def get_instance(cls, location: str = "Unknown Location", config_manager=None):
+    def get_instance(cls, location: str = "Unknown Location"):
         if cls._instance is None:
-            cls._instance = cls(location=location, config_manager=config_manager)
+            cls._instance = cls(location=location)
         return cls._instance
 
-    def __init__(self, location: str = "Unknown Location", config_manager=None):
+    def __init__(self, location: str = "Unknown Location"):
         """
         Initialize the Gemini AI interface.
         
         Args:
             location: Current location for context
-            config_manager: ConfigManager instance for loading configuration
         """
-        super().__init__(config_manager=config_manager, cache_duration_seconds=0)  # No caching for AI responses
-        
+        super().__init__(cache_duration_seconds=0)  # No caching for AI responses
+
         self.logger = get_logger(__name__)
         self.logger.info(f"Initializing GeminiInterface at location: {location}")
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
