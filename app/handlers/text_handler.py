@@ -53,7 +53,7 @@ class TextHandler(BaseHandler):
                 self.check_keywords(interface, packet)
             else:
                 self.logger.info(packet)
-                self.logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
+                self.logger.info(f"Unhandled message from {node_short_name}: '{message_string}'")
            
         else:
             self.logger.info(f'Unable to process text packet')
