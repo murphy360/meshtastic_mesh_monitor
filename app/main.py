@@ -34,8 +34,11 @@ from handlers.waypoint_handler import on_receive_waypoint
 from handlers.range_test_handler import on_receive_range_test
 
 # Initialize unified logging system
-setup_logging(log_level="DEBUG")
 logger = get_logger(__name__)
+
+logger.info("=" * 60)
+logger.info("🚀 STARTING MESH MONITOR")
+logger.info("=" * 60)
 
 ## Logging is now handled via utils.logger.get_logger
 
@@ -89,9 +92,7 @@ rss_interface = RSSInterface()
 # Initialize web scraper interface (config manager will be initialized internally)
 web_scraper = WebScraperInterface(discard_initial_items=True)
 
-logger.info("=" * 60)
-logger.info("🚀 STARTING MESH MONITOR")
-logger.info("=" * 60)
+
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
