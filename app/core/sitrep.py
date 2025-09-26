@@ -26,7 +26,7 @@ class SITREP:
         self.localNodeInfo = None
         self.shortName = None
         self.longName = None
-        self.db_helper = SQLiteHelper.get_instance("/data/mesh_monitor.db")
+        self.db_helper = SQLiteHelper.get_instance()
         self.messages_received = []
         self.packets_received = {"position_app_aircraft": 0}
         self.aircraft_tracks = {}
