@@ -8,17 +8,18 @@ class SQLiteHelper:
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
-            db_name = "/data/mesh_monitor.db"
-            cls._instance = cls(db_name)
+            cls._instance = cls()
         return cls._instance
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super(SQLiteHelper, cls).__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
-        # Get logger instance
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+        self._initialized = True
         self.logger = get_logger(__name__)
         self.db_name = "/data/mesh_monitor.db"
         self.connect()
