@@ -33,7 +33,7 @@ class TextHandler(BaseHandler):
         
         if 'toId' in packet and 'decoded' in packet:
             self.logger.info(f"[on_receive_text] Processing text packet from {node_short_name} - {from_node_num}")   
-            to_id = packet['toId']
+            to_id = packet['to']
 
             portnum = packet['decoded']['portnum']
             payload = packet['decoded']['payload']
