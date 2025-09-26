@@ -28,10 +28,11 @@ class TextHandler(BaseHandler):
             self.logger.warning(f"[on_receive_text] onReceiveText: Node {from_node_num} not found, skipping text handling.")
             return
         if localNode.nodeNum == from_node_num:
-            # Ignore packets from local node
+            self.logger.info(f"[on_receive_text] Received text from local node {node_short_name} - {from_node_num}. Ignoring packet.")
             return
-        channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
+        
         if 'toId' in packet and 'decoded' in packet:
+            self.logger.info(f"[on_receive_text] Processing text packet from {node_short_name} - {from_node_num}")   
             to_id = packet['toId']
 
             portnum = packet['decoded']['portnum']
@@ -43,6 +44,7 @@ class TextHandler(BaseHandler):
             self.logger.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
 
             if to_id == localNode.nodeNum: # Message sent directly to local node
+                channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
                 self.logger.info(f"Direct message received from {node_short_name}: '{message_string}'")
                 self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
             elif 'channel' in packet: # Message sent to a channel
