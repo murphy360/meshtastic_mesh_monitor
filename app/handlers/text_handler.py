@@ -1,3 +1,4 @@
+import importlib
 from handlers.base_handler import BaseHandler
 from utils.node_info_utils import lookup_node
 
@@ -30,68 +31,54 @@ class TextHandler(BaseHandler):
             # Ignore packets from local node
             return
         channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
-        if 'channel' in packet:
-            channelId = packet['channel']
+        if 'toId' in packet and 'decoded' in packet:
+            to_id = packet['toId']
 
-            self.logger.debug(f"[FUNCTION] onReceiveText from {node_short_name} - {from_node_num} - Channel: {channelId}")
+            portnum = packet['decoded']['portnum']
+            payload = packet['decoded']['payload']
+            bitfield = packet['decoded']['bitfield']
+            message_bytes = packet['decoded']['payload']
+            message_string = message_bytes.decode('utf-8')
+            message_id = packet['id']
+            self.logger.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
 
-            if 'decoded' in packet:
-                portnum = packet['decoded']['portnum']
-                payload = packet['decoded']['payload']
-                bitfield = packet['decoded']['bitfield']
-                message_bytes = packet['decoded']['payload']
-                message_string = message_bytes.decode('utf-8')
-                message_id = packet['id']
-                self.logger.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
-
-                if message_string == "👍":
-                    self.logger.debug(packet)
-
-                if 'toId' in packet:
-                    to_id = packet['to']
-                    if to_id == localNode.nodeNum: # Message sent directly to local node
-                        self.logger.info(f"Direct message received from {node_short_name}: '{message_string}'")
-                        self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
-                    elif 'channel' in packet: # Message sent to a channel
-                        self.logger.info(f"Channel message from {node_short_name}: '{message_string}'")
-                        channelId = int(packet['channel'])
-                        check_keywords(interface, packet)
-            else:
-                self.logger.debug(f"Packet does not contain decoded data")
-                return
-                
+            if to_id == localNode.nodeNum: # Message sent directly to local node
+                self.logger.info(f"Direct message received from {node_short_name}: '{message_string}'")
+                self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
+            elif 'channel' in packet: # Message sent to a channel
+                self.logger.info(f"Channel message from {node_short_name}: '{message_string}'")
+                channelId = int(packet['channel'])
+                self.check_keywords(interface, packet)
+           
         else:
-            # Unhandled case, possibly public channel
-            self.logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
-            self.logger.info(packet)
-            check_keywords(interface, packet)
+            self.logger.info(f'Unable to process text packet')
             
 
-def check_keywords(interface, packet):
-    """
-    Check if message matches any keywords and print a log message if so.
-    """
-    message = packet['decoded']['payload'].decode('utf-8').strip().lower()
-    potential_keywords = message.split() # first word could be a keyword
-    logger.info(f"[check_keywords] Checking for keywords in message: '{message}'")
-    # Move up one directory from handlers to app, then into keywords
-    keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
-    keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]
-    for keyword in keyword_files:
-        if potential_keywords[0] == keyword:
-            logger.info(f"Keyword '{keyword}' detected, invoking handler.")
-            try:
-                # Use simple module name for dynamic import
-                spec = importlib.util.spec_from_file_location(keyword, os.path.join(keywords_dir, f"{keyword}.py"))
-                keyword_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(keyword_module)
-                # Treat keyword as a single lowercase word, capitalize first letter, append 'Keyword'
-                class_name = keyword.capitalize() + 'Keyword'
-                keyword_class = getattr(keyword_module, class_name)
-                handler_instance = keyword_class()
-                handler_instance.handle(interface, packet)
-                return
-            except Exception as e:
-                logger.error(f"Error handling keyword '{keyword}': {e}")
-                return
+    def check_keywords(self, interface, packet):
+        """
+        Check if message matches any keywords and print a log message if so.
+        """
+        message = packet['decoded']['payload'].decode('utf-8').strip().lower()
+        potential_keywords = message.split() # first word could be a keyword
+        self.logger.info(f"[check_keywords] Checking for keywords in message: '{message}'")
+        # Move up one directory from handlers to app, then into keywords
+        keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
+        keyword_files = [f[:-3] for f in os.listdir(keywords_dir) if f.endswith('.py') and not f.startswith('__')]
+        for keyword in keyword_files:
+            if potential_keywords[0] == keyword:
+                self.logger.info(f"Keyword '{keyword}' detected, invoking handler.")
+                try:
+                    # Use simple module name for dynamic import
+                    spec = importlib.util.spec_from_file_location(keyword, os.path.join(keywords_dir, f"{keyword}.py"))
+                    keyword_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(keyword_module)
+                    # Treat keyword as a single lowercase word, capitalize first letter, append 'Keyword'
+                    class_name = keyword.capitalize() + 'Keyword'
+                    keyword_class = getattr(keyword_module, class_name)
+                    handler_instance = keyword_class()
+                    handler_instance.handle(interface, packet)
+                    return
+                except Exception as e:
+                    self.logger.error(f"Error handling keyword '{keyword}': {e}")
+                    return
         
