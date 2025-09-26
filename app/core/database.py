@@ -12,7 +12,7 @@ class SQLiteHelper:
             cls._instance = cls(db_name)
         return cls._instance
 
-    def __new__(cls, db_name, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super(SQLiteHelper, cls).__new__(cls)
         return cls._instance
