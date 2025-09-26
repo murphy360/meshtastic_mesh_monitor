@@ -2,8 +2,6 @@ from utils.logger import get_logger
 from utils.message_sender import MessageSender
 from utils.node_info_utils import lookup_node
 
-message_sender = MessageSender()
-
 def on_receive_neighbor_info(packet, interface, admin_channel_number):
     """
     Handler for neighbor info packets. Extracts node info and logs the event.
@@ -18,6 +16,7 @@ def on_receive_neighbor_info(packet, interface, admin_channel_number):
         - Ignores packets from the local node.
     """
     logger = get_logger(__name__)
+    message_sender = MessageSender()
     from_node_num = packet['from']
     node = lookup_node(interface, from_node_num)
     node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
