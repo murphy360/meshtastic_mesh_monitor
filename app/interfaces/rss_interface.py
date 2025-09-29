@@ -14,6 +14,7 @@ class RSSInterface(FeedInterface):
 
     def __init__(self, discard_initial_items: bool = True, config_manager=None):
         self.message_sender = MessageSender()
+        self.interface = None
         """
         Initialize the RSS interface.
         
@@ -36,6 +37,16 @@ class RSSInterface(FeedInterface):
         self._load_feeds_from_config()
         
         self.logger.debug(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
+
+    def set_interface(self, interface: Any):
+        """
+        Set the mesh network interface for sending messages.
+        
+        Args:
+            interface: The mesh network interface object
+        """
+        self.interface = interface
+        self.logger.info("Mesh network interface set for RSSInterface")
 
     def _load_feeds_from_config(self):
         """Load RSS feeds from configuration manager."""

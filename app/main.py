@@ -139,6 +139,8 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     web_scraper.set_interface(interface)
 
+    rss_interface.set_interface(interface)
+
     if initial_connect:
         initial_connect = False
         message_sender.send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", admin_channel_number, "^all")
