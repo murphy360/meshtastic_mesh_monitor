@@ -1,6 +1,4 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.node_info_utils import lookup_node
-from utils.message_sender import MessageSender
 from core.database import SQLiteHelper
 
 class SetaircraftKeyword(KeywordHandler):
@@ -8,7 +6,6 @@ class SetaircraftKeyword(KeywordHandler):
     def __init__(self):
         super().__init__()
         self.db_helper = SQLiteHelper("/data/mesh_monitor.db")
-        self.message_sender = MessageSender()
 
     def handle(self, interface, packet):
         self.logger.info("[handle] SetaircraftKeyword handler invoked.")
@@ -33,7 +30,7 @@ class SetaircraftKeyword(KeywordHandler):
         node_identifier = args[1] if len(args) > 1 else None
         set_as_aircraft = args[2].lower() if len(args) > 2 else None
 
-        node = lookup_node(interface, node_identifier)
+        node = self.node_info_utils.lookup_node(interface, node_identifier)
 
         if not node:
             self.logger.error(f"[handle] Node {node_identifier} not found")

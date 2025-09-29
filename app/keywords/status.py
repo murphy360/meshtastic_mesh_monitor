@@ -1,12 +1,10 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.message_sender import MessageSender
 from meshtastic.protobuf import connection_status_pb2
 import json
 
 class StatusKeyword(KeywordHandler):
     def __init__(self):
         super().__init__()
-        self.message_sender = MessageSender()
 
     def get_description(self):
         """

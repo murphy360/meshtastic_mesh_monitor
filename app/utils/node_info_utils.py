@@ -1,6 +1,25 @@
 from utils.logger import get_logger
 
 class NodeInfoUtils:
+    @staticmethod
+    def send_node_info(interface, public_channel_number=0):
+        """
+        Send the local node info to the mesh network on the specified channel.
+        Args:
+            interface: The mesh network interface.
+            public_channel_number (int): The channel to send the info on.
+        """
+        NodeInfoUtils.logger.info(f"[send_node_info] Sending local node info on channel {public_channel_number}")
+        local_node = interface.getNode('^local')
+        if local_node:
+            # Assuming local_node has a method to send its info
+            if hasattr(local_node, 'sendNodeInfo'):
+                local_node.sendNodeInfo(public_channel_number)
+                NodeInfoUtils.logger.info("[send_node_info] Node info sent successfully.")
+            else:
+                NodeInfoUtils.logger.error("[send_node_info] local_node does not have sendNodeInfo method.")
+        else:
+            NodeInfoUtils.logger.error("[send_node_info] Local node not found.")
     logger = get_logger(__name__)
 
     @staticmethod

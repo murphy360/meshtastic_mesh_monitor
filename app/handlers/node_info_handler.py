@@ -38,4 +38,3 @@ class NodeInfoHandler(BaseHandler):
         node = self.node_info_utils.lookup_node(interface, from_node_num)
         node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
         self.logger.info(f"[on_receive_node_info] onReceiveNodeInfo called for node {node_short_name} - {from_node_num}")
-        localNode = interface.getNode('^local')

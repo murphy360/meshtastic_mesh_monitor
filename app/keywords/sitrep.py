@@ -1,5 +1,4 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.message_sender import MessageSender
 from core.sitrep import SITREP
 
 class SitrepKeyword(KeywordHandler):

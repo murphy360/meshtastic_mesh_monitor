@@ -1,6 +1,4 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.node_info_utils import lookup_node
-from utils.message_sender import MessageSender
 
 class TraceKeyword(KeywordHandler):
     def __init__(self):
@@ -15,7 +13,6 @@ class TraceKeyword(KeywordHandler):
 
     def handle(self, interface, packet):
         self.logger.info("[handle] TraceNodeKeyword handler invoked.")
-        message_sender = MessageSender()
         #sitrep = packet['sitrep'] if 'sitrep' in packet else None
         channel = packet['channel'] if 'channel' in packet else 0
         to_id = packet['to'] if 'to' in packet else '^all'
@@ -34,14 +31,14 @@ class TraceKeyword(KeywordHandler):
         node_identifier = args[1]
         # Optionally: set_as_interest = args[2].lower() if len(args) > 2 else None
 
-        node = lookup_node(interface, node_identifier)
+        node = self.node_info_utils.lookup_node(interface, node_identifier)
         if node:
             hop_limit = 4
 
             try:
-                message_sender.send_trace_route(interface, node['num'], channel, hop_limit, to_id, original_message_id)
+                self.message_sender.send_trace_route(interface, node['num'], channel, hop_limit, to_id, original_message_id)
                 self.logger.info(f"[handle] Traceroute request sent to node {node_identifier} - {node['num']} with hop_limit {hop_limit}")
             except Exception as e:
                 self.logger.error(f"[handle] Error sending traceroute request to node {node_identifier}: {e}")
         else:
-            message_sender.send_message(interface, f"Node {node_identifier} not found in my database. Unable to send traceroute request.", channel, to_id)
+            self.message_sender.send_message(interface, f"Node {node_identifier} not found in my database. Unable to send traceroute request.", channel, to_id)
