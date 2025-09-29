@@ -3,46 +3,39 @@
 
 from datetime import datetime, timedelta, timezone
 import requests
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import xml.etree.ElementTree as ET
 from core.base_interfaces import FeedInterface
 from utils.logger import get_logger
 from utils.message_sender import MessageSender
 
 
-class RSSInterface(FeedInterface):
-    # TODO: Refactor long methods into smaller units.
-    # TODO: Remove any unused imports.
-    # TODO: Add comments explaining non-obvious logic in feed parsing and change detection.
-    # TODO: Add type hints to all public methods.
-    """Interface for accessing and monitoring RSS feeds."""
-    
-    # message_sender will be instantiated in __init__
 
-    def __init__(self, discard_initial_items: bool = True, config_manager=None):
-        self.message_sender = MessageSender()
-        self.interface = None
+class RSSInterface(FeedInterface):
+    """
+    Interface for accessing and monitoring RSS feeds.
+    """
+    message_sender: MessageSender
+    interface: Any
+    check_interval: timedelta
+
+    def __init__(self, discard_initial_items: bool = True, config_manager: Optional[Any] = None) -> None:
         """
         Initialize the RSS interface.
-        
         Args:
-            discard_initial_items: If True, items found on first check will be 
-                                  stored but not reported as new
-            config_manager: ConfigManager instance for loading feed configuration
+            discard_initial_items (bool): If True, items found on first check will be stored but not reported as new.
+            config_manager (Any, optional): ConfigManager instance for loading feed configuration.
         """
+        self.message_sender: MessageSender = MessageSender()
+        self.interface: Any = None
         super().__init__(
             config_manager=config_manager,
             cache_duration_seconds=3600,  # Cache feed content for 1 hour
             default_poll_interval_seconds=3600,  # Poll every hour by default
             discard_initial_items=discard_initial_items
         )
-        
-        # RSS-specific attributes that extend the base class
-        self.check_interval = timedelta(hours=1)  # Default check interval (kept for compatibility)
-        
-        # Load feeds from configuration
+        self.check_interval: timedelta = timedelta(hours=1)  # Default check interval (kept for compatibility)
         self._load_feeds_from_config()
-        
         self.logger.debug(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
 
     def set_interface(self, interface: Any):

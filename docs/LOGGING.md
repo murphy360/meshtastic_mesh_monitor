@@ -1,3 +1,6 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+# TODO: Add advanced logging configuration examples and clarify usage for new contributors.
 # Unified Logging System
 
 The Meshtastic Mesh Monitor uses a unified logging system that provides consistent, configurable logging across all modules. This system supports both development testing and production deployment scenarios.

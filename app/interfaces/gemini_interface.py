@@ -1,5 +1,15 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+# TODO: Add missing docstrings to all public methods.
+# TODO: Add type hints to all public methods and class attributes.
+# TODO: Remove unused imports (verify if all are needed).
+# TODO: Add comments explaining singleton logic and chat management.
+# TODO: Refactor long methods for clarity and maintainability.
+# TODO: Ensure consistent logging usage and patterns.
+# TODO: Review for code duplication in chat creation and message handling.
+# TODO: Consider merging similar logic in _create_public_chat and _create_admin_chat.
+# TODO: Add error handling for all external API calls and file operations.
+# TODO: Add file hygiene note if any sections are unused or misplaced.
 
 import os
 from google import genai
@@ -8,50 +18,66 @@ from typing import Dict, Optional, Any
 from core.base_interfaces import BaseInterface
 from utils.logger import get_logger
 
+
 class GeminiInterface(BaseInterface):
-    # TODO: Add comments explaining non-obvious logic in singleton and chat management.
-    # TODO: Add type hints to all public methods.
-    # TODO: Remove any unused imports.
-    _instance = None
+    """
+    Interface for interacting with the Gemini AI API, supporting singleton pattern and chat management.
+    """
+    _instance: Optional['GeminiInterface'] = None
     _logger = get_logger(__name__)
+    gemini_api_key: str
+    gemini_model: str
+    location: str
+    max_message_length: int
+    max_output_tokens: int
+    gemini_client: Any
+    public_chat: Any
+    admin_chat: Any
+    private_chats: Dict[str, Any]
+    base_system_instruction: str
 
-    def __new__(cls, *args, **kwargs):
-
+    def __new__(cls, *args, **kwargs) -> 'GeminiInterface':
+        """
+        Singleton pattern: ensures only one instance of GeminiInterface exists.
+        """
         if cls._instance is None:
             cls._instance = super(GeminiInterface, cls).__new__(cls)
         return cls._instance
 
     @classmethod
-    def get_instance(cls, location: str = "Unknown Location"):
+    def get_instance(cls, location: str = "Unknown Location") -> 'GeminiInterface':
+        """
+        Get the singleton instance of GeminiInterface, creating it if necessary.
+        Args:
+            location: The location context for the interface.
+        Returns:
+            GeminiInterface: The singleton instance.
+        """
         if cls._instance is None:
             cls._instance = cls(location=location)
         return cls._instance
 
-    def __init__(self, location: str = "Unknown Location"):
+    def __init__(self, location: str = "Unknown Location") -> None:
         """
         Initialize the Gemini AI interface.
-        
         Args:
-            location: Current location for context
+            location (str): Current location for context.
         """
         super().__init__(cache_duration_seconds=0)  # No caching for AI responses
-
-
         self._logger.info(f"Initializing GeminiInterface at location: {location}")
-        self.gemini_api_key = os.getenv('GEMINI_API_KEY')
+        self.gemini_api_key: str = os.getenv('GEMINI_API_KEY', '')
         if not self.gemini_api_key:
             self._logger.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
-
-        self.gemini_model = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
-        self.location = location
-        self.max_message_length = 200  # Maximum message length for transmission
-        self.max_output_tokens = 100  # Maximum output tokens for responses
+        self.gemini_model: str = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+        self.location: str = location
+        self.max_message_length: int = 200  # Maximum message length for transmission
+        self.max_output_tokens: int = 100  # Maximum output tokens for responses
         self.update_base_system_instruction()
-        self.gemini_client = genai.Client(api_key=self.gemini_api_key)
-        self.public_chat = self._create_public_chat()
-        self.admin_chat = self._create_admin_chat()
-        self.private_chats: Dict[str, any] = {}  # Dictionary to store private chats
+        self.gemini_client: Any = genai.Client(api_key=self.gemini_api_key)
+        self.public_chat: Any = self._create_public_chat()
+        self.admin_chat: Any = self._create_admin_chat()
+        self.private_chats: Dict[str, Any] = {}  # Dictionary to store private chats
 
     def update_base_system_instruction(self):
         """

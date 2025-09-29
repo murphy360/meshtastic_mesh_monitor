@@ -1,5 +1,15 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+# TODO: Add missing docstrings to all public methods and classes.
+# TODO: Add type hints to all public methods and class attributes.
+# TODO: Remove unused imports (verify if all are needed).
+# TODO: Refactor long methods for clarity and maintainability.
+# TODO: Add comments explaining non-obvious logic in location and alert handling.
+# TODO: Ensure consistent logging usage and patterns.
+# TODO: Review for code duplication in alert and forecast processing.
+# TODO: Add error handling for all external API calls and file operations.
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 
 import requests
 import json
