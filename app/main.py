@@ -700,7 +700,7 @@ while True:
             Initial Node Discovery Complete: {initial_node_discovery_complete}\n \
             Total Nodes in Database: {db_helper.get_node_count()}\n \
             Last Weather Forecast Sent: {last_forecast_sent_time}\n \
-            Gemini Chats: {(gemini_interface.get_private_chats_string() if gemini_interface else 'No Gemini interface')}\n \
+            Gemini Chats: {(gemini_interface.get_chats_string() if gemini_interface else 'No Gemini interface')}\n \
         **************************************************************\n \
         **************************************************************\n\n ")
 

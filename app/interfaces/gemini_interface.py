@@ -279,3 +279,11 @@ class GeminiInterface(BaseInterface):
         chat_names = '\n'.join(private_keys)
         self.logger.info(f"private_chats_string returning: {chat_names}")
         return chat_names
+    
+    def get_chats_string(self) -> str:
+        """
+        Get a printable string of all chat names (public, admin, private) with newlines in between.
+        """
+        chat_names = '\n'.join(self.chats.keys())
+        self.logger.info(f"chats_string returning: {chat_names}")
+        return chat_names
