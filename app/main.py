@@ -22,15 +22,15 @@ from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils
 from handlers.text_handler import TextHandler
 from handlers.position_handler import PositionHandler
-from handlers.data_handler import on_receive_data
-from handlers.user_handler import on_receive_user
-from handlers.telemetry_handler import on_receive_telemetry
-from handlers.neighbor_info_handler import on_receive_neighbor_info
-from handlers.node_info_handler import on_receive_node_info
-from handlers.routing_handler import on_receive_routing
-from handlers.traceroute_handler import on_receive_traceroute
-from handlers.waypoint_handler import on_receive_waypoint
-from handlers.range_test_handler import on_receive_range_test
+from handlers.data_handler import DataHandler
+from handlers.user_handler import UserHandler
+from handlers.telemetry_handler import TelemetryHandler
+from handlers.neighbor_info_handler import NeighborInfoHandler
+from handlers.node_info_handler import NodeInfoHandler
+from handlers.routing_handler import RoutingHandler
+from handlers.traceroute_handler import TracerouteHandler
+from handlers.waypoint_handler import WaypointHandler
+from handlers.range_test_handler import RangeTestHandler
 
 # Initialize unified logging system
 logger = get_logger(__name__)
@@ -228,28 +228,25 @@ def onReceivePosition(packet, interface):
     )
 
 def onReceiveData(packet, interface):
-    #Handler is in data_handler.py
-    on_receive_data(packet, interface)
+    DataHandler().on_receive(packet, interface)
 
 def onReceiveUser(packet, interface):
     
-    on_receive_user(packet, interface)
+    UserHandler().on_receive(packet, interface)
 
 def onReceiveTelemetry(packet, interface):
-
-    on_receive_telemetry(packet, interface)
+    TelemetryHandler().on_receive(packet, interface)
 
 def onReceiveNeighborInfo(packet, interface):
     
-    on_receive_neighbor_info(
+    NeighborInfoHandler().on_receive(
         packet,
         interface,
         admin_channel_number
     )
 
 def onReceiveTraceRoute(packet, interface):
-
-    on_receive_traceroute(
+    TracerouteHandler().on_receive(
         packet,
         interface,
         sitrep,
@@ -259,29 +256,27 @@ def onReceiveTraceRoute(packet, interface):
     )
 
 def onReceiveWaypoint(packet, interface):
-
-    on_receive_waypoint(
+    WaypointHandler().on_receive(
         packet,
         interface,
         admin_channel_number
     )
 
 def onReceiveNodeInfo(packet, interface):
-    on_receive_node_info(
+    NodeInfoHandler().on_receive(
         packet,
         interface
     )
 
 def onReceiveRouting(packet, interface):
-    on_receive_routing(
+    RoutingHandler().on_receive(
         packet,
         interface,
         admin_channel_number
     )
 
 def onReceiveRangeTest(packet, interface):
-
-    on_receive_range_test(
+    RangeTestHandler().on_receive(
         packet,
         interface
     )
