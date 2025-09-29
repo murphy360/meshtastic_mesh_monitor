@@ -1,5 +1,4 @@
 from keywords.keyword_handler import KeywordHandler
-from .keyword_handler import KeywordHandler
 
 class RequesttelemetryKeyword(KeywordHandler):
     def __init__(self):
