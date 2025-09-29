@@ -3,7 +3,7 @@ import time
 import json
 from utils.logger import get_logger
 from core.database import SQLiteHelper
-from utils.node_info_utils import lookup_node
+from utils.node_info_utils import NodeInfoUtils
 
 class SITREP:
     _instance = None
@@ -210,7 +210,7 @@ class SITREP:
         line_letter = "A"
 
         for node_short_name in self.aircraft_tracks:
-            node = lookup_node(self.interface, node_short_name)
+            node = NodeInfoUtils.lookup_node(self.interface, node_short_name)
             report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
@@ -245,7 +245,7 @@ class SITREP:
         line_letter = "A"
 
         for node_short_name in self.nodes_of_interest:
-            node = lookup_node(self.interface, node_short_name)
+            node = NodeInfoUtils.lookup_node(self.interface, node_short_name)
             report_string += "\n" + str(line_number) + "." + line_letter + ". "
             if node is not None:
                 num_nodes += 1
@@ -294,7 +294,7 @@ class SITREP:
         Returns:
             str: The formatted uptime string.
         """
-        node = lookup_node(self.interface, node_short_name)
+        node = NodeInfoUtils.lookup_node(self.interface, node_short_name)
         self.logger.debug(f"Getting Node Uptime for {node_short_name}")
         uptime_seconds_total = int(node["deviceMetrics"]["uptimeSeconds"])
         uptime_days = uptime_seconds_total // 86400
@@ -355,7 +355,7 @@ class SITREP:
             bool: True if the packet is from a node of interest, False otherwise.
         """
         self.logger.debug("is_packet_from_node_of_interest")
-        from_node = lookup_node(self.interface, packet['from'])
+        from_node = NodeInfoUtils.lookup_node(self.interface, packet['from'])
         if not from_node:
             return False
         from_node_short_name = from_node['user']['shortName'] 
@@ -378,7 +378,7 @@ class SITREP:
         """
         self.logger.debug("is_packet_from_new_node")
         self.logger.debug(f"Checking if packet is from a new node")
-        from_node = lookup_node(self.interface, packet['from'])
+        from_node = NodeInfoUtils.lookup_node(self.interface, packet['from'])
         if not from_node:
             return False
         from_node_short_name = from_node['user']['shortName']
