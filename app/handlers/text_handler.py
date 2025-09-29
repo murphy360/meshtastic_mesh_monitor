@@ -1,12 +1,17 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+#
+# TODO: Add type hints to all public methods for clarity and maintainability.
+# TODO: Expand class-level docstring and clarify dynamic keyword handler logic in comments.
 import importlib
 import os
 from handlers.base_handler import BaseHandler
 
 class TextHandler(BaseHandler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def on_receive(self, packet, interface, public_channel_number=None):
+    def on_receive(self, packet: dict, interface: object, public_channel_number: int = None) -> None:
         """
         Handler for text packets. Extracts node info and logs the event.
         Args:
@@ -59,7 +64,7 @@ class TextHandler(BaseHandler):
             self.logger.info(f'Unable to process text packet')
             
 
-    def check_keywords(self, interface, packet):
+    def check_keywords(self, interface: object, packet: dict) -> None:
         """
         Check if message matches any keywords and print a log message if so.
         """

@@ -31,14 +31,20 @@ Please review the entire codebase and provide clean code suggestions that do NOT
    - Recommend the use of type hints, f-strings, and other modern Python features where appropriate.
    - Suggest improvements for testability and maintainability.
 
-7. **Review Output:**
+
+7. **TODO Comments for Recommendations:**
+   - In each file, add TODO comments in relevant sections and lines that clearly list recommended changes or improvements from the review. These comments should be actionable and easy to find for future maintainers.
+
+9. **Review Output:**
    - Provide a summary of key findings and actionable suggestions, organized by file or module.
    - Do not suggest or make changes that would alter the intended behavior of the code.
 
 8. **Review Annotation:**
-   - After review, add a comment at the top of every file stating: 
-     `# Clean code review: This file was reviewed for clean code standards on YYYY-MM-DD in accordance with standards listed in docs/generic_clean_code_review_prompt.md.`
-   - Replace `YYYY-MM-DD` with the actual review date.
+    - After review, add or update a comment at the top of every file stating: 
+        `# YYYY-MM-DD: Clean code review: This file was reviewed for clean code standards.` 
+        ` # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.`
+        ` `
+    - Replace `YYYY-MM-DD` with the actual review date.
 # Generic Clean Code Review Prompt
 
 Use this prompt to request a comprehensive clean code review of your entire codebase, focusing on maintainability, readability, and best practices—without changing the functional behavior of your code.

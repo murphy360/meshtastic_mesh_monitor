@@ -1,3 +1,7 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+#
+# TODO: Add type hints to all public methods for clarity and maintainability.
 from utils.location_utils import LocationUtils
 from utils.node_info_utils import NodeInfoUtils
 from utils.logger import get_logger
@@ -9,14 +13,14 @@ class BaseHandler:
     Base class for all handlers in app.handlers.
     Provides logger and message_sender, and enforces on_receive signature.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = get_logger(self.__class__.__name__)
         self.message_sender = MessageSender()
         self.db_helper = SQLiteHelper.get_instance()
         self.location_utils = LocationUtils()
         self.node_info_utils = NodeInfoUtils()
 
-    def on_receive(self, packet, interface):
+    def on_receive(self, packet: dict, interface: object) -> None:
         """
         Handle incoming packet. Must be implemented by subclasses.
         Args:

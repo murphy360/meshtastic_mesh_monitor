@@ -1,12 +1,26 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+#
+# TODO: Add type hints to all public methods for clarity and maintainability.
+# TODO: Expand class-level and method docstrings, especially for route construction logic.
+# TODO: Add comments explaining non-obvious logic, especially in route and SNR parsing.
 from handlers.base_handler import BaseHandler
 
 from datetime import datetime, timezone
 
 class TracerouteHandler(BaseHandler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def on_receive(self, packet, interface, sitrep, public_channel_number, admin_channel_number, last_trace_time):
+    def on_receive(
+        self,
+        packet: dict,
+        interface: object,
+        sitrep: object,
+        public_channel_number: int,
+        admin_channel_number: int,
+        last_trace_time: dict
+    ) -> None:
         self.logger.info(f"[on_receive_traceroute] Received traceroute packet: {packet}")
         from_node_num = packet['from']
         node = self.node_info_utils.lookup_node(interface, from_node_num)

@@ -1,13 +1,19 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+#
+# TODO: Add type hints to all public methods for clarity and maintainability.
+# TODO: Expand class-level and method docstrings, especially for complex logic.
+# TODO: Add comments explaining non-obvious logic, especially in packet parsing and waypoint expiration handling.
 
 from handlers.base_handler import BaseHandler
 
 from datetime import datetime, timezone
 
 class WaypointHandler(BaseHandler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def on_receive(self, packet, interface, admin_channel_number):
+    def on_receive(self, packet: dict, interface: object, admin_channel_number: int) -> None:
         self.logger.info(f"[on_receive_waypoint] Received waypoint packet: {packet}")
         from_node_num = packet['from']
         node = self.node_info_utils.lookup_node(interface, from_node_num)

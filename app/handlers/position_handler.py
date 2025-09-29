@@ -1,11 +1,23 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+#
+# TODO: Add type hints to all public methods for clarity and maintainability.
+# TODO: Expand class-level docstring.
+# TODO: Add comments explaining aircraft detection logic and packet parsing.
 from handlers.base_handler import BaseHandler
 
 class PositionHandler(BaseHandler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-            # Removed redundant initializations as they are now in BaseHandler
+        # Removed redundant initializations as they are now in BaseHandler
 
-    def on_receive(self, packet, interface, public_channel_number, admin_channel_number):
+    def on_receive(
+        self,
+        packet: dict,
+        interface: object,
+        public_channel_number: int,
+        admin_channel_number: int
+    ) -> None:
         localNode = interface.getNode('^local')
         from_node_num = packet['from']
         altitude = 0
