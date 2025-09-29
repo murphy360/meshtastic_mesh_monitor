@@ -27,9 +27,8 @@ class SendnodeinfoKeyword(KeywordHandler):
         else:
             to_id = "^all"
         # Send local node info to the mesh
-        send_node_info(interface, public_channel_number=channel)
-        sender = MessageSender()
+        self.node_info_utils.send_node_info(interface, public_channel_number=channel)
         reply = "Sent my node info to the mesh."
         self.logger.info(f"[handle] Sending reply: {reply}")
-        sender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_message(interface, reply, channel, to_id)
     

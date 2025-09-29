@@ -1,6 +1,5 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.message_sender import MessageSender
-from utils.node_info_utils import lookup_node
+from .keyword_handler import KeywordHandler
 
 class RequesttelemetryKeyword(KeywordHandler):
     def __init__(self):
@@ -35,7 +34,7 @@ class RequesttelemetryKeyword(KeywordHandler):
             reply = "Usage: requesttelemetry <node short name>"
         else:
             node_short_name = args[1]
-            node = lookup_node(interface, node_short_name)
+            node = self.node_info_utils.lookup_node(node_short_name)
             if node:
                 try:
                     want_response = True
@@ -48,4 +47,4 @@ class RequesttelemetryKeyword(KeywordHandler):
             else:
                 self.logger.error(f"[handle] Node {node_short_name} not found in my database. Unable to request telemetry.")
                 reply = f"Node {node_short_name} not found in my database. Unable to request telemetry."
-        MessageSender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_message(interface, reply, channel, to_id)

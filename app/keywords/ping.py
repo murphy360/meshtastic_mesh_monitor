@@ -1,8 +1,5 @@
 
 from keywords.keyword_handler import KeywordHandler
-from utils.location_utils import LocationUtils
-from utils.message_sender import MessageSender
-from utils.node_info_utils import lookup_node
 
 class PingKeyword(KeywordHandler):
 
@@ -15,6 +12,7 @@ class PingKeyword(KeywordHandler):
         """
         self.logger.info("[get_description] Providing description for ping keyword.")
         return "Responds with a pong and, if available, location/distance from sender"
+    
     def handle(self, interface, packet):
         """
         Handle incoming 'ping' keyword messages.
@@ -35,7 +33,7 @@ class PingKeyword(KeywordHandler):
         # Extract sender and local node info
         from_node_num = packet['from']
         local_node = interface.getNode('^local')
-        from_node = lookup_node(interface, from_node_num)
+        from_node = self.node_info_utils.lookup_node(interface, from_node_num)
         if not from_node:
             self.logger.warning(f"[handle] Could not find from_node for num {from_node_num}")
             return
@@ -45,9 +43,8 @@ class PingKeyword(KeywordHandler):
         local_node_info = interface.getMyNodeInfo()
         local_node_short_name = local_node_info['user']['shortName'] if 'user' in local_node_info and 'shortName' in local_node_info['user'] else str(local_node_info['num'])
         # Get location and distance using LocationUtils
-        location_utils = LocationUtils()
-        location = location_utils.find_location_by_node_num(interface, local_node.nodeNum)
-        distance = location_utils.find_distance_between_nodes(interface, from_node_num, local_node.nodeNum)
+        location = self.location_utils.find_location_by_node_num(interface, local_node.nodeNum)
+        distance = self.location_utils.find_distance_between_nodes(interface, from_node_num, local_node.nodeNum)
 
         # Prepare message
         if distance != "Unknown" and location != "Unknown":
@@ -60,11 +57,9 @@ class PingKeyword(KeywordHandler):
             reply = f"{from_short_name} this is {local_node_short_name}, Pong"
 
         # Send reply using MessageSender
-        message_sender = MessageSender()
         # Use channel and to_id from packet if available, else defaults
         channel = packet.get('channel', 0)
         self.logger.info(f"[handle] channel set to {channel}")
-        
         # Check if this is a direct message or channel message
         if packet['to'] == local_node.nodeNum:
             # Direct message, reply directly
@@ -72,4 +67,4 @@ class PingKeyword(KeywordHandler):
         else:
             # Channel message, reply to channel
             to_id = "^all"
-        message_sender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_message(interface, reply, channel, to_id)

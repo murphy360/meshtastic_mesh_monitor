@@ -1,6 +1,4 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.message_sender import MessageSender
-from utils.node_info_utils import lookup_node
 
 class RequestpositionKeyword(KeywordHandler):
     def __init__(self):
@@ -35,12 +33,12 @@ class RequestpositionKeyword(KeywordHandler):
             reply = "Usage: requestposition <node short name>"
         else:
             node_short_name = args[1]
-            node = lookup_node(interface, node_short_name)
+            node = self.node_info_utils.lookup_node(interface, node_short_name)
             if node:
                 self.logger.info(f"[handle] Requesting position from node {node_short_name}.")
-                MessageSender.send_position_request(interface, node['num'], channel)
+                self.message_sender.send_position_request(interface, node['num'], channel)
                 reply = f"Requested position from {node_short_name}"
             else:
                 self.logger.error(f"[handle] Node {node_short_name} not found in my database. Unable to request position.")
                 reply = f"Node {node_short_name} not found in my database. Unable to request position."
-        MessageSender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_message(interface, reply, channel, to_id)

@@ -1,6 +1,4 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.node_info_utils import lookup_node
-from utils.message_sender import MessageSender
 from core.database import SQLiteHelper
 
 class SetnodeofinterestKeyword(KeywordHandler):
@@ -8,7 +6,6 @@ class SetnodeofinterestKeyword(KeywordHandler):
     def __init__(self):
         super().__init__()
         self.db_helper = SQLiteHelper()
-        self.message_sender = MessageSender()
 
     def handle(self, interface, packet):
         self.logger.info("[handle] SetnodeofinterestKeyword handler invoked.")
@@ -38,7 +35,7 @@ class SetnodeofinterestKeyword(KeywordHandler):
             self.message_sender.send_message(interface, f"Invalid argument for set_as_interest: {set_as_interest}. Must be 'true' or 'false'.", channel, to_id)
             return
 
-        node = lookup_node(interface, node_identifier)
+        node = self.node_info_utils.lookup_node(interface, node_identifier)
         if not node:
             self.logger.error(f"[handle] Node {node_identifier} not found")
             self.message_sender.send_message(interface, f"Node {node_identifier} not found", channel, to_id)
