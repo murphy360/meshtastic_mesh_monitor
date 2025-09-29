@@ -15,7 +15,7 @@ class PositionHandler(BaseHandler):
         location = "Unknown"
         node = self.node_info_utils.lookup_node(interface, from_node_num)
         node_short_name = node["user"]["shortName"].lower() if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-        self.logger.info(f"[on_receive_position] onReceivePosition called for node {node_short_name} - {from_node_num}")
+        self.logger.debug(f"[on_receive_position] onReceivePosition called for node {node_short_name} - {from_node_num}")
         log_message = f"[on_receive_position] onReceivePosition from node {node_short_name} - {from_node_num}"
         if node is None:
             self.logger.warning(f"[on_receive_position] onReceivePosition: Node {from_node_num} not found, skipping position handling.")

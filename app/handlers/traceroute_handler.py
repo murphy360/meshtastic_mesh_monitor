@@ -46,14 +46,14 @@ class TracerouteHandler(BaseHandler):
                     route_back.append(node)
             route_back.append(originator_node)
         else:
-            self.logger.info(f"	d TRACED BY: {node_short_name}")
-            if packet['to'] == localNode.nodeNum:
-                self.logger.warning(f"	d TRACEROUTE received from {node_short_name} - responding")
-                admin_message = f"Traceroute received from {node_short_name}"
-                self.message_sender.send_message(interface, admin_message, admin_channel_number, "^all")
-                reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
-                self.message_sender.send_llm_message(interface, reply_message, public_channel_number, from_node_num)
-                self.db_helper.set_node_of_interest(node, True)
+                self.logger.info(f"[on_receive_traceroute] Traced by node: {node_short_name}")
+                if packet['to'] == localNode.nodeNum:
+                    self.logger.warning(f"[on_receive_traceroute] Traceroute received from {node_short_name} - responding")
+                    admin_message = f"Traceroute received from {node_short_name}"
+                    self.message_sender.send_message(interface, admin_message, admin_channel_number, "^all")
+                    reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
+                    self.message_sender.send_llm_message(interface, reply_message, public_channel_number, from_node_num)
+                    self.db_helper.set_node_of_interest(node, True)
         if 'snrTowards' in trace:
             for hop in trace['snrTowards']:
                 snr_towards.append(hop)
@@ -100,6 +100,6 @@ class TracerouteHandler(BaseHandler):
             snr_back
         )
         self.db_helper.update_node_connections(route_to, route_back, snr_towards, snr_back)
-        self.logger.info(f"	d TRACEROUTE: {message_string}")
+        self.logger.info(f"[on_receive_traceroute] Traceroute path: {message_string}")
         self.message_sender.send_message(interface, message_string, admin_channel_number, "^all")
         return

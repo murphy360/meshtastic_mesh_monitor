@@ -12,7 +12,7 @@ class MessageSender:
     logger = get_logger(__name__)
 
     def __init__(self):
-        self.logger.info(f"Initializing MessageSender")
+        self.logger.debug(f"Initializing MessageSender")
         self.gemini_interface = GeminiInterface.get_instance()
 
     def send_llm_message(self, interface, message, channel, to_id):

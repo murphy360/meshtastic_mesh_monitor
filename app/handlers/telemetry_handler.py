@@ -9,10 +9,10 @@ class TelemetryHandler(BaseHandler):
         # Skips handling if node cannot be found or is from local node.
         from_node_num = packet['from']
         node = self.node_info_utils.lookup_node(interface, from_node_num)
-        node_short_name = node["user"]["shortName"].lower() if node and 'user' in node and 'shortName' in node['user'] else "Unknown"
-        self.logger.info(f"[on_receive_telemetry] onReceiveTelemetry called for node {node_short_name} - {from_node_num}")
-        localNode = interface.getNode('^local')
+
         if node is None:
             self.logger.warning(f"[HANDLER] onReceiveTelemetry: Node {from_node_num} not found, skipping telemetry handling.")
             return
-
+        
+        node_short_name = node["user"]["shortName"].lower() if node and 'user' in node and 'shortName' in node['user'] else "Unknown"
+        self.logger.debug(f"[on_receive_telemetry] onReceiveTelemetry called for node {node_short_name} - {from_node_num}")
