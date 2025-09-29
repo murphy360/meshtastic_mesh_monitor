@@ -21,7 +21,7 @@ from utils.logger import get_logger
 from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils
 from handlers.text_handler import TextHandler
-from handlers.position_handler import on_receive_position
+from handlers.position_handler import PositionHandler
 from handlers.data_handler import on_receive_data
 from handlers.user_handler import on_receive_user
 from handlers.telemetry_handler import on_receive_telemetry
@@ -211,8 +211,7 @@ def onNodeUpdate(node, interface):
 def onReceiveText(packet, interface):
     logger.debug(f"[FUNCTION] onReceiveText")
     # Pass all required dependencies to the handler
-    text_handler = TextHandler()
-    text_handler.on_receive(
+    TextHandler().on_receive(
         packet,
         interface,
         public_channel_number
@@ -221,7 +220,7 @@ def onReceiveText(packet, interface):
 def onReceivePosition(packet, interface):
     logger.debug(f"[FUNCTION] onReceivePosition")
     # Pass all required dependencies to the handler
-    on_receive_position(
+    PositionHandler().on_receive(
         packet,
         interface,
         public_channel_number,
