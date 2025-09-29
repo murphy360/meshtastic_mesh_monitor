@@ -284,6 +284,6 @@ class GeminiInterface(BaseInterface):
         """
         Get a printable string of all chat names (public, admin, private) with newlines in between.
         """
-        chat_names = '\n'.join(self.chats.keys())
+        chat_names = ', '.join(self.chats.keys())
         self.logger.info(f"chats_string returning: {chat_names}")
         return chat_names
