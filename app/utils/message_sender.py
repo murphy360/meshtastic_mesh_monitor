@@ -43,6 +43,7 @@ class MessageSender:
         """
         Send a message to a specified channel and node, chunking if necessary.
         """
+        self.logger.info(f"send_message called with message: {message}, channel: {channel}, to_id: {to_id}")
         # Split every message into chunks of no more than 200 characters
         if len(message) > 240:
             message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
@@ -182,6 +183,7 @@ class MessageSender:
             self.logger.info(f"Node found: {node['user']['shortName']} - {node['num']}")
             short_name = node['user']['shortName']
             response_text = self.gemini_interface.generate_response(message, channel, short_name)
+        
         self.logger.debug(f"Response: {response_text}")
         self.send_message(interface, response_text, channel, from_id)
 
