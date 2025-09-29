@@ -1,17 +1,33 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
-# TODO: Add type hints to all public methods for clarity and maintainability.
-# TODO: Expand class-level docstring and clarify dynamic keyword handler logic in comments.
+"""
+TextHandler processes incoming text packets, extracts node info, and handles keyword detection.
+"""
 import importlib
 import os
 from handlers.base_handler import BaseHandler
 
 class TextHandler(BaseHandler):
+    """
+    Handler for text packets. Extracts node info, logs the event, and checks for keywords.
+    Args:
+        packet (dict): The received packet data.
+        interface (object): The mesh network interface object.
+        public_channel_number (int, optional): Public channel number.
+    """
     def __init__(self) -> None:
         super().__init__()
 
     def on_receive(self, packet: dict, interface: object, public_channel_number: int = None) -> None:
+        """
+        Processes a received text packet, extracts node info, logs the event,
+        and checks for keywords in the message.
+        Args:
+            packet (dict): The received packet data.
+            interface (object): The mesh network interface object.
+            public_channel_number (int, optional): Public channel number.
+        """
         """
         Handler for text packets. Extracts node info and logs the event.
         Args:

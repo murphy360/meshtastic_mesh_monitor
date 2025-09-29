@@ -1,12 +1,20 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
-# TODO: Add type hints to all public methods for clarity and maintainability.
-# TODO: Expand class-level docstring.
-# TODO: Add comments explaining aircraft detection logic and packet parsing.
+"""
+PositionHandler processes incoming position packets, extracts location and movement info, and handles aircraft detection.
+"""
 from handlers.base_handler import BaseHandler
 
 class PositionHandler(BaseHandler):
+    """
+    Handler for position packets. Extracts location and movement info, handles aircraft detection.
+    Args:
+        packet (dict): The received packet data.
+        interface (object): The mesh network interface object.
+        public_channel_number (int): Public channel number.
+        admin_channel_number (int): Admin channel number.
+    """
     def __init__(self) -> None:
         super().__init__()
         # Removed redundant initializations as they are now in BaseHandler
@@ -18,6 +26,15 @@ class PositionHandler(BaseHandler):
         public_channel_number: int,
         admin_channel_number: int
     ) -> None:
+        """
+        Processes a received position packet, extracts location and movement info,
+        handles aircraft detection, and logs relevant information.
+        Args:
+            packet (dict): The received packet data.
+            interface (object): The mesh network interface object.
+            public_channel_number (int): Public channel number.
+            admin_channel_number (int): Admin channel number.
+        """
         localNode = interface.getNode('^local')
         from_node_num = packet['from']
         altitude = 0

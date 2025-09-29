@@ -2,17 +2,30 @@
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
 # TODO: Remove unused imports (e.g., get_logger if not used).
-# TODO: Add type hints to all public methods for clarity and maintainability.
-# TODO: Expand class-level docstring.
+"""
+NodeInfoHandler processes incoming node info packets, extracts node info, and logs events.
+"""
 from utils.logger import get_logger
 
 from handlers.base_handler import BaseHandler
 
 class NodeInfoHandler(BaseHandler):
+    """
+    Handler for node info packets. Extracts node info and logs the event.
+    Args:
+        packet (dict): The received packet data.
+        interface (object): The mesh network interface object.
+    """
     def __init__(self) -> None:
         super().__init__()
 
     def on_receive(self, packet: dict, interface: object) -> None:
+        """
+        Processes a received node info packet, extracts node info, and logs the event.
+        Args:
+            packet (dict): The received packet data.
+            interface (object): The mesh network interface object.
+        """
         """
         Handler for node info packets. Extracts node info and logs the event.
         Args:

@@ -1,14 +1,25 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
-# TODO: Add type hints to all public methods for clarity and maintainability.
-# TODO: Expand class-level and method docstrings, especially for route construction logic.
+"""
+TracerouteHandler processes traceroute packets, builds route and SNR lists, and logs trace paths.
+"""
 # TODO: Add comments explaining non-obvious logic, especially in route and SNR parsing.
 from handlers.base_handler import BaseHandler
 
 from datetime import datetime, timezone
 
 class TracerouteHandler(BaseHandler):
+    """
+    Handler for traceroute packets. Builds route and SNR lists, logs trace paths, and updates sitrep.
+    Args:
+        packet (dict): The received packet data.
+        interface (object): The mesh network interface object.
+        sitrep (object): Sitrep object for trace updates.
+        public_channel_number (int): Public channel number.
+        admin_channel_number (int): Admin channel number.
+        last_trace_time (dict): Dictionary of last trace times per node.
+    """
     def __init__(self) -> None:
         super().__init__()
 
@@ -21,6 +32,17 @@ class TracerouteHandler(BaseHandler):
         admin_channel_number: int,
         last_trace_time: dict
     ) -> None:
+        """
+        Processes a received traceroute packet, builds route and SNR lists,
+        logs trace paths, and updates sitrep and database.
+        Args:
+            packet (dict): The received packet data.
+            interface (object): The mesh network interface object.
+            sitrep (object): Sitrep object for trace updates.
+            public_channel_number (int): Public channel number.
+            admin_channel_number (int): Admin channel number.
+            last_trace_time (dict): Dictionary of last trace times per node.
+        """
         self.logger.info(f"[on_receive_traceroute] Received traceroute packet: {packet}")
         from_node_num = packet['from']
         node = self.node_info_utils.lookup_node(interface, from_node_num)

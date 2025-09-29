@@ -1,15 +1,29 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
-# TODO: Add type hints to all public methods for clarity and maintainability.
-# TODO: Expand class-level docstring.
+"""
+TelemetryHandler processes incoming telemetry packets, extracts node info, and logs events.
+"""
 from handlers.base_handler import BaseHandler
 
 class TelemetryHandler(BaseHandler):
+    """
+    Handler for telemetry packets. Extracts node info and logs the event.
+    Args:
+        packet (dict): The received packet data.
+        interface (object): The mesh network interface object.
+    """
     def __init__(self) -> None:
         super().__init__()
 
     def on_receive(self, packet: dict, interface: object) -> None:
+        """
+        Processes a received telemetry packet, extracts node info, logs the event,
+        and skips handling if node cannot be found or is from the local node.
+        Args:
+            packet (dict): The received packet data.
+            interface (object): The mesh network interface object.
+        """
         # Handler for telemetry packets. Extracts node info and logs the event.
         # Skips handling if node cannot be found or is from local node.
         from_node_num = packet['from']

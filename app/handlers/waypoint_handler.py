@@ -1,8 +1,9 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
-# TODO: Add type hints to all public methods for clarity and maintainability.
-# TODO: Expand class-level and method docstrings, especially for complex logic.
+"""
+WaypointHandler processes incoming waypoint packets, handling expiration and logging details.
+"""
 # TODO: Add comments explaining non-obvious logic, especially in packet parsing and waypoint expiration handling.
 
 from handlers.base_handler import BaseHandler
@@ -10,10 +11,25 @@ from handlers.base_handler import BaseHandler
 from datetime import datetime, timezone
 
 class WaypointHandler(BaseHandler):
+    """
+    Handler for waypoint packets. Handles expiration, logs details, and sends messages.
+    Args:
+        packet (dict): The received packet data.
+        interface (object): The mesh network interface object.
+        admin_channel_number (int): Admin channel number for message sending.
+    """
     def __init__(self) -> None:
         super().__init__()
 
     def on_receive(self, packet: dict, interface: object, admin_channel_number: int) -> None:
+        """
+        Processes a received waypoint packet, checks for expiration, logs details,
+        and sends messages to the admin channel as appropriate.
+        Args:
+            packet (dict): The received packet data.
+            interface (object): The mesh network interface object.
+            admin_channel_number (int): Admin channel number for message sending.
+        """
         self.logger.info(f"[on_receive_waypoint] Received waypoint packet: {packet}")
         from_node_num = packet['from']
         node = self.node_info_utils.lookup_node(interface, from_node_num)

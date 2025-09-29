@@ -1,15 +1,29 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
-# TODO: Add type hints to all public methods for clarity and maintainability.
-# TODO: Expand class-level docstring and clarify safety logic in comments.
+"""
+UserHandler processes incoming user packets, extracting node info and logging events.
+"""
 from handlers.base_handler import BaseHandler
 
 class UserHandler(BaseHandler):
+    """
+    Handler for user packets. Extracts node info and logs the event.
+    Args:
+        packet (dict): The received packet data.
+        interface (object): The mesh network interface object.
+    """
     def __init__(self) -> None:
         super().__init__()
 
     def on_receive(self, packet: dict, interface: object) -> None:
+        """
+        Processes a received user packet, extracts node info, logs the event,
+        and skips handling if node cannot be found or is from the local node.
+        Args:
+            packet (dict): The received packet data.
+            interface (object): The mesh network interface object.
+        """
         """
         Handler for user packets. Extracts node info and logs the event.
         Args:
