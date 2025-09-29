@@ -1,4 +1,4 @@
-from app.handlers.base_handler import BaseHandler
+from handlers.base_handler import BaseHandler
 
 class PositionHandler(BaseHandler):
     def __init__(self):
