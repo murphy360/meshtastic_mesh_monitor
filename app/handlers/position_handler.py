@@ -1,9 +1,9 @@
-
 from app.handlers.base_handler import BaseHandler
 
 class PositionHandler(BaseHandler):
     def __init__(self):
         super().__init__()
+            # Removed redundant initializations as they are now in BaseHandler
 
     def on_receive(self, packet, interface, public_channel_number, admin_channel_number):
         localNode = interface.getNode('^local')

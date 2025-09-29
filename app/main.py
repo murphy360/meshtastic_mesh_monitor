@@ -1,4 +1,4 @@
-from utils.node_info_utils import lookup_node, lookup_nodes
+from utils.node_info_utils import NodeInfoUtils
 import os
 import time
 import threading
@@ -18,7 +18,6 @@ from interfaces.weather_interface import WeatherGovInterface
 from interfaces.rss_interface import RSSInterface
 from interfaces.web_scraper_interface import WebScraperInterface
 from utils.logger import get_logger
-from utils.node_info_utils import lookup_node
 from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils
 from handlers.text_handler import TextHandler
@@ -308,7 +307,7 @@ def onReceive(packet, interface):
     #logger.debug(f"Received packet: {packet}")
     from_node_num = packet['from']
 
-    node = lookup_node(interface, from_node_num)
+    node = NodeInfoUtils.lookup_node(interface, from_node_num)
     node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
     node_long_name = node['user']['longName'] if node and 'user' in node and 'longName' in node['user'] else 'Unknown'
     
