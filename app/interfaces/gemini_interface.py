@@ -1,13 +1,8 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
-# TODO: Add missing docstrings to all public methods.
-# TODO: Add type hints to all public methods and class attributes.
-# TODO: Remove unused imports (verify if all are needed).
-# TODO: Add comments explaining singleton logic and chat management.
 # TODO: Refactor long methods for clarity and maintainability.
 # TODO: Ensure consistent logging usage and patterns.
 # TODO: Review for code duplication in chat creation and message handling.
-# TODO: Consider merging similar logic in _create_public_chat and _create_admin_chat.
 # TODO: Add error handling for all external API calls and file operations.
 # TODO: Add file hygiene note if any sections are unused or misplaced.
 
@@ -16,15 +11,14 @@ from google import genai
 from google.genai import types # type: ignore
 from typing import Dict, Optional, Any
 from core.base_interfaces import BaseInterface
-from utils.logger import get_logger
-
 
 class GeminiInterface(BaseInterface):
     """
-    Interface for interacting with the Gemini AI API, supporting singleton pattern and chat management.
+    Interface for interacting with the Gemini AI API.
+    Implements a singleton pattern to ensure only one instance exists.
+    Manages chat objects for public, admin, and private communications.
     """
     _instance: Optional['GeminiInterface'] = None
-    _logger = get_logger(__name__)
     gemini_api_key: str
     gemini_model: str
     location: str
@@ -39,6 +33,7 @@ class GeminiInterface(BaseInterface):
     def __new__(cls, *args, **kwargs) -> 'GeminiInterface':
         """
         Singleton pattern: ensures only one instance of GeminiInterface exists.
+        This is used to centralize Gemini API access and chat management across the application.
         """
         if cls._instance is None:
             cls._instance = super(GeminiInterface, cls).__new__(cls)
@@ -47,7 +42,8 @@ class GeminiInterface(BaseInterface):
     @classmethod
     def get_instance(cls, location: str = "Unknown Location") -> 'GeminiInterface':
         """
-        Get the singleton instance of GeminiInterface, creating it if necessary.
+        Returns the singleton instance of GeminiInterface, creating it if necessary.
+        This method should be used to access GeminiInterface throughout the application.
         Args:
             location: The location context for the interface.
         Returns:
@@ -62,6 +58,7 @@ class GeminiInterface(BaseInterface):
         Initialize the Gemini AI interface.
         Args:
             location (str): Current location for context.
+        This constructor sets up the Gemini API client and initializes chat objects for public, admin, and private channels.
         """
         super().__init__(cache_duration_seconds=0)  # No caching for AI responses
         self._logger.info(f"Initializing GeminiInterface at location: {location}")
@@ -74,10 +71,13 @@ class GeminiInterface(BaseInterface):
         self.max_message_length: int = 200  # Maximum message length for transmission
         self.max_output_tokens: int = 100  # Maximum output tokens for responses
         self.update_base_system_instruction()
-        self.gemini_client: Any = genai.Client(api_key=self.gemini_api_key)
-        self.public_chat: Any = self._create_public_chat()
-        self.admin_chat: Any = self._create_admin_chat()
-        self.private_chats: Dict[str, Any] = {}  # Dictionary to store private chats
+        # The Gemini client is used for all API interactions
+        self.gemini_client = genai.Client(api_key=self.gemini_api_key)
+        # All chats (public, admin, private) are managed in a single dictionary
+        self.chats = {
+            "public": self._create_chat("public"),
+            "admin": self._create_chat("admin")
+        }
 
     def update_base_system_instruction(self):
         """
@@ -111,50 +111,41 @@ class GeminiInterface(BaseInterface):
         self.location = new_location
         self.update_base_system_instruction()
         # Recreate chats with updated location
-        self.public_chat = self._create_public_chat()
-        self.admin_chat = self._create_admin_chat()
-        self.private_chats = {}  # Clear private chats so they'll be recreated with new location
+        self.chats["public"] = self._create_chat("public")
+        self.chats["admin"] = self._create_chat("admin")
+        # Remove all private chats (keys not 'public' or 'admin')
+        self.chats = {k: v for k, v in self.chats.items() if k in ["public", "admin"]}
     
-    def _create_public_chat(self):
+    def _create_chat(self, role: str) -> Any:
         """
-        Create a chat for public channel communications.
+        Create a chat for a given role (public or admin).
         Logs the system instruction used.
+        Args:
+            role (str): Either 'public' or 'admin'.
+        Returns:
+            Chat object configured for the specified role.
         """
-        self.logger.info(f"_create_public_chat called. instruction={self.base_system_instruction}")
-        public_instruction = self.base_system_instruction + (
-            "You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
-
-            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
-            "Do not label responses with 'Public Channel' or similar tags."
-
-        )
-        
-        return self.gemini_client.chats.create(
-            model=self.gemini_model,
-            config=types.GenerateContentConfig(
-                system_instruction=public_instruction
+        self._logger.info(f"_create_chat called for role={role}. instruction={self.base_system_instruction}")
+        if role == "public":
+            instruction = self.base_system_instruction + (
+                "You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
+                "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
+                "Do not label responses with 'Public Channel' or similar tags."
             )
-        )
-    
-    def _create_admin_chat(self):
-        """
-        Create a chat for admin channel communications.
-        Logs the system instruction used.
-        """
-        self.logger.info(f"_create_admin_chat called. instruction={self.base_system_instruction}")
-        admin_instruction = self.base_system_instruction + (
-            "You are tasked with monitoring a meshtastic mesh network and are currently working directly "
-            "with administrators on a private admin channel. Be more technical and detailed in your responses "
-            "to administrators, as they need accurate information. "
-            "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
-            "Do not label responses with 'Admin Channel' or similar tags."
-
-        )
-        
+        elif role == "admin":
+            instruction = self.base_system_instruction + (
+                "You are tasked with monitoring a meshtastic mesh network and are currently working directly "
+                "with administrators on a private admin channel. Be more technical and detailed in your responses "
+                "to administrators, as they need accurate information. "
+                "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
+                "Do not label responses with 'Admin Channel' or similar tags."
+            )
+        else:
+            raise ValueError(f"Unknown chat role: {role}")
         return self.gemini_client.chats.create(
             model=self.gemini_model,
             config=types.GenerateContentConfig(
-                system_instruction=admin_instruction
+                system_instruction=instruction
             )
         )
     
@@ -163,9 +154,9 @@ class GeminiInterface(BaseInterface):
         Get an existing private chat or create a new one for direct communications with a node.
         Logs the node_short_name.
         """
-        self.logger.info(f"get_or_create_private_chat called. node_short_name={node_short_name}")
-        if node_short_name not in self.private_chats:
-            self.logger.info(f"Creating new private chat with {node_short_name}")
+        self._logger.info(f"get_or_create_private_chat called. node_short_name={node_short_name}")
+        if node_short_name not in self.chats:
+            self._logger.info(f"Creating new private chat with {node_short_name}")
             private_instruction = self.base_system_instruction + (
                 f"You are currently in a private encrypted conversation with {node_short_name}. "
                 f"While this is a conversation with a specific node, you may still be asked to forward messages "
@@ -173,37 +164,37 @@ class GeminiInterface(BaseInterface):
                 f"You may be slightly more casual in your responses, but still maintain professionalism. "
                 "Do not label responses with 'Private Chat' or similar tags."
             )
-            self.private_chats[node_short_name] = self.gemini_client.chats.create(
+            self.chats[node_short_name] = self.gemini_client.chats.create(
                 model=self.gemini_model,
                 config=types.GenerateContentConfig(
                     system_instruction=private_instruction
                 )
             )
-        return self.private_chats[node_short_name]
+        return self.chats[node_short_name]
 
     def summarize_pdf(self, path_to_pdf: str) -> str:
         """
         Summarize the content of a PDF document.
         Logs the file path and summary result.
         """
-        self.logger.info(f"summarize_pdf called. path_to_pdf={path_to_pdf}")
+        self._logger.info(f"summarize_pdf called. path_to_pdf={path_to_pdf}")
         try:
             uploaded_file = self.gemini_client.files.upload(file=path_to_pdf)
             if not uploaded_file:
-                self.logger.error("Failed to upload PDF file.")
+                self._logger.error("Failed to upload PDF file.")
                 return "Error uploading PDF file."
         except Exception as e:
-            self.logger.error(f"Error reading PDF file: {e}")
+            self._logger.error(f"Error reading PDF file: {e}")
             return "Error reading PDF file."
         try:
             response = self.gemini_client.models.generate_content(
                 model=self.gemini_model,
                 contents=[f"Summarize this PDF File in {self.max_message_length} characters or less", uploaded_file]
             )
-            self.logger.info(f"summarize_pdf returning: {response.text}")
+            self._logger.info(f"summarize_pdf returning: {response.text}")
             return response.text
         except Exception as e:
-            self.logger.error(f"Error summarizing PDF: {e}")
+            self._logger.error(f"Error summarizing PDF: {e}")
             return "Error summarizing PDF content."
         
     
@@ -212,24 +203,24 @@ class GeminiInterface(BaseInterface):
         Generate a response using the appropriate chat model based on the channel and recipient.
         Logs the arguments and the response text.
         """
-        self.logger.info(f"generate_response called. message={message}, channel_id={channel_id}, node_short_name={node_short_name}")
+        self._logger.info(f"generate_response called. message={message}, channel_id={channel_id}, node_short_name={node_short_name}")
         try:
             response_text = None
             # Private message to a specific node (takes precedence over channel ID)
             if node_short_name:
-                self.logger.info(f"Generating response for private chat with {node_short_name}")
-                private_chat = self.get_or_create_private_chat(node_short_name)
-                response = private_chat.send_message(message)
+                self._logger.info(f"Generating response for private chat with {node_short_name}")
+                chat = self.get_or_create_private_chat(node_short_name)
+                response = chat.send_message(message)
                 response_text = response.text
             # Admin channel
             elif channel_id == 1:  # admin_channel_number
-                self.logger.info("Generating response for admin channel")
-                response = self.admin_chat.send_message(message)
+                self._logger.info("Generating response for admin channel")
+                response = self.chats["admin"].send_message(message)
                 response_text = response.text
             # Public channel
             elif channel_id == 0:  # public_channel_number
-                self.logger.info("Generating response for public channel")
-                response = self.public_chat.send_message(message)
+                self._logger.info("Generating response for public channel")
+                response = self.chats["public"].send_message(message)
                 response_text = response.text
             # For any other case, fall back to a generic content generation
             else:
@@ -245,12 +236,12 @@ class GeminiInterface(BaseInterface):
                 )
                 response_text = response.candidates[0].content.parts[0].text.strip()
             if not response_text:
-                self.logger.error("No response generated by the AI model.")
+                self._logger.error("No response generated by the AI model.")
                 return "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while!"
-            self.logger.info(f"generate_response returning: {response_text}")
+            self._logger.info(f"generate_response returning: {response_text}")
             return response_text
         except Exception as e:
-            self.logger.error(f"Error generating response: {e}")
+            self._logger.error(f"Error generating response: {e}")
             if "503" in str(e) or "Service Unavailable" in str(e):
                 return "I'm currently unable to process your request. Please try again later."
             return f"(Error with AI response: {message})"
@@ -260,7 +251,7 @@ class GeminiInterface(BaseInterface):
         Test if the interface can connect to the Gemini API.
         Logs the result.
         """
-        self.logger.info("test_connection called.")
+        self._logger.info("test_connection called.")
         try:
             # Try a simple request to test connectivity
             response = self.gemini_client.models.generate_content(
@@ -268,10 +259,10 @@ class GeminiInterface(BaseInterface):
                 contents="Hello"
             )
             result = response is not None
-            self.logger.info(f"test_connection returning: {result}")
+            self._logger.info(f"test_connection returning: {result}")
             return result
         except Exception as e:
-            self.logger.error(f"Connection test failed: {e}")
+            self._logger.error(f"Connection test failed: {e}")
             return False
 
     def get_status(self) -> Dict[str, Any]:
@@ -279,7 +270,7 @@ class GeminiInterface(BaseInterface):
         Get the current status of the Gemini interface.
         Logs the status dict returned.
         """
-        self.logger.info("get_status called.")
+        self._logger.info("get_status called.")
         status = {
             "interface_type": "GeminiInterface",
             "location": self.location,
@@ -289,14 +280,15 @@ class GeminiInterface(BaseInterface):
             "private_chats_count": len(self.private_chats),
             "connection_status": self.test_connection()
         }
-        self.logger.info(f"get_status returning: {status}")
+        self._logger.info(f"get_status returning: {status}")
         return status
     
     def get_private_chats_string(self) -> str:
         """
         Get a printable string of private chat node short names with newlines in between.
         """
-        chat_names = '\n'.join(self.private_chats.keys())
+        private_keys = [k for k in self.chats.keys() if k not in ["public", "admin"]]
+        chat_names = '\n'.join(private_keys)
         self._logger.info(f"private_chats_string returning: {chat_names}")
         return chat_names
 
