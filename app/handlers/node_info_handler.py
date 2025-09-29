@@ -1,11 +1,9 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 #
-# TODO: Remove unused imports (e.g., get_logger if not used).
 """
 NodeInfoHandler processes incoming node info packets, extracts node info, and logs events.
 """
-from utils.logger import get_logger
 
 from handlers.base_handler import BaseHandler
 

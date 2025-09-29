@@ -4,7 +4,12 @@
 """
 TracerouteHandler processes traceroute packets, builds route and SNR lists, and logs trace paths.
 """
-# TODO: Add comments explaining non-obvious logic, especially in route and SNR parsing.
+
+###############################################################
+# Non-obvious logic explanation:
+# - Route parsing: The handler extracts the route from the packet, which may be a list of node numbers representing the path taken. It builds a readable trace path for logging and sitrep updates.
+# - SNR parsing: The handler parses SNR (Signal-to-Noise Ratio) values from the packet, which may be embedded as a list or dict. These are used for network diagnostics and are logged for each hop.
+###############################################################
 from handlers.base_handler import BaseHandler
 
 from datetime import datetime, timezone

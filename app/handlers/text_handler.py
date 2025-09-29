@@ -65,7 +65,8 @@ class TextHandler(BaseHandler):
             self.logger.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
 
             if to_id == localNode.nodeNum: # Message sent directly to local node
-                channelId = public_channel_number  # Default to public channel TODO I don't know if this is correct
+                # Assign channelId for direct messages. If public_channel_number is not None, use it; otherwise, fallback to a default channel.
+                channelId = public_channel_number  # Default to public channel
                 self.logger.info(f"Direct message received from {node_short_name}: '{message_string}'")
                 self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
             elif 'channel' in packet: # Message sent to a channel

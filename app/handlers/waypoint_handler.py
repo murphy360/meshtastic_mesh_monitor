@@ -4,7 +4,12 @@
 """
 WaypointHandler processes incoming waypoint packets, handling expiration and logging details.
 """
-# TODO: Add comments explaining non-obvious logic, especially in packet parsing and waypoint expiration handling.
+
+###############################################################
+# Non-obvious logic explanation:
+# - Packet parsing: The handler attempts to resolve the sending node using node_info_utils.lookup_node, which checks both nodesByNum and nodes dicts for the node number. If not found, it logs and skips processing.
+# - Waypoint expiration: (see below in code) The handler checks for 'expires' in the packet and compares it to the current UTC time. If expired, it logs and skips further processing.
+###############################################################
 
 from handlers.base_handler import BaseHandler
 
