@@ -52,3 +52,33 @@ def lookup_node(interface, node_generic_identifier):
         logger.debug(f"[lookup_node] Found {len(nodes)} nodes matching {node_generic_identifier}")
         return nodes[0]
     return None
+
+
+def time_since_last_heard(last_heard_time):
+    """
+    Calculate the time since a node was last heard.
+
+    Args:
+        last_heard_time (datetime): The last heard time of the node.
+
+    Returns:
+        str: The time since the node was last heard in a human-readable format.
+    """
+    from datetime import datetime, timezone
+    now_time = datetime.now(timezone.utc)
+    delta = now_time - last_heard_time
+    seconds = delta.total_seconds()
+    if seconds < 60: # Less than a minute, return seconds
+        return f"{int(seconds)}s"
+    elif seconds < 3600: # Less than an hour, return minutes
+        return f"{int(seconds // 60)}m"
+    elif seconds < 86400: # Less than a day, return hours
+        return f"{int(seconds // 3600)}h"
+    elif seconds < 604800: # Less than a week, return days
+        return f"{int(seconds // 86400)}d"
+    elif seconds < 2592000: # Less than a month, return weeks
+        return f"{int(seconds // 604800)}w"
+    elif seconds < 31536000: # Less than a year, return months
+        return f"{int(seconds // 2592000)}m"
+    else: # More than a year, return years
+        return f"{int(seconds // 31536000)}y"

@@ -392,15 +392,11 @@ def onReceive(packet, interface):
             sitrep.log_packet_received("Encrypted")
 
         # Only log detailed packet info in debug mode unless it's a notable event
-        if notify_admin or new_node:
+        if notify_admin:
             logger.info(log_message)
+            message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
         else:
             logger.debug(log_message)
-
-        if notify_admin:
-            # Notify admin if required
-            log_message += f" Reported this to the admin: {log_message}"
-            #send_llm_message(interface, log_message, admin_channel_number, "^all")
        
     except KeyError as e:
         logger.error(f"❌ ERROR processing packet from {packet['from']}: {e}")
@@ -460,98 +456,10 @@ def check_node_health(interface, node):
                 if key.startswith(f"battery_{node['num']}"):
                     should_send_message = True
                     del active_health_alerts[key]
+
             if should_send_message:
                 logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
-                message_sender.send_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
-    
-def time_since_last_heard(last_heard_time):
-    """
-    Calculate the time since a node was last heard.
-
-    Args:
-        last_heard_time (datetime): The last heard time of the node.
-
-    Returns:
-        str: The time since the node was last heard in a human-readable format.
-    """
-    now_time = datetime.now(timezone.utc)
-    delta = now_time - last_heard_time
-    seconds = delta.total_seconds()
-    if seconds < 60: # Less than a minute, return seconds
-        return f"{int(seconds)}s"
-    elif seconds < 3600: # Less than an hour, return minutes
-        return f"{int(seconds // 60)}m"
-    elif seconds < 86400: # Less than a day, return hours
-        return f"{int(seconds // 3600)}h"
-    elif seconds < 604800: # Less than a week, return days
-        return f"{int(seconds // 86400)}d"
-    elif seconds < 2592000: # Less than a month, return weeks
-        return f"{int(seconds // 604800)}w"
-    elif seconds < 31536000: # Less than a year, return months
-        return f"{int(seconds // 2592000)}m"
-    else: # More than a year, return years
-        return f"{int(seconds // 31536000)}y"
-
-
-    
-def send_thumbs_up_reply(interface, channel, original_message_id, to_id):
-    """
-    Send a thumbs up reaction to a message.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        channel (int): The channel to send the message to.
-        original_message_id (str, optional): The ID of the original message to react to.
-        to_id (str): The ID of the recipient. 'all' for all nodes, or a specific node ID.
-    """
-    logger.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
-
-    message_sender.send_message(interface, "👍", channel, to_id)
-
-    '''
-    try:
-        encoded_string = "👍".encode()
-        logger.info(f"Encoded thumbs up: {encoded_string}")
-        # Create a Data message protobuf for the reaction
-        data_message = mesh_pb2.Data(
-            #portnum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
-            payload=encoded_string,
-            reply_id=original_message_id,
-            emoji=True,
-            source=interface.localNode.nodeNum,
-            bitfield=0
-        )
-
-        logger.info(f"Sending 👍 to {to_id} for message ID {original_message_id}...")
-        logger.info(data_message)
-        sent_packet = interface.sendData(
-            data_message,
-            destinationId=to_id,
-            channelIndex=channel,
-            portNum=meshtastic.portnums_pb2.TEXT_MESSAGE_APP,
-            wantResponse=False,  # No response needed for reactions
-            wantAck=False # Don't request an acknowledgment for the reaction
-        )
-
-        logger.info(f"{sent_packet}")
-    except Exception as e:
-        logger.error(f"Error sending thumbs up: {e}")
-        '''
-
-def send_telemetry_request(interface, node_num):
-    """
-    Send a telemetry request to a specified node.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node_num (int): The number of the node to send the request to.
-    """
-    logger.info(f"Sending telemetry request to node {node_num}")
-    try:
-        interface.sendTelemetry(node_num, want_response=True, channel=public_channel_number)
-        logger.info(f"Telemetry request sent to node {node_num}")
-    except Exception as e:
-        logger.error(f"Error sending telemetry request: {e}")
+                message_sender.send_llm_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
     
 def send_weather_forecast_if_needed(interface, channel):
     """
