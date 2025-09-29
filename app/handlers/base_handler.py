@@ -1,5 +1,8 @@
+from utils.location_utils import LocationUtils
+from utils.node_info_utils import NodeInfoUtils
 from utils.logger import get_logger
 from utils.message_sender import MessageSender
+from core.database import SQLiteHelper
 
 class BaseHandler:
     """
@@ -9,6 +12,9 @@ class BaseHandler:
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
         self.message_sender = MessageSender()
+        self.db_helper = SQLiteHelper.get_instance()
+        self.location_utils = LocationUtils()
+        self.node_info_utils = NodeInfoUtils()
 
     def on_receive(self, packet, interface):
         """

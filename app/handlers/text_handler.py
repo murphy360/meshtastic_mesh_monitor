@@ -1,7 +1,6 @@
 import importlib
 import os
 from handlers.base_handler import BaseHandler
-from utils.node_info_utils import lookup_node
 
 class TextHandler(BaseHandler):
     def __init__(self):
@@ -21,7 +20,7 @@ class TextHandler(BaseHandler):
             - Ignores packets from the local node.
         """
         from_node_num = packet['from']
-        node = lookup_node(interface, from_node_num)
+        node = self.node_info_utils.lookup_node(interface, from_node_num)
         node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
         self.logger.info(f"[on_receive_text] onReceiveText called for node {node_short_name} - {from_node_num}")
         localNode = interface.getNode('^local')
