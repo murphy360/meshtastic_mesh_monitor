@@ -7,6 +7,7 @@
 # TODO: Add file hygiene note if any sections are unused or misplaced.
 
 import os
+from config.config_manager import ConfigManager
 from google import genai
 from google.genai import types # type: ignore
 from typing import Dict, Optional, Any
@@ -70,6 +71,13 @@ class GeminiInterface(BaseInterface):
         self.location: str = location
         self.max_message_length: int = 200  # Maximum message length for transmission
         self.max_output_tokens: int = 100  # Maximum output tokens for responses
+        # Load Gemini instructions/configs from external config file
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config", "gemini_config.json")
+        self.config_manager = ConfigManager(config_file_path=config_path)
+        gemini_config = self.config_manager.config
+        self._logger.info(f"Loaded Gemini config from {config_path}: {gemini_config}")
+        self.base_system_instruction_config = gemini_config["base_system_instruction"]
+        self.chat_configs = gemini_config["chat_configs"]
         self.update_base_system_instruction()
         # The Gemini client is used for all API interactions
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
@@ -81,21 +89,13 @@ class GeminiInterface(BaseInterface):
 
     def update_base_system_instruction(self):
         """
-        Update the base system instruction with the current location.
+        Update the base system instruction with the current location and message length.
         Logs the current location and instruction.
         """
         self._logger.info(f"update_base_system_instruction called. location={self.location}")
-        self.base_system_instruction = (
-            "You are an AI named DPMM (Don't Panic Mesh Monitor). "
-            "You are a knowledgeable and professional radio enthusiast. "
-            f"You are currently located in {self.location}. "
-            "Don't ever say 'Roger That'. "
-            "You will be given messages to transmit on a mesh network. Send them as if they were from you."
-            "All responses must only include the finalized message, ready for broadcast. "
-            "You may use acronyms selectively to shorten messages, but do not write entire messages in acronyms. "
-            "Don't create links or URLs that weren't already provided to you in the message. "
-            "If including links, ensure they are complete and functional. Never create shortened links or URLs. Do wrap them in quotes if they are not already wrapped to ensure they are treated as a single link. "
-            f"All responses must be less than {self.max_message_length} characters or they will not be transmitted or received."
+        self.base_system_instruction = self.base_system_instruction_config.format(
+            location=self.location,
+            max_message_length=self.max_message_length
         )
     
 
@@ -116,32 +116,21 @@ class GeminiInterface(BaseInterface):
         # Remove all private chats (keys not 'public' or 'admin')
         self.chats = {k: v for k, v in self.chats.items() if k in ["public", "admin"]}
     
-    def _create_chat(self, role: str) -> Any:
+    def _create_chat(self, role: str, node_short_name: Optional[str] = None) -> Any:
         """
-        Create a chat for a given role (public or admin).
-        Logs the system instruction used.
+        Create a chat for a given role (public, admin, or private).
         Args:
-            role (str): Either 'public' or 'admin'.
+            role (str): 'public', 'admin', or 'private'.
+            node_short_name (str, optional): For private chats, the node short name.
         Returns:
             Chat object configured for the specified role.
         """
-        self._logger.info(f"_create_chat called for role={role}. instruction={self.base_system_instruction}")
-        if role == "public":
-            instruction = self.base_system_instruction + (
-                "You are tasked with monitoring a meshtastic mesh network and responding on a public channel. "
-                "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
-                "Do not label responses with 'Public Channel' or similar tags."
-            )
-        elif role == "admin":
-            instruction = self.base_system_instruction + (
-                "You are tasked with monitoring a meshtastic mesh network and are currently working directly "
-                "with administrators on a private admin channel. Be more technical and detailed in your responses "
-                "to administrators, as they need accurate information. "
-                "Do NOT respond as if you are talking to me. ONLY provide the rephrased message. "
-                "Do not label responses with 'Admin Channel' or similar tags."
-            )
-        else:
+        if role not in self.chat_configs:
             raise ValueError(f"Unknown chat role: {role}")
+        instruction = self.base_system_instruction + self.chat_configs[role]["instruction"]
+        if role == "private" and node_short_name:
+            instruction = instruction.format(node_short_name=node_short_name)
+        self._logger.info(f"_create_chat called for role={role}, node_short_name={node_short_name}. instruction={instruction}")
         return self.gemini_client.chats.create(
             model=self.gemini_model,
             config=types.GenerateContentConfig(
@@ -149,28 +138,23 @@ class GeminiInterface(BaseInterface):
             )
         )
     
-    def get_or_create_private_chat(self, node_short_name: str):
+    def get_chat(self, role: str, node_short_name: Optional[str] = None) -> Any:
         """
-        Get an existing private chat or create a new one for direct communications with a node.
-        Logs the node_short_name.
+        Get an existing chat or create a new one for the given role.
+        Args:
+            role (str): 'public', 'admin', or 'private'.
+            node_short_name (str, optional): For private chats, the node short name.
+        Returns:
+            Chat object for the specified role.
         """
-        self._logger.info(f"get_or_create_private_chat called. node_short_name={node_short_name}")
-        if node_short_name not in self.chats:
-            self._logger.info(f"Creating new private chat with {node_short_name}")
-            private_instruction = self.base_system_instruction + (
-                f"You are currently in a private encrypted conversation with {node_short_name}. "
-                f"While this is a conversation with a specific node, you may still be asked to forward messages "
-                f"If [Forward Message] is included in the message you should treat it as a request to initiate a conversation with {node_short_name} not a reply. You may modify this message slightly to make it more suitable for the recipient. "
-                f"You may be slightly more casual in your responses, but still maintain professionalism. "
-                "Do not label responses with 'Private Chat' or similar tags."
-            )
-            self.chats[node_short_name] = self.gemini_client.chats.create(
-                model=self.gemini_model,
-                config=types.GenerateContentConfig(
-                    system_instruction=private_instruction
-                )
-            )
-        return self.chats[node_short_name]
+        key = role if role in ["public", "admin"] else node_short_name
+        if key not in self.chats:
+            self._logger.info(f"Creating new chat for role={role}, node_short_name={node_short_name}")
+            if role == "private" and node_short_name:
+                self.chats[node_short_name] = self._create_chat("private", node_short_name=node_short_name)
+            else:
+                self.chats[role] = self._create_chat(role)
+        return self.chats[key]
 
     def summarize_pdf(self, path_to_pdf: str) -> str:
         """
@@ -209,18 +193,20 @@ class GeminiInterface(BaseInterface):
             # Private message to a specific node (takes precedence over channel ID)
             if node_short_name:
                 self._logger.info(f"Generating response for private chat with {node_short_name}")
-                chat = self.get_or_create_private_chat(node_short_name)
+                chat = self.get_chat("private", node_short_name=node_short_name)
                 response = chat.send_message(message)
                 response_text = response.text
             # Admin channel
             elif channel_id == 1:  # admin_channel_number
                 self._logger.info("Generating response for admin channel")
-                response = self.chats["admin"].send_message(message)
+                chat = self.get_chat("admin")
+                response = chat.send_message(message)
                 response_text = response.text
             # Public channel
             elif channel_id == 0:  # public_channel_number
                 self._logger.info("Generating response for public channel")
-                response = self.chats["public"].send_message(message)
+                chat = self.get_chat("public")
+                response = chat.send_message(message)
                 response_text = response.text
             # For any other case, fall back to a generic content generation
             else:
