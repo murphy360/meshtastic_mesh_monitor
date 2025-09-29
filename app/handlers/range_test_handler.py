@@ -1,6 +1,3 @@
-from utils.logger import get_logger
-from utils.node_info_utils import lookup_node
-
 from handlers.base_handler import BaseHandler
 
 class RangeTestHandler(BaseHandler):
