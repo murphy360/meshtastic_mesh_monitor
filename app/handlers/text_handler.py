@@ -64,6 +64,9 @@ class TextHandler(BaseHandler):
             message_id = packet['id']
             self.logger.debug(f"Portnum: {portnum}, Payload: {payload}, Bitfield: {bitfield}, Message: {message_string}")
 
+            #log to_id and local node num
+            self.logger.info(f"[on_receive_text] Message to ID: {to_id}, Local node num: {localNode.nodeNum}")
+
             if to_id == localNode.nodeNum: # Message sent directly to local node
                 # Assign channelId for direct messages. If public_channel_number is not None, use it; otherwise, fallback to a default channel.
                 channelId = public_channel_number  # Default to public channel
