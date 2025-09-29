@@ -1,3 +1,6 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -13,6 +16,10 @@ from interfaces.gemini_interface import GeminiInterface
 
 
 class WebScraperInterface:
+    # TODO: Refactor long methods (e.g., _load_websites_from_config) into smaller units for readability.
+    # TODO: Remove any unused imports (e.g., sys, re if not used).
+    # TODO: Add comments explaining non-obvious logic in website extraction and change detection.
+    # TODO: Add type hints to all public methods for clarity.
     """Interface for scraping websites and monitoring for changes."""
     
     def __init__(self, discard_initial_items: bool = True, config_manager=None):

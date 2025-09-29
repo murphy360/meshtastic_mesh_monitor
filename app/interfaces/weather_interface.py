@@ -1,3 +1,6 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+
 import requests
 import json
 from datetime import datetime
@@ -7,6 +10,9 @@ from core.base_interfaces import APIInterface
 from utils.logger import get_logger
 
 class WeatherGovInterface(APIInterface):
+    # TODO: Refactor long methods for clarity and maintainability.
+    # TODO: Add type hints to all public methods.
+    # TODO: Add comments explaining non-obvious logic in location and alert handling.
     """Interface for accessing the National Weather Service (weather.gov) API."""
     
     def __init__(self, user_agent: str = "MeshtasticMeshMonitor/1.0", config_manager=None):

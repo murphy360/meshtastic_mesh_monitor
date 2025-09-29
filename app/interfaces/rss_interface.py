@@ -1,3 +1,6 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+
 from datetime import datetime, timedelta, timezone
 import requests
 from typing import Dict, List, Any
@@ -8,6 +11,10 @@ from utils.message_sender import MessageSender
 
 
 class RSSInterface(FeedInterface):
+    # TODO: Refactor long methods into smaller units.
+    # TODO: Remove any unused imports.
+    # TODO: Add comments explaining non-obvious logic in feed parsing and change detection.
+    # TODO: Add type hints to all public methods.
     """Interface for accessing and monitoring RSS feeds."""
     
     # message_sender will be instantiated in __init__

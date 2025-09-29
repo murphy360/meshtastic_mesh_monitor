@@ -1,3 +1,6 @@
+# 2025-09-29: Clean code review: This file was reviewed for clean code standards.
+# in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
+
 import os
 from google import genai
 from google.genai import types # type: ignore
@@ -6,6 +9,9 @@ from core.base_interfaces import BaseInterface
 from utils.logger import get_logger
 
 class GeminiInterface(BaseInterface):
+    # TODO: Add comments explaining non-obvious logic in singleton and chat management.
+    # TODO: Add type hints to all public methods.
+    # TODO: Remove any unused imports.
     _instance = None
     _logger = get_logger(__name__)
 
