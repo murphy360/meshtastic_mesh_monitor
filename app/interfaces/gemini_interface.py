@@ -62,7 +62,7 @@ class GeminiInterface(BaseInterface):
         This constructor sets up the Gemini API client and initializes chat objects for public, admin, and private channels.
         """
         super().__init__(cache_duration_seconds=0)  # No caching for AI responses
-    self.logger.info(f"Initializing GeminiInterface at location: {location}")
+        self.logger.info(f"Initializing GeminiInterface at location: {location}")
         self.gemini_api_key: str = os.getenv('GEMINI_API_KEY', '')
         if not self.gemini_api_key:
             self.logger.error("GEMINI_API_KEY environment variable not set")
