@@ -257,13 +257,14 @@ class GeminiInterface(BaseInterface):
         Logs the status dict returned.
         """
         self.logger.info("get_status called.")
+        private_keys = [k for k in self.chats.keys() if k not in ["public", "admin"]]
         status = {
             "interface_type": "GeminiInterface",
             "location": self.location,
             "max_message_length": self.max_message_length,
             "max_output_tokens": self.max_output_tokens,
             "has_api_key": bool(self.gemini_api_key),
-            "private_chats_count": len(self.private_chats),
+            "private_chats_count": len(private_keys),
             "connection_status": self.test_connection()
         }
         self.logger.info(f"get_status returning: {status}")
