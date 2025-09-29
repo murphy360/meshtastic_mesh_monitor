@@ -63,10 +63,10 @@ class MessageSender:
                     return
                 current_chunk += 1
         else:
-            self.logger.debug(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
+            self.logger.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
             try:
                 sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
-                self.logger.debug(f"Sent message: {sent_message}")
+                self.logger.info(f"Sent message: {sent_message}")
             except Exception as e:
                 if "Data payload too big" in str(e):
                     self.logger.error("Message too long to send. Please shorten the message.")
