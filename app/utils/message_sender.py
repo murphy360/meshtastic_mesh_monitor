@@ -3,7 +3,7 @@ from interfaces.gemini_interface import GeminiInterface
 from datetime import datetime, timezone
 import time
 from meshtastic import config_pb2, mesh_pb2, portnums_pb2
-from utils.node_info_utils import lookup_node
+from utils.node_info_utils import NodeInfoUtils
 import base64
 
 class MessageSender:
@@ -21,7 +21,7 @@ class MessageSender:
         """
         self.logger.info(f"send_llm_message called with message: {message}, channel: {channel}, to_id: {to_id}")
         if to_id != "^all":
-            to_node = lookup_node(interface, to_id)
+            to_node = NodeInfoUtils.lookup_node(interface, to_id)
             if to_node and 'user' in to_node and 'shortName' in to_node['user']:
                 node_name = to_node['user']['shortName']
                 message = f"{node_name}, {message}"
@@ -171,7 +171,7 @@ class MessageSender:
             gemini_interface: Optional GeminiInterface instance for LLM response.
         """
         self.logger.info(f"Replying to direct message: {message}")
-        node = lookup_node(interface, from_id)
+        node = NodeInfoUtils.lookup_node(interface, from_id)
         response_text = ""
         if node is None:
             response_text = "I'm sorry, I couldn't find your user information. I am an auto-responder and I can only respond to ping and direct messages."
@@ -195,7 +195,7 @@ class MessageSender:
             channel (int): The channel to send the request on.
             hop_limit (int): The maximum number of hops for the traceroute (default: 2).
         """
-        node = lookup_node(interface, node_num)
+        node = NodeInfoUtils.lookup_node(interface, node_num)
         node_name = "Unknown"
         if node and 'user' in node and 'shortName' in node['user']:
             node_name = node['user']['shortName']
