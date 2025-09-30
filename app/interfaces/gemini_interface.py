@@ -86,7 +86,7 @@ class GeminiInterface(BaseInterface):
             "public": self._create_chat("public"),
             "admin": self._create_chat("admin")
         }
-        self.summarize_all_chat_histories()
+        self.summarize_and_cleanup_chat_histories()
 
     def update_base_system_instruction(self):
         """
@@ -224,12 +224,12 @@ class GeminiInterface(BaseInterface):
             self.logger.error(f"Error summarizing text: {e}")
             return "Error summarizing text."
         
-    def summarize_all_chat_histories(self) -> None:
+    def summarize_and_cleanup_chat_histories(self) -> None:
         """
-        Summarize all chat history files to keep them concise.
-        This is called on startup to manage file sizes.
+        On initialization, summarize all _chat_history.txt files by combining them with any existing _chat_summary.txt files,
+        run through summarize_text(), write to _chat_summary.txt, and delete _chat_history.txt files.
         """
-        self.logger.info("summarize_all_chat_histories called.")
+        self.logger.info("summarize_and_cleanup_chat_histories called.")
         directory = "logs"
         if not os.path.exists(directory):
             self.logger.info(f"Directory does not exist: {directory}")
@@ -237,16 +237,26 @@ class GeminiInterface(BaseInterface):
         for filename in os.listdir(directory):
             if filename.endswith("_chat_history.txt"):
                 key = filename.replace("_chat_history.txt", "")
-                self.logger.info(f"Summarizing chat history for key={key}")
+                self.logger.info(f"Summarizing and cleaning up chat history for key={key}")
                 chat_history = self.read_chat_history_from_file(key)
                 chat_summary = self.read_chat_summary_from_file(key)
-                if chat_history and chat_summary:
-                    text_to_summarize = chat_summary + "\n" + chat_history if chat_summary and chat_summary != "No Chat Summary" else chat_history
-                    summarized_text = self.summarize_text(text_to_summarize)
-                    self.write_chat_summary_to_file(key, summarized_text)
-                    self.logger.info(f"Chat history for key={key} summarized.")
+                # Combine summary and history
+                if chat_summary and chat_summary != "No Chat Summary":
+                    text_to_summarize = chat_summary + "\n" + chat_history
                 else:
-                    self.logger.info(f"No chat history to summarize for key={key}")
+                    text_to_summarize = chat_history
+                # Summarize and write to summary file
+                summarized_text = self.summarize_text(text_to_summarize)
+                self.write_chat_summary_to_file(key, summarized_text)
+                self.logger.info(f"Chat history for key={key} summarized and written to summary.")
+                # Delete chat history file
+                chat_history_path = os.path.join(directory, f"{key}_chat_history.txt")
+                try:
+                    if os.path.exists(chat_history_path):
+                        os.remove(chat_history_path)
+                        self.logger.info(f"Deleted chat history file: {chat_history_path}")
+                except Exception as e:
+                    self.logger.error(f"Error deleting chat history file {chat_history_path}: {e}")
 
     def read_chat_summary_from_file(self, key: str) -> str:
         """
@@ -317,6 +327,8 @@ class GeminiInterface(BaseInterface):
                 self.logger.info(f"Deleted existing file: {file_path}")
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(summary + "\n")
+
+        
             self.logger.info(f"Chat summary for key={key} written to {file_path}")
           
             return True
