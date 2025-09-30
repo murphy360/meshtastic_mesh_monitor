@@ -40,7 +40,7 @@ class RemovenodeKeyword(KeywordHandler):
         if len(nodes) > 0:
             for node in nodes:
                 self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']}")
-                RemovenodeKeyword.db_helper.remove_node(node)
+                self.db_helper.remove_node(node)
                 if node['num'] in interface.nodesByNum:
                     log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
                     self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']} from interface")
