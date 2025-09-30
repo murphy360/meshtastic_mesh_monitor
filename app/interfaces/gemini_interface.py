@@ -308,8 +308,6 @@ class GeminiInterface(BaseInterface):
         """
         file_path = f"logs/{key}_chat_summary.txt"
         self.logger.info(f"write_chat_summary_to_file called. key={key}, file_path={file_path}")
-        if key not in self.chats:
-            self.logger.error(f"Chat for key={key} does not exist. It will be created on next message.")
         try:
             # Delete existing file if it exists
             if os.path.exists(file_path):
@@ -318,6 +316,14 @@ class GeminiInterface(BaseInterface):
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(summary + "\n")
             self.logger.info(f"Chat summary for key={key} written to {file_path}")
+            if key not in self.chats:
+                self.logger.info(f"Chat for key={key} does not exist. It will be created on next message.")
+                history_file_path = f"logs/{key}_chat_history.txt"
+                if os.path.exists(history_file_path):
+                    # Delete existing history file to avoid confusion
+                    os.remove(history_file_path)
+                    self.logger.info(f"Deleted existing history file: {history_file_path}")
+                self.chats[key] = self._create_chat(key)
             return True
         except Exception as e:
             self.logger.error(f"Error writing chat summary to file: {e}")
