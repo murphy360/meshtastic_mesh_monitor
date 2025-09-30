@@ -305,8 +305,8 @@ class GeminiInterface(BaseInterface):
         Write a summary of the chat history for a given key to a file.
         Logs the file path and success status.
         """
-        self.logger.info(f"write_chat_summary_to_file called. key={key}, file_path={file_path}")
         file_path = f"logs/{key}_chat_summary.txt"
+        self.logger.info(f"write_chat_summary_to_file called. key={key}, file_path={file_path}")
         if key not in self.chats:
             self.logger.error(f"No chat found for key={key}")
             return False
