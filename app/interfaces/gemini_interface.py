@@ -111,49 +111,48 @@ class GeminiInterface(BaseInterface):
         self.location = new_location
         self.update_base_system_instruction()
         # Recreate chats with updated location
+        self.chats = {}
         self.chats["public"] = self._create_chat("public")
         self.chats["admin"] = self._create_chat("admin")
-        # Remove all private chats (keys not 'public' or 'admin')
-        self.chats = {k: v for k, v in self.chats.items() if k in ["public", "admin"]}
+        
     
-    def _create_chat(self, role: str, node_short_name: Optional[str] = None) -> Any:
+    def _create_chat(self, key: str) -> Any:
         """
-        Create a chat for a given role (public, admin, or private).
+        Create a chat for a given key (public, admin, or private).
         Args:
-            role (str): 'public', 'admin', or 'private'.
-            node_short_name (str, optional): For private chats, the node short name.
+            key (str): 'public', 'admin', or node_short_name for private chats.
         Returns:
-            Chat object configured for the specified role.
+            Chat object configured for the specified key.
         """
-        if role not in self.chat_configs:
-            raise ValueError(f"Unknown chat role: {role}")
-        instruction = self.base_system_instruction + self.chat_configs[role]["instruction"]
-        if role == "private" and node_short_name:
-            instruction = instruction.format(node_short_name=node_short_name)
-        self.logger.info(f"_create_chat called for role={role}, node_short_name={node_short_name}. instruction={instruction}")
-        return self.gemini_client.chats.create(
+        if key in ["public", "admin"]:
+            instruction = self.base_system_instruction + self.chat_configs[key]["instruction"]
+        else:
+            # Private chat: use "private" config and format with node_short_name
+            instruction = self.base_system_instruction + self.chat_configs["private"]["instruction"]
+            instruction = instruction.format(node_short_name=key)
+        self.logger.info(f"_create_chat called for key={key}. instruction={instruction}")
+        chat = self.gemini_client.chats.create(
             model=self.gemini_model,
             config=types.GenerateContentConfig(
                 system_instruction=instruction
             )
         )
+        self.logger.info(f"_create_chat created chat id={chat.id} for key={key}")
+        self.logger.info(f"_create_chat created chat: {chat}")
+        return chat
+        
     
-    def get_chat(self, role: str, node_short_name: Optional[str] = None) -> Any:
+    def get_chat(self, key: str) -> Any:
         """
-        Get an existing chat or create a new one for the given role.
+        Get an existing chat or create a new one for the given key.
         Args:
-            role (str): 'public', 'admin', or 'private'.
-            node_short_name (str, optional): For private chats, the node short name.
+            key (str): 'public', 'admin', or node_short_name for private chats.
         Returns:
-            Chat object for the specified role.
+            Chat object for the specified key.
         """
-        key = role if role in ["public", "admin"] else node_short_name
         if key not in self.chats:
-            self.logger.info(f"Creating new chat for role={role}, node_short_name={node_short_name}")
-            if role == "private" and node_short_name:
-                self.chats[node_short_name] = self._create_chat("private", node_short_name=node_short_name)
-            else:
-                self.chats[role] = self._create_chat(role)
+            self.logger.info(f"Creating new chat for key={key}")
+            self.chats[key] = self._create_chat(key)
         return self.chats[key]
 
     def summarize_pdf(self, path_to_pdf: str) -> str:
@@ -190,42 +189,13 @@ class GeminiInterface(BaseInterface):
         self.logger.info(f"generate_response called. message={message}, channel_id={channel_id}, node_short_name={node_short_name}")
         try:
             response_text = None
-            # Private message to a specific node (takes precedence over channel ID)
-            if node_short_name:
-                self.logger.info(f"Generating response for private chat with {node_short_name}")
-                chat = self.get_chat("private", node_short_name=node_short_name)
-                response = chat.send_message(message)
-                response_text = response.text
-            # Admin channel
-            elif channel_id == 1:  # admin_channel_number
-                self.logger.info("Generating response for admin channel")
-                chat = self.get_chat("admin")
-                response = chat.send_message(message)
-                response_text = response.text
-            # Public channel
-            elif channel_id == 0:  # public_channel_number
-                self.logger.info("Generating response for public channel")
-                chat = self.get_chat("public")
-                response = chat.send_message(message)
-                response_text = response.text
-            # For any other case, fall back to a generic content generation
-            else:
-                generic_instruction = self.base_system_instruction + (
-                    " You are preparing a message for transmission on the mesh network."
-                )
-                response = self.gemini_client.models.generate_content(
-                    model=self.gemini_model,
-                    config=types.GenerateContentConfig(
-                        system_instruction=generic_instruction
-                    ),
-                    contents=f"Modify this message for transmission: {message}. Return only the modified message so that I can send it directly to the recipient.",
-                )
-                response_text = response.candidates[0].content.parts[0].text.strip()
-            if not response_text:
-                self.logger.error("No response generated by the AI model.")
-                return "I'm an auto-responder. I'm working on smarter replies, but it's going to be a while!"
-            
+            key = node_short_name if node_short_name else ("admin" if channel_id == 1 else "public")
+            self.logger.info(f"Generate response using chat key={key}")
+            chat = self.get_chat(key)
+            response = chat.send_message(message)
+            response_text = response.text
             self.logger.info(f"generate_response returning: {response_text}")
+            self.write_chat_to_file(key, f"logs/{key}_chat_history.txt")
             return response_text
         except Exception as e:
             self.logger.error(f"Error generating response: {e}")
@@ -233,6 +203,33 @@ class GeminiInterface(BaseInterface):
                 return "I'm currently unable to process your request. Please try again later."
             return f"(Error with AI response: {message})"
 
+    def write_chat_to_file(self, key: str, file_path: str) -> bool:
+        """
+        Write the chat history for a given key to a file.
+        Logs the file path and success status.
+        """
+        self.logger.info(f"write_chat_to_file called. key={key}, file_path={file_path}")
+        if key not in self.chats:
+            self.logger.error(f"No chat found for key={key}")
+            return False
+        try:
+            chat = self.chats[key]
+            history = chat.get_history()
+            # Delete existing file if it exists
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                self.logger.info(f"Deleted existing file: {file_path}")
+            with open(file_path, 'w', encoding='utf-8') as f:
+                for message in history:
+                    role = message.role
+                    content = message.content
+                    f.write(f"{role}: {content}\n")
+            self.logger.info(f"Chat history for key={key} written to {file_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error writing chat history to file: {e}")
+            return False
+        
     def test_connection(self) -> bool:
         """
         Test if the interface can connect to the Gemini API.
