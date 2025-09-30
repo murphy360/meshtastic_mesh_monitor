@@ -7,6 +7,23 @@ from utils.node_info_utils import NodeInfoUtils
 import base64
 
 class MessageSender:
+    def send_node_info_simple(self, interface, public_channel_number=0):
+        """
+        Send the local node info to the mesh network on the specified channel using local_node.sendNodeInfo if available.
+        Args:
+            interface: The mesh network interface.
+            public_channel_number (int): The channel to send the info on.
+        """
+        self.logger.info(f"[send_node_info_simple] Sending local node info on channel {public_channel_number}")
+        local_node = interface.getNode('^local')
+        if local_node:
+            if hasattr(local_node, 'sendNodeInfo'):
+                local_node.sendNodeInfo(public_channel_number)
+                self.logger.info("[send_node_info_simple] Node info sent successfully.")
+            else:
+                self.logger.error("[send_node_info_simple] local_node does not have sendNodeInfo method.")
+        else:
+            self.logger.error("[send_node_info_simple] Local node not found.")
     
 
     logger = get_logger(__name__)
