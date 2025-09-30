@@ -130,6 +130,9 @@ class GeminiInterface(BaseInterface):
             # Private chat: use "private" config and format with node_short_name
             instruction = self.base_system_instruction + self.chat_configs["private"]["instruction"]
             instruction = instruction.format(node_short_name=key)
+
+        instruction = instruction + self.read_chat_from_file(key, f"logs/{key}_chat_history.txt")
+        
         self.logger.info(f"_create_chat called for key={key}. instruction={instruction}")
         chat = self.gemini_client.chats.create(
             model=self.gemini_model,
@@ -202,6 +205,26 @@ class GeminiInterface(BaseInterface):
             if "503" in str(e) or "Service Unavailable" in str(e):
                 return "I'm currently unable to process your request. Please try again later."
             return f"(Error with AI response: {message})"
+        
+    def read_chat_from_file(self, key: str, file_path: str) -> str:
+        """
+        Read Chat History from a file if it exists and return lines as a single string.
+        that we will feed into a new chat.
+        Returns "" if file does not exist or error occurs
+        """
+        self.logger.info(f"read_chat_from_file called. key={key}, file_path={file_path}")
+        if not os.path.exists(file_path):
+            self.logger.error(f"File does not exist: {file_path}")
+            return "New Chat"
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            message_string = 'Chat History: '.join(lines).strip()
+            return message_string
+        except Exception as e:
+            self.logger.error(f"Error reading chat history from file: {e}")
+            return "New Chat"
+
 
     def write_chat_to_file(self, key: str, file_path: str) -> bool:
         """
