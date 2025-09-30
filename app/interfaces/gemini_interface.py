@@ -216,7 +216,7 @@ class GeminiInterface(BaseInterface):
         try:
             response = self.gemini_client.models.generate_content(
                 model=self.gemini_model,
-                contents=f"Summarize this text in {self.max_message_length} characters or less: {text}"
+                contents=f"Summarize this text in {self.max_message_length} characters or less. Provide key points that will be useful to know in future chats: {text}"
             )
             self.logger.info(f"summarize_text returning: {response.text}")
             return response.text
