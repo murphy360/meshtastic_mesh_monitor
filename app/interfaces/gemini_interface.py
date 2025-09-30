@@ -137,7 +137,7 @@ class GeminiInterface(BaseInterface):
                 system_instruction=instruction
             )
         )
-        self.logger.info(f"_create_chat created chat id={chat.id} for key={key}")
+
         self.logger.info(f"_create_chat created chat: {chat}")
         return chat
         
