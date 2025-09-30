@@ -240,7 +240,7 @@ class GeminiInterface(BaseInterface):
                 self.logger.info(f"Summarizing chat history for key={key}")
                 chat_history = self.read_chat_history_from_file(key)
                 chat_summary = self.read_chat_summary_from_file(key)
-                if chat_history and chat_history != "New Chat":
+                if chat_history and chat_summary:
                     text_to_summarize = chat_summary + "\n" + chat_history if chat_summary and chat_summary != "No Chat Summary" else chat_history
                     summarized_text = self.summarize_text(text_to_summarize)
                     self.write_chat_summary_to_file(key, summarized_text)
@@ -277,7 +277,7 @@ class GeminiInterface(BaseInterface):
         file_path = f"logs/{key}_chat_history.txt"
         self.logger.info(f"read_chat_history_from_file called. file_path={file_path}")
         if not os.path.exists(file_path):
-            self.logger.error(f"File does not exist: {file_path}")
+            self.logger.info(f"File does not exist: {file_path}")
             return "New Chat"
         try:
             message_string = ""
@@ -318,14 +318,7 @@ class GeminiInterface(BaseInterface):
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(summary + "\n")
             self.logger.info(f"Chat summary for key={key} written to {file_path}")
-            if key not in self.chats:
-                self.logger.info(f"Chat for key={key} does not exist. It will be created on next message.")
-                history_file_path = f"logs/{key}_chat_history.txt"
-                if os.path.exists(history_file_path):
-                    # Delete existing history file to avoid confusion
-                    os.remove(history_file_path)
-                    self.logger.info(f"Deleted existing history file: {history_file_path}")
-                self.chats[key] = self._create_chat(key)
+          
             return True
         except Exception as e:
             self.logger.error(f"Error writing chat summary to file: {e}")
