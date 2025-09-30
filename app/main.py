@@ -298,9 +298,10 @@ def onReceive(packet, interface):
     Returns:
         None
     """
-    global heartbeat_counter 
+    global public_channel_number, admin_channel_number, heartbeat_counter 
     heartbeat_counter = 0
-    #logger.debug(f"Received packet: {packet}")
+    channelId = public_channel_number
+    notify_admin = False
     from_node_num = packet['from']
 
     node = NodeInfoUtils.lookup_node(interface, from_node_num)
@@ -313,18 +314,20 @@ def onReceive(packet, interface):
         return
     
     localNode = interface.getNode('^local')
+    if from_node_num == localNode.nodeNum:
+        logger.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
+        return
+    
+    new_node = db_helper.is_new_node(node) # Check if the node is already in the database
+    db_helper.add_or_update_node(node)
+    node_of_interest = db_helper.is_node_of_interest(node)
 
-    global public_channel_number, admin_channel_number
-    channelId = public_channel_number
-    notify_admin = False
+   
 
 
 
     try:
-        if from_node_num == localNode.nodeNum:
-            logger.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
-            return
-
+       
         if 'channel' in packet:
             channelId = int(packet['channel'])
         
@@ -334,8 +337,8 @@ def onReceive(packet, interface):
             log_message += f" - Hops Away: {node['hopsAway']}"
         
 
-        # Check if the node is already in the database
-        new_node = db_helper.is_new_node(node)
+
+        
               
         if new_node:
             message_sender.send_node_info(interface)
@@ -351,18 +354,17 @@ def onReceive(packet, interface):
             if name_change_list[0] == True:
                 log_message += f" - Node Name Changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}"
                 
-                private_message = f"[Forward Message. You are initiating this conversation. It is not a response.] Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
-                message_sender.send_llm_message(interface, private_message, public_channel_number, from_node_num)
+                #private_message = f"[Forward Message. You are initiating this conversation. It is not a response.] Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
+                #message_sender.send_llm_message(interface, private_message, public_channel_number, from_node_num)
                 
                 admin_message = f"Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
                 message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
                 logger.info(f"📝 NAME CHANGE: {name_change_list[1]}/{name_change_list[2]} → {node_short_name}/{node_long_name}")
                 notify_admin = True
 
-        db_helper.add_or_update_node(node)
+        
 
-        # Check if the node is a node of interest
-        node_of_interest = db_helper.is_node_of_interest(node)
+
         if node_of_interest:
             log_message += f" - Node of Interest"
             check_node_health(interface, node)
