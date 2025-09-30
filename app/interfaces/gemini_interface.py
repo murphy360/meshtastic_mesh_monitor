@@ -131,7 +131,7 @@ class GeminiInterface(BaseInterface):
             instruction = self.base_system_instruction + self.chat_configs["private"]["instruction"]
             instruction = instruction.format(node_short_name=key)
 
-        instruction = instruction + self.read_chat_from_file(key, f"logs/{key}_chat_history.txt")
+        instruction = instruction + self.read_chat_from_file(key)
         
         self.logger.info(f"_create_chat called for key={key}. instruction={instruction}")
         chat = self.gemini_client.chats.create(
@@ -206,25 +206,106 @@ class GeminiInterface(BaseInterface):
                 return "I'm currently unable to process your request. Please try again later."
             return f"(Error with AI response: {message})"
         
-    def read_chat_from_file(self, key: str, file_path: str) -> str:
+    def summarize_text(self, text: str) -> str:
+        """
+        Summarize a given text string using the Gemini API.
+        Logs the input text and summary result.
+        """
+        self.logger.info(f"summarize_text called. text={text}")
+        try:
+            response = self.gemini_client.models.generate_content(
+                model=self.gemini_model,
+                contents=f"Summarize this text in {self.max_message_length} characters or less: {text}"
+            )
+            self.logger.info(f"summarize_text returning: {response.text}")
+            return response.text
+        except Exception as e:
+            self.logger.error(f"Error summarizing text: {e}")
+            return "Error summarizing text."
+
+    def read_chat_summary_from_file(self, key: str) -> str:
+        """
+        Read Chat Summary from a file if it exists and return lines as a single string.
+        that we will feed into a new chat.
+        Returns "" if file does not exist or error occurs
+        """
+        self.logger.info(f"read_chat_summary_from_file called. key={key}, file_path={file_path}")
+        file_path = f"logs/{key}_chat_summary.txt"
+        if not os.path.exists(file_path):
+            self.logger.error(f"File does not exist: {file_path}")
+            return "No Chat Summary"
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            message_string = ' '.join(lines).strip()
+            return message_string
+        except Exception as e:
+            self.logger.error(f"Error reading chat summary from file: {e}")
+            return "No Chat Summary"
+
+    def read_chat_history_from_file(self, key: str) -> str:
         """
         Read Chat History from a file if it exists and return lines as a single string.
         that we will feed into a new chat.
         Returns "" if file does not exist or error occurs
         """
-        self.logger.info(f"read_chat_from_file called. key={key}, file_path={file_path}")
+        file_path = f"logs/{key}_chat_history.txt"
+        self.logger.info(f"read_chat_history_from_file called. file_path={file_path}")
         if not os.path.exists(file_path):
             self.logger.error(f"File does not exist: {file_path}")
             return "New Chat"
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            message_string = 'Chat History: '.join(lines).strip()
+            if len(lines) > 50:
+                chat_summary_from_file = self.read_chat_summary_from_file(key)
+                text_to_summarize = chat_summary_from_file + ' ' + ' '.join(lines).strip()
+                summarized_text = self.summarize_text(text_to_summarize)
+                self.write_chat_summary_to_file(key, summarized_text)
+                message_string = "Chat History summarized. See chat summary."
+            else:
+                message_string = ' '.join(lines).strip()
             return message_string
         except Exception as e:
             self.logger.error(f"Error reading chat history from file: {e}")
             return "New Chat"
 
+    def read_chat_from_file(self, key: str) -> str:
+        """
+        Read Chat History from a file if it exists and return lines as a single string.
+        that we will feed into a new chat.
+        Returns "" if file does not exist or error occurs
+        """
+        chat_history_file_path = f"logs/{key}_chat_history.txt"
+        chat_summary_file_path = f"logs/{key}_chat_summary.txt"
+        chat_history = "Chat History: " + self.read_chat_history_from_file(key)
+        chat_summary = "Chat Summary: " + self.read_chat_summary_from_file(key)
+        
+        return chat_summary + "\n" + chat_history
+        
+
+    def write_chat_summary_to_file(self, key: str, summary: str) -> bool:
+        """
+        Write a summary of the chat history for a given key to a file.
+        Logs the file path and success status.
+        """
+        self.logger.info(f"write_chat_summary_to_file called. key={key}, file_path={file_path}")
+        file_path = f"logs/{key}_chat_summary.txt"
+        if key not in self.chats:
+            self.logger.error(f"No chat found for key={key}")
+            return False
+        try:
+            # Delete existing file if it exists
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                self.logger.info(f"Deleted existing file: {file_path}")
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(summary + "\n")
+            self.logger.info(f"Chat summary for key={key} written to {file_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error writing chat summary to file: {e}")
+            return False
 
     def write_chat_to_file(self, key: str, file_path: str) -> bool:
         """
