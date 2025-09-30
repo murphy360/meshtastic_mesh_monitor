@@ -36,6 +36,7 @@ class RemovenodeKeyword(KeywordHandler):
             self.logger.error("[handle] Removenode keyword requires at least one argument (node identifier). Usage: removenode <shortname>")
             self.message_sender.send_message(interface, "Usage: removenode <shortname>", channel, to_id)
             return
+        
         node_identifier = args[1]
         self.logger.info(f"[handle] Attempting to remove node with identifier: {node_identifier}")
         nodes = self.node_info_utils.lookup_nodes(interface, node_identifier)
@@ -48,15 +49,7 @@ class RemovenodeKeyword(KeywordHandler):
                 if node['num'] in interface.nodesByNum:
                     log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
                     self.removeNode(interface, node['num'])
-                try:
-                    deleted_node = self.node_info_utils.lookup_node(interface, node_identifier)
-                    if deleted_node:
-                        self.logger.info(f"[handle] Node {node_identifier} still exists after removal.")
-                    else:
-                        self.logger.info(f"[handle] Node {node_identifier} successfully removed")
-                except Exception as e:
-                    self.logger.error(f"[handle] Error looking up node {node_identifier} after removal: {e}")
-            self.logger.info(f"[handle] Sending confirmation message.")
+
             self.message_sender.send_message(interface, log_message, channel, to_id)
         else:
             self.logger.info(f"[handle] Node {node_identifier} not found in my database. Unable to remove.")
