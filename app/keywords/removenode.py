@@ -47,9 +47,6 @@ class RemovenodeKeyword(KeywordHandler):
                 self.db_helper.remove_node(node)
                 if node['num'] in interface.nodesByNum:
                     log_message += f"Removing node {node['user']['shortName']} - {node['num']} from my database\n"
-                    self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']} from interface")
-                    local_node = interface.getNode('^local')
-                    local_node.removeNode(node['num'])
                     self.removeNode(interface, node['num'])
                 try:
                     deleted_node = self.node_info_utils.lookup_node(interface, node_identifier)
