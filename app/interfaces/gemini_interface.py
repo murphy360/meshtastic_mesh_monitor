@@ -214,16 +214,15 @@ class GeminiInterface(BaseInterface):
             return False
         try:
             chat = self.chats[key]
-            history = chat.get_history()
             # Delete existing file if it exists
             if os.path.exists(file_path):
                 os.remove(file_path)
                 self.logger.info(f"Deleted existing file: {file_path}")
             with open(file_path, 'w', encoding='utf-8') as f:
-                for message in history:
+                for message in chat.get_history():
                     role = message.role
-                    content = message.content
-                    f.write(f"{role}: {content}\n")
+                    text = message.parts[0].text if hasattr(message, 'parts') and message.parts else ''
+                    f.write(f"{role}: {text}\n")
             self.logger.info(f"Chat history for key={key} written to {file_path}")
             return True
         except Exception as e:
