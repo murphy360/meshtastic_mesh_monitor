@@ -81,6 +81,7 @@ class GeminiInterface(BaseInterface):
         self.update_base_system_instruction()
         # The Gemini client is used for all API interactions
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
+        self.summarize_all_chat_histories()
         # All chats (public, admin, private) are managed in a single dictionary
         self.chats = {
             "public": self._create_chat("public"),
@@ -222,6 +223,27 @@ class GeminiInterface(BaseInterface):
         except Exception as e:
             self.logger.error(f"Error summarizing text: {e}")
             return "Error summarizing text."
+    def summarize_all_chat_histories(self) -> None:
+        """
+        Summarize all chat history files to keep them concise.
+        This is called on startup to manage file sizes.
+        """
+        self.logger.info("summarize_all_chat_histories called.")
+        directory = "logs"
+        if not os.path.exists(directory):
+            self.logger.info(f"Directory does not exist: {directory}")
+            return
+        for filename in os.listdir(directory):
+            if filename.endswith("_chat_history.txt"):
+                key = filename.replace("_chat_history.txt", "")
+                self.logger.info(f"Summarizing chat history for key={key}")
+                chat_history = self.read_chat_history_from_file(key)
+                if chat_history and chat_history != "New Chat":
+                    summarized_text = self.summarize_text(chat_history)
+                    self.write_chat_summary_to_file(key, summarized_text)
+                    self.logger.info(f"Chat history for key={key} summarized.")
+                else:
+                    self.logger.info(f"No chat history to summarize for key={key}")
 
     def read_chat_summary_from_file(self, key: str) -> str:
         """
@@ -255,15 +277,9 @@ class GeminiInterface(BaseInterface):
             self.logger.error(f"File does not exist: {file_path}")
             return "New Chat"
         try:
+            message_string = ""
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            if len(lines) > 50:
-                chat_summary_from_file = self.read_chat_summary_from_file(key)
-                text_to_summarize = chat_summary_from_file + ' ' + ' '.join(lines).strip()
-                summarized_text = self.summarize_text(text_to_summarize)
-                self.write_chat_summary_to_file(key, summarized_text)
-                message_string = "Chat History summarized. See chat summary."
-            else:
                 message_string = ' '.join(lines).strip()
             return message_string
         except Exception as e:
