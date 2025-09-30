@@ -81,12 +81,12 @@ class GeminiInterface(BaseInterface):
         self.update_base_system_instruction()
         # The Gemini client is used for all API interactions
         self.gemini_client = genai.Client(api_key=self.gemini_api_key)
-        self.summarize_all_chat_histories()
         # All chats (public, admin, private) are managed in a single dictionary
         self.chats = {
             "public": self._create_chat("public"),
             "admin": self._create_chat("admin")
         }
+        self.summarize_all_chat_histories()
 
     def update_base_system_instruction(self):
         """
@@ -223,6 +223,7 @@ class GeminiInterface(BaseInterface):
         except Exception as e:
             self.logger.error(f"Error summarizing text: {e}")
             return "Error summarizing text."
+        
     def summarize_all_chat_histories(self) -> None:
         """
         Summarize all chat history files to keep them concise.
@@ -308,8 +309,7 @@ class GeminiInterface(BaseInterface):
         file_path = f"logs/{key}_chat_summary.txt"
         self.logger.info(f"write_chat_summary_to_file called. key={key}, file_path={file_path}")
         if key not in self.chats:
-            self.logger.error(f"No chat found for key={key}")
-            return False
+            self.logger.error(f"Chat for key={key} does not exist. It will be created on next message.")
         try:
             # Delete existing file if it exists
             if os.path.exists(file_path):
