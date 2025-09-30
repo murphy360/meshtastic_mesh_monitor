@@ -229,8 +229,8 @@ class GeminiInterface(BaseInterface):
         that we will feed into a new chat.
         Returns "" if file does not exist or error occurs
         """
-        self.logger.info(f"read_chat_summary_from_file called. key={key}, file_path={file_path}")
         file_path = f"logs/{key}_chat_summary.txt"
+        self.logger.info(f"read_chat_summary_from_file called. key={key}, file_path={file_path}")
         if not os.path.exists(file_path):
             self.logger.error(f"File does not exist: {file_path}")
             return "No Chat Summary"
