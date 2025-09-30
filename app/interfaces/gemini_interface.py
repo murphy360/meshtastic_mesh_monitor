@@ -239,8 +239,10 @@ class GeminiInterface(BaseInterface):
                 key = filename.replace("_chat_history.txt", "")
                 self.logger.info(f"Summarizing chat history for key={key}")
                 chat_history = self.read_chat_history_from_file(key)
+                chat_summary = self.read_chat_summary_from_file(key)
                 if chat_history and chat_history != "New Chat":
-                    summarized_text = self.summarize_text(chat_history)
+                    text_to_summarize = chat_summary + "\n" + chat_history if chat_summary and chat_summary != "No Chat Summary" else chat_history
+                    summarized_text = self.summarize_text(text_to_summarize)
                     self.write_chat_summary_to_file(key, summarized_text)
                     self.logger.info(f"Chat history for key={key} summarized.")
                 else:
