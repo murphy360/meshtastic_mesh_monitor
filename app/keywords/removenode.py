@@ -1,7 +1,11 @@
 from keywords.keyword_handler import KeywordHandler
 from core.database import SQLiteHelper
+from typing import Union
+from meshtastic.protobuf import admin_pb2, portnums_pb2
+from meshtastic import BROADCAST_ADDR
 
 class RemovenodeKeyword(KeywordHandler):
+    
         
     def __init__(self):
         super().__init__()
@@ -46,6 +50,7 @@ class RemovenodeKeyword(KeywordHandler):
                     self.logger.info(f"[handle] Removing node {node['user']['shortName']} - {node['num']} from interface")
                     local_node = interface.getNode('^local')
                     local_node.removeNode(node['num'])
+                    self.removeNode(interface, node['num'])
                 try:
                     deleted_node = self.node_info_utils.lookup_node(interface, node_identifier)
                     if deleted_node:
@@ -59,3 +64,23 @@ class RemovenodeKeyword(KeywordHandler):
         else:
             self.logger.info(f"[handle] Node {node_identifier} not found in my database. Unable to remove.")
             self.message_sender.send_message(interface, f"Node {node_identifier} not found. Unable to remove from my database.", channel, to_id)
+    
+    def removeNode(self, interface, nodeId):
+        """Send an AdminMessage to remove a node by ID using the admin app pattern."""
+        self.logger.info(f"[removeNode] Sending AdminMessage to remove node ID: {nodeId}")
+        if isinstance(nodeId, str):
+            if nodeId.startswith("!"):
+                nodeId = int(nodeId[1:], 16)
+            else:
+                nodeId = int(nodeId)
+
+        admin_msg = admin_pb2.AdminMessage()
+        admin_msg.remove_by_nodenum = nodeId
+
+        # Send the admin message to the broadcast address using the admin port
+        interface.sendData(
+            admin_msg,
+            destinationId=BROADCAST_ADDR,
+            portNum=portnums_pb2.PortNum.ADMIN_APP,
+            wantResponse=False,
+        )
