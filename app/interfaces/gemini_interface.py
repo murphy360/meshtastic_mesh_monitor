@@ -216,7 +216,7 @@ class GeminiInterface(BaseInterface):
         try:
             response = self.gemini_client.models.generate_content(
                 model=self.gemini_model,
-                contents=f"Summarize this text in {self.max_message_length} characters or less. Provide key points that will be useful to know in future chats: {text}"
+                contents=f"Summarize this text Provide key points that will be useful to know in future chats: {text}"
             )
             self.logger.info(f"summarize_text returning: {response.text}")
             return response.text
@@ -245,8 +245,15 @@ class GeminiInterface(BaseInterface):
                     text_to_summarize = chat_summary + "\n" + chat_history
                 else:
                     text_to_summarize = chat_history
-                # Summarize and write to summary file
-                summarized_text = self.summarize_text(text_to_summarize)
+                # Summarize and write to summary file with context-preserving prompt
+                context_prompt = (
+                    "Summarize this chat history to preserve all information that could be important for future conversations. "
+                    "Focus on retaining names, dates/times, events, pets, people, and any other details that might be relevant for context or continuity. "
+                    "Do not discard information unless it is clearly trivial or repetitive. "
+                    "The summary should be concise but comprehensive enough to allow a new chat to be recreated with meaningful historical context, even if the specific importance of some details is not yet known.\n"
+                )
+                summarize_input = context_prompt + text_to_summarize
+                summarized_text = self.summarize_text(summarize_input)
                 self.write_chat_summary_to_file(key, summarized_text)
                 self.logger.info(f"Chat history for key={key} summarized and written to summary.")
                 # Delete chat history file
