@@ -1,6 +1,4 @@
 from keywords.keyword_handler import KeywordHandler
-from utils.logger import get_logger
-from utils.message_sender import MessageSender
 from interfaces.gemini_interface import GeminiInterface
 import os
 
