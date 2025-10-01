@@ -1,4 +1,4 @@
-from utils.logger import get_logger
+from utils.logger import MeshMonitorLogger
 from utils.node_info_utils import NodeInfoUtils
 from utils.location_utils import LocationUtils
 from utils.message_sender import MessageSender
@@ -9,7 +9,7 @@ class KeywordHandler:
     and implement the handle() and get_description() methods.
     """
     def __init__(self):
-        self.logger = get_logger(__name__)
+        self.logger = MeshMonitorLogger.get_instance()
         self.node_info_utils = NodeInfoUtils()
         self.location_utils = LocationUtils()
         self.message_sender = MessageSender.get_instance()
