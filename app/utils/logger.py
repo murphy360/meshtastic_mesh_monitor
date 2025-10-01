@@ -19,6 +19,7 @@ class MeshMonitorLogger:
     def __init__(self):
         self.logger = None
         self._configured = False
+        self.current_log_file_path = None
     
     def setup_logging(self, 
                      log_level: str = None,
@@ -52,6 +53,9 @@ class MeshMonitorLogger:
             '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
         log_to_file = log_to_file if log_to_file is not None else os.getenv('LOG_TO_FILE', 'true').lower() == 'true'
         log_file_path = log_file_path or os.getenv('LOG_FILE_PATH', self._get_default_log_path())
+        self.current_log_file_path = log_file_path
+
+
         log_file_max_size = log_file_max_size or int(os.getenv('LOG_FILE_MAX_SIZE', '10485760'))  # 10MB
         log_file_backup_count = log_file_backup_count or int(os.getenv('LOG_FILE_BACKUP_COUNT', '5'))
         enable_console = enable_console if enable_console is not None else os.getenv('LOG_CONSOLE', 'true').lower() == 'true'
@@ -139,6 +143,14 @@ class MeshMonitorLogger:
             self.setup_logging()
         
         return logging.getLogger(name)
+    
+    def get_current_log_file_path(self) -> str:
+        """
+        Get the path to the current log file used by the logger.
+        Returns:
+            str: Path to the current log file.
+        """
+        return self.current_log_file_path
     
     def _configure_third_party_loggers(self):
         """Configure logging levels for noisy third-party libraries."""
