@@ -44,15 +44,12 @@ class WebScraperInterface:
         # Initialize Gemini interface as singleton
         self.gemini_interface = GeminiInterface.get_instance()
         # Message Sender
-        self.message_sender = MessageSender()
-        
+        self.message_sender = MessageSender.get_instance()
         # Load websites from configuration if config manager is provided
         if self.config_manager is None:
             self.config_manager = ConfigManager()
-        
         self._load_websites_from_config()
-        
-        self.logger.info(f"Web Scraper Interface initialized with {len(self.websites)} websites (discard_initial_items={discard_initial_items})")
+        self.logger.info(f"Web Scraper Interface initialized with {len(self.websites)} websites (discard_initial_items={self.discard_initial_items})")
 
     def _load_websites_from_config(self):
         """Load website scrapers from configuration manager."""

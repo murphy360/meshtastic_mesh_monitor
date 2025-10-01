@@ -73,7 +73,7 @@ serial_port = '/dev/ttyUSB0'
 last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
 
 # Message Sender
-message_sender = MessageSender()
+message_sender = MessageSender.get_instance()
 
 # Initialize Gemini interface as singleton
 gemini_interface = None

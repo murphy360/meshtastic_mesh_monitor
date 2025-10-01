@@ -92,8 +92,14 @@ class WeatherGovInterface(APIInterface):
                 self.logger.error(f"Error fetching forecast: {response.get('error', 'Unknown error')}")
                 return {"error": response.get('error', 'Unknown error')}
             
+        except requests.exceptions.ConnectionError as e:
+            self.logger.error(f"Internet outage detected while fetching forecast: {e}")
+            return {"error": "Internet connection unavailable. Please check your network and try again."}
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Network error while fetching forecast: {e}")
+            return {"error": "Network error. Please try again later."}
         except Exception as e:
-            self.logger.error(f"Error fetching forecast: {e}")
+            self.logger.error(f"Unexpected error fetching forecast: {e}")
             return {"error": str(e)}
     
     def update_location_details(self, latitude: float, longitude: float) -> None:
@@ -132,8 +138,10 @@ class WeatherGovInterface(APIInterface):
             if 'observationStations' in metadata['properties']:
                 self.stations_url = metadata['properties']['observationStations']
             
+        except requests.exceptions.ConnectionError as e:
+            self.logger.error(f"Internet outage detected while fetching location details: {e}")
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error fetching location details: {e}")
+            self.logger.error(f"Network error while fetching location details: {e}")
     
     def update_alerts(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
@@ -172,9 +180,12 @@ class WeatherGovInterface(APIInterface):
                 # If we have cached data, log it
                 log_message += " - Using cached alerts data"
 
+        except requests.exceptions.ConnectionError as e:
+            self.logger.error(f"Internet outage detected while fetching alerts metadata: {e}")
+            return {"error": "Internet connection unavailable. Please check your network and try again."}
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error fetching alerts metadata: {e}")
-            return {"error": str(e)}
+            self.logger.error(f"Network error while fetching alerts metadata: {e}")
+            return {"error": "Network error. Please try again later."}
         
         self.logger.debug(log_message)
         
@@ -229,9 +240,12 @@ class WeatherGovInterface(APIInterface):
             # Update previous alerts for next run
             self.previous_alerts = self.current_alerts.copy()
 
+        except requests.exceptions.ConnectionError as e:
+            self.logger.error(f"Internet outage detected while processing alerts: {e}")
+            return {"error": "Internet connection unavailable. Please check your network and try again."}
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error fetching alerts: {e}")
-            return {"error": str(e)}
+            self.logger.error(f"Network error while processing alerts: {e}")
+            return {"error": "Network error. Please try again later."}
         
     def get_current_alerts(self) -> Dict[str, Any]:
         """
@@ -325,9 +339,12 @@ class WeatherGovInterface(APIInterface):
             self._cache_data(cache_key, conditions_data, 1800)  # 30 minute cache
             return conditions_data
             
+        except requests.exceptions.ConnectionError as e:
+            self.logger.error(f"Internet outage detected while fetching current conditions: {e}")
+            return {"error": "Internet connection unavailable. Please check your network and try again."}
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error fetching current conditions: {e}")
-            return {"error": str(e)}
+            self.logger.error(f"Network error while fetching current conditions: {e}")
+            return {"error": "Network error. Please try again later."}
     
     def get_forecast_string(self, latitude: float, longitude: float) -> str:
         """

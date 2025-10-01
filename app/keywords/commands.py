@@ -82,6 +82,6 @@ class CommandsKeyword(KeywordHandler):
         else:
             # Channel message, reply to channel
             to_id = "^all"
-        sender = MessageSender()
+
         self.logger.info(f"[HANDLE] Sending reply: {reply}")
-        sender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_message(interface, reply, channel, to_id)

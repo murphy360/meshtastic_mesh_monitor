@@ -52,6 +52,9 @@ class LocationUtils:
                 for key in ['city', 'town', 'township', 'municipality', 'county']:
                     if key in address:
                         return address[key]
+        except geopy.exc.GeocoderUnavailable as e:
+            logger.error(f"Internet outage detected during geolookup: {e}")
+            return "Internet connection unavailable. Please check your network and try again."
         except Exception as e:
             logger.error(f"Error with geolookup: {e}")
             return "Unknown"

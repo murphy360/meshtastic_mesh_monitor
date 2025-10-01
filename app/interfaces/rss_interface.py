@@ -26,15 +26,15 @@ class RSSInterface(FeedInterface):
             discard_initial_items (bool): If True, items found on first check will be stored but not reported as new.
             config_manager (Any, optional): ConfigManager instance for loading feed configuration.
         """
-        self.message_sender: MessageSender = MessageSender()
-        self.interface: Any = None
+        self.message_sender = MessageSender.get_instance()
+        self.interface = None
         super().__init__(
             config_manager=config_manager,
             cache_duration_seconds=3600,  # Cache feed content for 1 hour
             default_poll_interval_seconds=3600,  # Poll every hour by default
             discard_initial_items=discard_initial_items
         )
-        self.check_interval: timedelta = timedelta(hours=1)  # Default check interval (kept for compatibility)
+        self.check_interval = timedelta(hours=1)  # Default check interval (kept for compatibility)
         self._load_feeds_from_config()
         self.logger.debug(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
 

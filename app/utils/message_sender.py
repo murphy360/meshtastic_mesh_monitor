@@ -1,12 +1,23 @@
 from utils.logger import get_logger
 from interfaces.gemini_interface import GeminiInterface
-from datetime import datetime, timezone
 import time
+import threading
+import queue
 from meshtastic import config_pb2, mesh_pb2, portnums_pb2
 from utils.node_info_utils import NodeInfoUtils
 import base64
 
 class MessageSender:
+    _instance = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def get_instance(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+        return cls._instance
+    
     def send_node_info_simple(self, interface, public_channel_number=0):
         """
         Send the local node info to the mesh network on the specified channel using local_node.sendNodeInfo if available.
@@ -31,6 +42,25 @@ class MessageSender:
     def __init__(self):
         self.logger.debug(f"Initializing MessageSender")
         self.gemini_interface = GeminiInterface.get_instance()
+        self._message_queue = queue.Queue()
+        self._stop_event = threading.Event()
+        self._worker_thread = threading.Thread(target=self._process_queue, daemon=True)
+        self._worker_thread.start()
+
+    def _process_queue(self):
+        while not self._stop_event.is_set():
+            try:
+                item = self._message_queue.get(timeout=1)
+                if item:
+                    interface, message, channel, to_id = item
+                    self._send_message_now(interface, message, channel, to_id)
+                    time.sleep(3)
+            except queue.Empty:
+                continue
+
+    def stop(self):
+        self._stop_event.set()
+        self._worker_thread.join()
 
     def send_llm_message(self, interface, message, channel, to_id):
         """
@@ -58,40 +88,34 @@ class MessageSender:
 
     def send_message(self, interface, message, channel, to_id):
         """
-        Send a message to a specified channel and node, chunking if necessary.
+        Enqueue a message to be sent to a specified channel and node, chunking if necessary.
         """
-        self.logger.info(f"send_message called with message: {message}, channel: {channel}, to_id: {to_id}")
-        # Split every message into chunks of no more than 200 characters
+        self.logger.info(f"Queueing message: {message}, channel: {channel}, to_id: {to_id}")
         if len(message) > 240:
             message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
             total_messages = len(message_chunks)
             self.logger.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
             current_chunk = 1
             for chunk in message_chunks:
-                
                 chunk = f"({current_chunk}/{total_messages}) {chunk}"
-                self.logger.info(f"Sending chunk {current_chunk}/{total_messages}: {chunk}")
-                try:
-                    interface.sendText(chunk, channelIndex=channel, destinationId=to_id)
-                    # wait a bit between chunks to avoid overwhelming the network
-                    time.sleep(3)
-                except Exception as e:
-                    self.logger.error(f"Error sending chunk: {e}")
-                    return
+                self._message_queue.put((interface, chunk, channel, to_id))
                 current_chunk += 1
         else:
-            self.logger.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
-            try:
-                sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
-                self.logger.info(f"Sent message: {sent_message}")
-            except Exception as e:
-                if "Data payload too big" in str(e):
-                    self.logger.error("Message too long to send. Please shorten the message.")
-                    if self.send_llm_message:
-                        self.send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
-                    return
-                self.logger.error(f"Error sending message: {e}")
+            self._message_queue.put((interface, message, channel, to_id))
+
+    def _send_message_now(self, interface, message, channel, to_id):
+        self.logger.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
+        try:
+            sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
+            self.logger.info(f"Sent message: {sent_message}")
+        except Exception as e:
+            if "Data payload too big" in str(e):
+                self.logger.error("Message too long to send. Please shorten the message.")
+                if hasattr(self, 'send_llm_message'):
+                    self.send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
                 return
+            self.logger.error(f"Error sending message: {e}")
+            return
            
             
 
@@ -127,7 +151,7 @@ class MessageSender:
             self.logger.info(f"Node info sent to public channel {public_channel_number}")
         except Exception as e:
             self.logger.error(f"Error sending node info to public channel {public_channel_number}: {e}")
-            sender = MessageSender()
+            sender = MessageSender.get_instance()
             message = f"Error sending node info to public channel: {e}"
             sender.send_message(interface, message, admin_channel_number, "^all")
             return

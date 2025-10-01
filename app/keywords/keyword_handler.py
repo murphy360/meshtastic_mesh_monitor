@@ -9,11 +9,10 @@ class KeywordHandler:
     and implement the handle() and get_description() methods.
     """
     def __init__(self):
-        
         self.logger = get_logger(__name__)
         self.node_info_utils = NodeInfoUtils()
         self.location_utils = LocationUtils()
-        self.message_sender = MessageSender()
+        self.message_sender = MessageSender.get_instance()
 
     def handle(self, interface, packet):
         raise NotImplementedError("Keyword handlers must implement the handle() method.")
