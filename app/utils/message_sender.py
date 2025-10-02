@@ -296,7 +296,7 @@ class MessageSender:
             # Prepare reply as a Data protobuf, ensure UTF-8 encoding and set reply_id
             from meshtastic.protobuf import mesh_pb2, portnums_pb2
             data_message = mesh_pb2.Data(
-                payload=reply_text.encode(),
+                payload=reply_text.strip().encode("utf-8"),
                 reply_id=original_message_id
             )
             sent_packet = interface.sendData(
