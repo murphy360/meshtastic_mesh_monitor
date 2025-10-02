@@ -115,5 +115,8 @@ class TextHandler(BaseHandler):
                     return True
                 except Exception as e:
                     self.logger.error(f"Error handling keyword '{keyword}': {e}")
-        
+            # Check if keyword is in message anywhere else
+            if keyword in potential_keywords:
+                # Log it but do not invoke handler
+                self.logger.info(f"Keyword '{keyword}' detected in message but not at start. No action taken.")
         return False

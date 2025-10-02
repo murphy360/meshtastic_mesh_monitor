@@ -203,9 +203,7 @@ class GeminiInterface(BaseInterface):
             return response_text
         except Exception as e:
             self.logger.error(f"Error generating response: {e}")
-            if "503" in str(e) or "Service Unavailable" in str(e):
-                return "I'm currently unable to process your request. Please try again later."
-            return f"(Error with AI response: {message})"
+            return message
         
     def summarize_text(self, text: str) -> str:
         """
