@@ -1,5 +1,6 @@
 from keywords.keyword_handler import KeywordHandler
 from interfaces.gemini_interface import GeminiInterface
+from utils.logger import get_current_log_file_path
 import os
 
 class ErrorsKeyword(KeywordHandler):
@@ -17,7 +18,7 @@ class ErrorsKeyword(KeywordHandler):
     def handle(self, interface, packet):
         channel = packet.get('channel', 0)
         to_id = packet.get('to', '^all')
-        log_path = self.logger.get_current_log_file_path()
+        log_path = get_current_log_file_path()
         if not log_path or not os.path.exists(log_path):
             self.logger.error(f"Log file not found: {log_path}")
             self.message_sender.send_message(interface, "No log file found to scan for errors.", channel, to_id)
