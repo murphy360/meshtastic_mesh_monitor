@@ -78,8 +78,8 @@ class TextHandler(BaseHandler):
                 else:
                     self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
             elif 'channel' in packet: # Message sent to a channel
-                self.logger.info(f"Message on channel {channelId} from {node_short_name}: '{message_string}'")
                 channelId = int(packet['channel'])
+                self.logger.info(f"Message on channel {channelId} from {node_short_name}: '{message_string}'")
                 self.check_keywords(interface, packet)
             else: # Public/broadcast message
                 self.logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
