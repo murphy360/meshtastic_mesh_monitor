@@ -1,6 +1,5 @@
 from keywords.keyword_handler import KeywordHandler
 from core.database import SQLiteHelper
-from typing import Union
 from meshtastic.protobuf import admin_pb2, portnums_pb2
 from meshtastic import BROADCAST_ADDR
 
