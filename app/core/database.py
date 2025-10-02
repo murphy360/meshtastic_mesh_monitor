@@ -485,9 +485,10 @@ class SQLiteHelper:
             
             if existing:
                 # Update existing connection
-                self.update_data("node_connections", 
-                               f"snr = {snr}, last_seen = '{timestamp}', hop_count = {hop_count}, updated_at = '{timestamp}'",
-                               f"node1 = '{node1}' AND node2 = '{node2}' AND connection_type = '{connection_type}'")
+                query = ("UPDATE node_connections SET snr = ?, last_seen = ?, hop_count = ?, updated_at = ? "
+                         "WHERE node1 = ? AND node2 = ? AND connection_type = ?")
+                self.conn.execute(query, (snr, timestamp, hop_count, timestamp, node1, node2, connection_type))
+                self.conn.commit()
             else:
                 # Insert new connection
                 self.insert_data("node_connections", (
