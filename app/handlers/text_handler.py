@@ -70,15 +70,20 @@ class TextHandler(BaseHandler):
             if to_id == localNode.nodeNum: # Message sent directly to local node
                 # Assign channelId for direct messages. If public_channel_number is not None, use it; otherwise, fallback to a default channel.
                 channelId = public_channel_number  # Default to public channel
-                self.logger.info(f"Direct message received from {node_short_name}: '{message_string}'")
-                self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
+                if 'channel' in packet:
+                    channelId = int(packet['channel'])
+                self.logger.info(f"Direct message received from {node_short_name}: '{message_string}' on channel {channelId}")
+                if self.check_keywords(interface, packet):
+                    self.logger.info(f"Keyword detected and handled in direct message from {node_short_name}. No further action taken.")
+                else:
+                    self.message_sender.send_direct_reply(interface, message_string, channelId, packet['from'])
             elif 'channel' in packet: # Message sent to a channel
-                self.logger.info(f"Channel message from {node_short_name}: '{message_string}'")
+                self.logger.info(f"Message on channel {channelId} from {node_short_name}: '{message_string}'")
                 channelId = int(packet['channel'])
                 self.check_keywords(interface, packet)
-            else:
-                self.logger.info(packet)
-                self.logger.info(f"Unhandled message from {node_short_name}: '{message_string}'")
+            else: # Public/broadcast message
+                self.logger.info(f"Broadcast message from {node_short_name}: '{message_string}'")
+                self.check_keywords(interface, packet)
            
         else:
             self.logger.info(f'Unable to process text packet')
@@ -107,8 +112,8 @@ class TextHandler(BaseHandler):
                     keyword_class = getattr(keyword_module, class_name)
                     handler_instance = keyword_class()
                     handler_instance.handle(interface, packet)
-                    return
+                    return True
                 except Exception as e:
                     self.logger.error(f"Error handling keyword '{keyword}': {e}")
-                    return
         
+        return False
