@@ -54,8 +54,8 @@ class SITREP:
         self.localNode = interface.getNode('^local')
         self.logger.info(f"SITREP: Local node set: {self.localNode}")
         self.localNodeInfo = interface.getMyNodeInfo()
-        self.shortName = self.localNodeInfo['user']['shortName'] if 'user' in self.localNodeInfo and 'shortName' in self.localNodeInfo['user'] else None
-        self.longName = self.localNodeInfo['user']['longName'] if 'user' in self.localNodeInfo and 'longName' in self.localNodeInfo['user'] else None
+        self.shortName = self.localNodeInfo.get('user', {}).get('shortName')
+        self.longName = self.localNodeInfo.get('user', {}).get('longName')
 
         self.logger.debug(f"SITREP interface set: {self.localNode}")
 
@@ -215,14 +215,20 @@ class SITREP:
             if node is not None:
                 num_nodes += 1
                 report_string += node_short_name
-                if "lastHeard" in node:
-                    report_string += " - " + self.get_time_difference_string(node["lastHeard"])
-                if "hopsAway" in node:
-                    report_string += " " + str(node["hopsAway"]) + " Hops."
-                elif "rxRssi" in node:
-                    report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
-                elif "snr" in node:
-                    report_string += " SNR: " + str(node["snr"]) + "dB."
+                last_heard = node.get("lastHeard")
+                if last_heard is not None:
+                    report_string += " - " + self.get_time_difference_string(last_heard)
+                hops_away = node.get("hopsAway")
+                if hops_away is not None:
+                    report_string += " " + str(hops_away) + " Hops."
+                else:
+                    rx_rssi = node.get("rxRssi")
+                    if rx_rssi is not None:
+                        report_string += " RSSI: " + str(rx_rssi) + "dBm."
+                    else:
+                        snr = node.get("snr")
+                        if snr is not None:
+                            report_string += " SNR: " + str(snr) + "dB."
             else:
                 report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
@@ -250,14 +256,20 @@ class SITREP:
             if node is not None:
                 num_nodes += 1
                 report_string += node_short_name
-                if "lastHeard" in node:
-                    report_string += " - " + self.get_time_difference_string(node["lastHeard"])
-                if "hopsAway" in node:
-                    report_string += " " + str(node["hopsAway"]) + " Hops."
-                elif "rxRssi" in node:
-                    report_string += " RSSI: " + str(node["rxRssi"]) + "dBm."
-                elif "snr" in node:
-                    report_string += " SNR: " + str(node["snr"]) + "dB."
+                last_heard = node.get("lastHeard")
+                if last_heard is not None:
+                    report_string += " - " + self.get_time_difference_string(last_heard)
+                hops_away = node.get("hopsAway")
+                if hops_away is not None:
+                    report_string += " " + str(hops_away) + " Hops."
+                else:
+                    rx_rssi = node.get("rxRssi")
+                    if rx_rssi is not None:
+                        report_string += " RSSI: " + str(rx_rssi) + "dBm."
+                    else:
+                        snr = node.get("snr")
+                        if snr is not None:
+                            report_string += " SNR: " + str(snr) + "dB."
             else:
                 report_string += node_short_name + " - Not Found"
             line_letter = chr(ord(line_letter) + 1)
@@ -296,7 +308,7 @@ class SITREP:
         """
         node = NodeInfoUtils.lookup_node(self.interface, node_short_name)
         self.logger.debug(f"Getting Node Uptime for {node_short_name}")
-        uptime_seconds_total = int(node["deviceMetrics"]["uptimeSeconds"])
+        uptime_seconds_total = int(node.get("deviceMetrics", {}).get("uptimeSeconds", 0))
         uptime_days = uptime_seconds_total // 86400
         uptime_hours = (uptime_seconds_total % 86400) // 3600
         uptime_minutes = (uptime_seconds_total % 3600) // 60
@@ -313,17 +325,17 @@ class SITREP:
         packet_info = {
             "measurement": "packets",
             "tags": {
-                "packet_id": packet['id'],
-                "packet_from_id": packet['fromId'],
-                "packet_to_id": packet['toId'],
-                "packet_portnum": packet['decoded']['portnum'],
-                "packet_payload": packet['decoded']['payload']
+                "packet_id": packet.get('id'),
+                "packet_from_id": packet.get('fromId'),
+                "packet_to_id": packet.get('toId'),
+                "packet_portnum": packet.get('decoded', {}).get('portnum'),
+                "packet_payload": packet.get('decoded', {}).get('payload')
             },
-            "time": packet['rxTime'],
+            "time": packet.get('rxTime'),
             "fields": {
-                "packet_rx_snr": packet['rxSnr'],
-                "packet_hop_limit": packet['hopLimit'],
-                "packet_rx_rssi": packet['rxRssi']
+                "packet_rx_snr": packet.get('rxSnr'),
+                "packet_hop_limit": packet.get('hopLimit'),
+                "packet_rx_rssi": packet.get('rxRssi')
             }
         }
         # self.influxdb_client.write_points([packet_info])
@@ -355,11 +367,10 @@ class SITREP:
             bool: True if the packet is from a node of interest, False otherwise.
         """
         self.logger.debug("is_packet_from_node_of_interest")
-        from_node = NodeInfoUtils.lookup_node(self.interface, packet['from'])
+        from_node = NodeInfoUtils.lookup_node(self.interface, packet.get('from'))
         if not from_node:
             return False
-        from_node_short_name = from_node['user']['shortName'] 
-        
+        from_node_short_name = from_node.get('user', {}).get('shortName')
         if from_node_short_name in self.nodes_of_interest:
             self.logger.info(f"Node of Interest Detected: {from_node_short_name}")  # Keep this as info - it's important
             return True
@@ -378,11 +389,11 @@ class SITREP:
         """
         self.logger.debug("is_packet_from_new_node")
         self.logger.debug(f"Checking if packet is from a new node")
-        from_node = NodeInfoUtils.lookup_node(self.interface, packet['from'])
+        from_node = NodeInfoUtils.lookup_node(self.interface, packet.get('from'))
         if not from_node:
             return False
-        from_node_short_name = from_node['user']['shortName']
-        if from_node_short_name not in self.known_nodes:
+        from_node_short_name = from_node.get('user', {}).get('shortName')
+        if from_node_short_name and from_node_short_name not in self.known_nodes:
             self.logger.info(f"New Node Detected Sitrep: {from_node_short_name}")  # Keep this as info - it's important
             self.known_nodes.append(from_node_short_name)
             return True
@@ -448,50 +459,31 @@ class SITREP:
         mesh_data["nodes"].append(self_data)
 
         for node in self.interface.nodes.values():
-            #self.logger.info(f"Writing Node: {node}")
-            #self.logger.info(f"Writing Node: {node['user']['shortName']}")
             try:
-                latitude = 0
-                longitude = 0
-                altitude = 0
-                last_heard = 0
-                precision_bits = 0
-                hops_away = -1
-                role = "Unknown"
+                latitude = node.get("position", {}).get("latitude", 0)
+                longitude = node.get("position", {}).get("longitude", 0)
+                altitude = node.get("position", {}).get("altitude", 0)
+                precision_bits = node.get("position", {}).get("precisionBits", 0)
+                last_heard = node.get("lastHeard", 0)
+                hops_away = node.get("hopsAway", -1)
+                role = node.get("role", "Unknown")
 
-                if "position" in node:
-                    if "latitude" in node["position"]:
-                        latitude = node["position"]["latitude"]
-                    if "longitude" in node["position"]:
-                        longitude = node["position"]["longitude"]
-                    if "altitude" in node["position"]:
-                        altitude = node["position"]["altitude"]
-                    if "precisionBits" in node["position"]:
-                        #self.logger.info(f"Node {node['user']['shortName']} has precisionBits: {node['position']['precisionBits']}")
-                        precision_bits = node["position"]["precisionBits"]
-                
-                if "lastHeard" in node:
-                    last_heard = node["lastHeard"]
-                
-                if "hopsAway" in node:
-                    hops_away = node["hopsAway"]
+                node_num = node.get("num")
+                user_info = node.get("user", {})
+                short_name = user_info.get("shortName")
+                long_name = user_info.get("longName")
+                node_id = user_info.get("id")
 
-                if "role" in node:
-                    role = node["role"]
-
-                if self.localNode.nodeNum == node["num"]:
+                if self.localNode and self.localNode.nodeNum == node_num:
                     mesh_data["nodes"][0]["lat"] = latitude
                     mesh_data["nodes"][0]["lon"] = longitude
                     mesh_data["nodes"][0]["alt"] = altitude
                     continue
 
-                # If node is an aircraft, set aircraft to True
-                is_aircraft = False
-                if node["user"]["shortName"] in self.aircraft_tracks:
-                    is_aircraft = True
+                is_aircraft = short_name in self.aircraft_tracks if short_name else False
 
                 node_data = {
-                    "id": node["user"]["shortName"],
+                    "id": short_name,
                     "lat": latitude,
                     "lon": longitude,
                     "alt": altitude,
@@ -502,21 +494,19 @@ class SITREP:
                     "aircraft": is_aircraft,
                     "connections": []
                 }
-                
-                # Add connections to the node data
-                if node_data["hopsAway"] == 0:
+
+                if node_data["hopsAway"] == 0 and short_name:
                     node_data["connections"].append(self.shortName)
-                    mesh_data["nodes"][0]["connections"].append(node["user"]["shortName"])             
-                    
+                    mesh_data["nodes"][0]["connections"].append(short_name)
+
                 mesh_data["nodes"].append(node_data)
 
-                # Add extra connections (if any) to the node data
-                if node["user"]["shortName"] in self.extra_connections:
-                    for connection in self.extra_connections[node["user"]["shortName"]]:
+                if short_name in self.extra_connections:
+                    for connection in self.extra_connections[short_name]:
                         node_data["connections"].append(connection)
 
             except Exception as e:
-                self.logger.error(f"Error While processing node {node['user']['shortName']}: {e} - {node}")
+                self.logger.error(f"Error While processing node {short_name}: {e} - {node}")
                 
         try:
             for line in self.lines:
@@ -548,44 +538,44 @@ class SITREP:
         qualifying_nodes = []
         
         for node in self.interface.nodes.values():
-            log_message = f"\nNode ID: {node['user']['id']}\nLong Name: {node['user']['longName']}\nShort Name: {node['user']['shortName']}"
-            if self.localNode.nodeNum == node["num"]:
+            user_info = node.get('user', {})
+            node_id = user_info.get('id')
+            long_name = user_info.get('longName')
+            short_name = user_info.get('shortName')
+            log_message = f"\nNode ID: {node_id}\nLong Name: {long_name}\nShort Name: {short_name}"
+            node_num = node.get('num')
+            if self.localNode and self.localNode.nodeNum == node_num:
                 log_message += " - Local Node, skipping"
                 continue
 
-            # Check time threshold only - ignore hop limit
             time_qualifies = False
-            if "lastHeard" in node:
+            last_heard = node.get('lastHeard')
+            if last_heard:
                 now = datetime.datetime.now()
-                if node["lastHeard"]:
-                    time_difference_in_seconds = now.timestamp() - node["lastHeard"]
-                    if time_difference_in_seconds < (time_threshold_minutes * 60):
-                        time_difference_hours = time_difference_in_seconds // 3600
-                        time_difference_minutes = time_difference_in_seconds % 60
-                        log_message += f"\nLast Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
-                        time_qualifies = True
-                    else:
-                        log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
+                time_difference_in_seconds = now.timestamp() - last_heard
+                if time_difference_in_seconds < (time_threshold_minutes * 60):
+                    time_difference_hours = time_difference_in_seconds // 3600
+                    time_difference_minutes = time_difference_in_seconds % 60
+                    log_message += f"\nLast Heard: {time_difference_hours} hours {time_difference_minutes} minutes ago"
+                    time_qualifies = True
                 else:
-                    log_message += " - Node doesn't have lastHeard data"
+                    log_message += f" - Node last heard more than {time_threshold_minutes} minutes ago"
             else:
                 log_message += " - Node doesn't have lastHeard data"
-                
-            # Log hop information but don't filter by it
-            if "hopsAway" in node:
-                hops_away = node["hopsAway"]
+
+            hops_away = node.get('hopsAway')
+            if hops_away is not None:
                 log_message += f"\nHops Away: {hops_away}"
             else:
                 log_message += "\nHops Away: Not available"
-                
-            # Only count nodes that meet time criteria (any hop count)
-            if time_qualifies:
+
+            if time_qualifies and short_name:
                 self.nodes_connected += 1
-                qualifying_nodes.append(node['user']['shortName'])
-                response_string += " " + node['user']['shortName']
-                
+                qualifying_nodes.append(short_name)
+                response_string += " " + short_name
+
             self.logger.debug(log_message)
-                
+
         if self.nodes_connected <= 20:
             self.logger.info(f"📡 SITREP: {self.nodes_connected} nodes active - {response_string}")  # Important summary
             response_string = str(self.nodes_connected) + " (" + response_string + ")"
