@@ -245,9 +245,9 @@ class MessageSender:
         try:
             if original_message_id:
                 self.send_llm_reply(interface, channel, original_message_id, to_id, f"Sending traceroute request to node {node_name} - {node_num}")
-            self.logger.info(f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit}")
+            self.logger.info(f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit} on channel {channel}")
             interface.sendTraceRoute(node_num, hop_limit, channel)
-            self.logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
+            self.logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit} on channel {channel}")
         except Exception as e:
             user_response = f"Error sending traceroute request to {node_name}: {e}"
             if e == "Timed out waiting for traceroute":
