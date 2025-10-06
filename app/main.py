@@ -102,6 +102,34 @@ web_scraper = WebScraperInterface(discard_initial_items=True)
 
 
 
+def configure_node_position(interface, localNode):
+    """
+    Configure the node's fixed position from environment variables.
+    This should only be called on initial connection.
+    
+    Args:
+        interface: The interface object representing the connection.
+        localNode: The local node object.
+    """
+    if NODE_LATITUDE and NODE_LONGITUDE:
+        try:
+            latitude = float(NODE_LATITUDE)
+            longitude = float(NODE_LONGITUDE)
+            altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
+            
+            logger.info(f"Configuring fixed position from environment: lat={latitude}, lon={longitude}, alt={altitude}")
+            
+            localNode.localConfig.position.gps_mode = "DISABLED"
+            localNode.localConfig.position.fixed_position = True
+            localNode.setFixedPosition(latitude, longitude, altitude)
+            localNode.writeConfig("position")
+            
+            logger.info(f"✅ Fixed position configured successfully")
+        except (ValueError, TypeError) as e:
+            logger.error(f"❌ Invalid position configuration in environment variables: {e}")
+        except Exception as e:
+            logger.error(f"❌ Error configuring fixed position: {e}")
+
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
     Handle the event when a connection to the Meshtastic device is established.
@@ -118,29 +146,18 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     short_name = node_info['user']['shortName']
     long_name = node_info['user']['longName']
 
-    # Send position if configured in environment variables
-    if NODE_LATITUDE and NODE_LONGITUDE:
-        try:
-            latitude = float(NODE_LATITUDE)
-            longitude = float(NODE_LONGITUDE)
-            altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
-            localNode.localConfig.position.gps_mode = "DISABLED"
-            localNode.localConfig.position.fixed_position = True
-            localNode.setFixedPosition(latitude, longitude, altitude)
-            localNode.writeConfig("position")
-            logger.info(f"Sending configured position: lat={latitude}, lon={longitude}, alt={altitude}")
-            #message_sender.send_position(interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all")
-        except (ValueError, TypeError) as e:
-            logger.error(f"Invalid position configuration in environment variables: {e}")
+    # Configure fixed position on initial connection only
+    if initial_connect:
+        configure_node_position(interface, localNode)
 
-    location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
-    logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
-    if gemini_interface is None:
-        gemini_interface = GeminiInterface.get_instance(location=location)
-    else: 
-        gemini_interface.update_location(location)
+        location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
+        logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
+        if gemini_interface is None:
+            gemini_interface = GeminiInterface.get_instance(location=location)
+        else: 
+            gemini_interface.update_location(location)
     
-    logger.info(gemini_interface.get_status())
+        logger.info(gemini_interface.get_status())
     logger.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
@@ -160,7 +177,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     web_scraper.set_interface(interface)
 
     rss_interface.set_interface(interface)
-
 
     if initial_connect:
         initial_connect = False
