@@ -172,13 +172,19 @@ class MessageSender:
             if local_node is None:
                 self.logger.error("[send_position_request] Local node not found. Cannot send position request.")
                 return
-            local_node_lat, local_node_lon, local_node_alt = LocationUtils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
+            
+            location_utils = LocationUtils()
+            local_node_lat, local_node_lon, local_node_alt = self.location_utils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
+            
+            if local_node_lat is None or local_node_lon is None:
+                self.logger.error("[send_position_request] Local node position not available. Cannot send position request.")
+                return
             
             self.send_position(
                 interface=interface,
                 latitude=local_node_lat,
                 longitude=local_node_lon,
-                altitude=local_node_alt,
+                altitude=local_node_alt if local_node_alt is not None else 0,
                 want_response=True,
                 channel=public_channel_number,
                 to_id=node_num
