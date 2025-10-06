@@ -117,6 +117,18 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     node_info = interface.getMyNodeInfo()
     short_name = node_info['user']['shortName']
     long_name = node_info['user']['longName']
+
+    # Send position if configured in environment variables
+    if NODE_LATITUDE and NODE_LONGITUDE:
+        try:
+            latitude = float(NODE_LATITUDE)
+            longitude = float(NODE_LONGITUDE)
+            altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
+            logger.info(f"Sending configured position: lat={latitude}, lon={longitude}, alt={altitude}")
+            message_sender.send_position(interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all")
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid position configuration in environment variables: {e}")
+
     location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
     logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
     if gemini_interface is None:
@@ -145,16 +157,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     rss_interface.set_interface(interface)
 
-    # Send position if configured in environment variables
-    if NODE_LATITUDE and NODE_LONGITUDE:
-        try:
-            latitude = float(NODE_LATITUDE)
-            longitude = float(NODE_LONGITUDE)
-            altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
-            logger.info(f"Sending configured position: lat={latitude}, lon={longitude}, alt={altitude}")
-            message_sender.send_position(interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all")
-        except (ValueError, TypeError) as e:
-            logger.error(f"Invalid position configuration in environment variables: {e}")
 
     if initial_connect:
         initial_connect = False
