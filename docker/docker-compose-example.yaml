@@ -7,6 +7,10 @@ services:
     environment:
       - RADIO_IP=192.168.68.73
       - GEMINI_API_KEY=your_gemini_api_key
+      # Optional: Set node position (will be sent on connection)
+      # - NODE_LATITUDE=41.234567
+      # - NODE_LONGITUDE=-81.234567
+      # - NODE_ALTITUDE=300
     ports:
       - 8080:8080
     volumes:

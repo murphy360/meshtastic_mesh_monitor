@@ -5,6 +5,7 @@ import threading
 import queue
 from meshtastic import config_pb2, mesh_pb2, portnums_pb2
 from utils.node_info_utils import NodeInfoUtils
+from utils.location_utils import LocationUtils
 import base64
 
 class MessageSender:
@@ -167,13 +168,48 @@ class MessageSender:
         """
         self.logger.info(f"Sending position request to node {node_num}")
         try:
-            interface.sendPosition(
-                destinationId=node_num,
-                wantResponse=False,
-                channelIndex=public_channel_number
+            local_node = interface.getNode('^local')
+            if local_node is None:
+                self.logger.error("[send_position_request] Local node not found. Cannot send position request.")
+                return
+            local_node_lat, local_node_lon, local_node_alt = LocationUtils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
+            
+            self.send_position(
+                latitude=local_node_lat,
+                longitude=local_node_lon,
+                altitude=local_node_alt,
+                wantResponse=True,
+                channelIndex=public_channel_number,
+                destinationId=node_num
             )
+
         except Exception as e:
             self.logger.error(f"Error sending position request: {e}")
+    
+    def send_position(self, interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all"):
+        """
+        Send a position message to the specified channel and node.
+
+        Args:
+            interface: The interface to interact with the mesh network.
+            latitude (float): Latitude in degrees.
+            longitude (float): Longitude in degrees.
+            altitude (float): Altitude in meters.
+            channel (int): The channel to send the position on (default: 0).
+            to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
+        """
+        self.logger.info(f"Sending position to {to_id} on channel {channel}: lat={latitude}, lon={longitude}, alt={altitude}")
+        try:
+            interface.sendPosition(
+                latitude=latitude,
+                longitude=longitude,
+                altitude=altitude,
+                destinationId=to_id,
+                wantResponse=want_response,
+                channelIndex=channel
+            )
+        except Exception as e:
+            self.logger.error(f"Error sending position: {e}")
     
     def send_llm_message_with_url(self, interface, message, channel, to_id, url):
         """

@@ -59,6 +59,35 @@ class LocationUtils:
             logger.error(f"Error with geolookup: {e}")
             return "Unknown"
         return "Unknown"
+    
+    def get_lat_lon_alt_by_node_num(self, interface, node_num):
+        """
+        Get the latitude, longitude, and altitude of a node by its number.
+        """
+        logger.info(f"Getting lat/lon/alt for node number {node_num}")
+        nodeLat, nodeLon, nodeAlt = None, None, None
+        for node in interface.nodes.values():
+            if node["num"] == node_num:
+                if 'position' in node:
+                    if 'latitude' in node['position'] and 'longitude' in node['position']:
+                        nodeLat = node["position"]["latitude"]
+                        nodeLon = node["position"]["longitude"]
+                    else:
+                        return None, None, None
+                    if 'altitude' in node['position']:
+                        nodeAlt = node["position"]["altitude"]
+                    else:
+                        nodeAlt = 0
+                break
+            else:
+                logger.info(f"Node {node_num} not found in interface nodes for lat/lon/alt lookup")
+                return None, None, None
+        if nodeLat is None or nodeLon is None:
+            logger.info(f"Node {node_num} does not have position data for lat/lon/alt lookup")
+            return None, None, None
+        else:
+            logger.info(f"Node {node_num} position for lat/lon/alt lookup: {nodeLat}, {nodeLon}, {nodeAlt}")   
+            return nodeLat, nodeLon, nodeAlt
 
     def find_location_by_node_num(self, interface, node_num):
         """

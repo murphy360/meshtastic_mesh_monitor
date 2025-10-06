@@ -50,6 +50,11 @@ localNode = ""
 TCP_SERVER = os.getenv('TCP_SERVER', 'meshtastic.local')  # Default to meshtastic.local if not set
 connect_timeout = 60 # seconds
 
+# Position configuration from environment variables
+NODE_LATITUDE = os.getenv('NODE_LATITUDE')  # e.g., 41.234567
+NODE_LONGITUDE = os.getenv('NODE_LONGITUDE')  # e.g., -81.234567
+NODE_ALTITUDE = os.getenv('NODE_ALTITUDE')  # e.g., 300 (meters)
+
 
 
 initial_connect = True
@@ -139,6 +144,17 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     web_scraper.set_interface(interface)
 
     rss_interface.set_interface(interface)
+
+    # Send position if configured in environment variables
+    if NODE_LATITUDE and NODE_LONGITUDE:
+        try:
+            latitude = float(NODE_LATITUDE)
+            longitude = float(NODE_LONGITUDE)
+            altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
+            logger.info(f"Sending configured position: lat={latitude}, lon={longitude}, alt={altitude}")
+            message_sender.send_position(interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all")
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid position configuration in environment variables: {e}")
 
     if initial_connect:
         initial_connect = False
