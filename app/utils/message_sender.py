@@ -175,12 +175,13 @@ class MessageSender:
             local_node_lat, local_node_lon, local_node_alt = LocationUtils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
             
             self.send_position(
+                interface=interface,
                 latitude=local_node_lat,
                 longitude=local_node_lon,
                 altitude=local_node_alt,
-                wantResponse=True,
-                channelIndex=public_channel_number,
-                destinationId=node_num
+                want_response=True,
+                channel=public_channel_number,
+                to_id=node_num
             )
 
         except Exception as e:
