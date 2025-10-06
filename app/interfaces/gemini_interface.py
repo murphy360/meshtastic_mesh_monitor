@@ -205,6 +205,24 @@ class GeminiInterface(BaseInterface):
             self.logger.error(f"Error generating response: {e}")
             return message
         
+    def summarize_error_log(self, text: str) -> str:
+        """
+        Summarize an error log text string using the Gemini API.
+        Model is instructed to return no more than max_message_length
+        Logs the input text and summary result.
+        """        
+        self.logger.info(f"summarize_error_log called. text={text}")
+        try:
+            response = self.gemini_client.models.generate_content(
+                model=self.gemini_model,
+                contents=f"Summarize this error log in {self.max_message_length} characters or less: {text}."
+            )
+            self.logger.info(f"summarize_error_log returning: {response.text}")
+            return response.text
+        except Exception as e:
+            self.logger.error(f"Error summarizing error log: {e}")
+            return "Error summarizing error log."
+        
     def summarize_text(self, text: str) -> str:
         """
         Summarize a given text string using the Gemini API.

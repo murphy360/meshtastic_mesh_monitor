@@ -28,7 +28,7 @@ class ErrorsKeyword(KeywordHandler):
             if not error_lines:
                 self.message_sender.send_message(interface, "No errors or warnings found in the log.", channel, to_id)
                 return
-            summary = self.gemini_interface.summarize_text("\n".join(error_lines))
+            summary = self.gemini_interface.summarize_error_log("\n".join(error_lines))
             self.message_sender.send_message(interface, f"Error summary:\n{summary}", channel, to_id)
         except Exception as e:
             self.logger.error(f"Error scanning log for errors: {e}")
