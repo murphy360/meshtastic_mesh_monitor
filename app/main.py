@@ -124,8 +124,12 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
             latitude = float(NODE_LATITUDE)
             longitude = float(NODE_LONGITUDE)
             altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
+            localNode.localConfig.position.gps_mode = "DISABLED"
+            localNode.localConfig.position.fixed_position = True
+            localNode.setFixedPosition(latitude, longitude, altitude)
+            localNode.writeConfig("position")
             logger.info(f"Sending configured position: lat={latitude}, lon={longitude}, alt={altitude}")
-            message_sender.send_position(interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all")
+            #message_sender.send_position(interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all")
         except (ValueError, TypeError) as e:
             logger.error(f"Invalid position configuration in environment variables: {e}")
 
