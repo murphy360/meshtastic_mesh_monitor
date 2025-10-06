@@ -174,7 +174,7 @@ class MessageSender:
                 return
             
             location_utils = LocationUtils()
-            local_node_lat, local_node_lon, local_node_alt = self.location_utils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
+            local_node_lat, local_node_lon, local_node_alt = location_utils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
             
             if local_node_lat is None or local_node_lon is None:
                 self.logger.error("[send_position_request] Local node position not available. Cannot send position request.")
