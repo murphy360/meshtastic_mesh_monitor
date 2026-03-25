@@ -5,7 +5,7 @@ class SetaircraftKeyword(KeywordHandler):
 
     def __init__(self):
         super().__init__()
-        self.db_helper = SQLiteHelper("/data/mesh_monitor.db")
+        self.db_helper = SQLiteHelper()
 
     def handle(self, interface, packet):
         self.logger.info("[handle] SetaircraftKeyword handler invoked.")

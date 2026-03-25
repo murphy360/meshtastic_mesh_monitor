@@ -722,7 +722,7 @@ class SQLiteHelper:
 # Example usage
 if __name__ == "__main__":
     # Create an instance of SQLiteHelper
-    db_helper = SQLiteHelper("my_database.db")
+    db_helper = SQLiteHelper()
 
     # Connect to the database
     db_helper.connect()
