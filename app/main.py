@@ -384,7 +384,6 @@ def onReceive(packet, interface):
             private_message = f"Welcome to the Mesh {node_short_name}! I'm a bot. I'll respond to certain commands. Say \"commands\" to see what I can do. Check out NE Ohio Meshtastic Discord at (https://discord.gg/zYbP2XSPf4). My developer monitors DPSA or DP00"
             message_sender.send_message(interface, private_message, public_channel_number, from_node_num)
             admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
-            message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
             logger.info(f"🆕 NEW NODE: {node_short_name} ({node_long_name}) - {from_node_num}")
             notify_admin = True 
         else:
@@ -396,7 +395,6 @@ def onReceive(packet, interface):
                 #message_sender.send_llm_message(interface, private_message, public_channel_number, from_node_num)
                 
                 admin_message = f"Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
-                message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
                 logger.info(f"📝 NAME CHANGE: {name_change_list[1]}/{name_change_list[2]} → {node_short_name}/{node_long_name}")
                 notify_admin = True
 
