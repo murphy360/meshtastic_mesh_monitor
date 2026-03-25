@@ -22,7 +22,7 @@ git pull
 
 # Stop and remove the Docker container
 print_section "Stopping and removing the Docker container..."
-docker compose -f docker/docker-compose-example.yaml down
+docker compose -f docker/docker-compose.yaml down
 # Clean up any leftover containers
 docker container ls -a | grep $image_name | awk '{print $1}' | xargs -r docker container rm 2>/dev/null || true
 
