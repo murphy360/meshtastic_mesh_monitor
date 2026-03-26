@@ -14,56 +14,28 @@ class ChannelsKeyword(KeywordHandler):
 
     def handle(self, interface, packet):
         """
-        Handle the 'channels' keyword. Lists all enabled public channels.
+        Handle the 'channels' keyword. Logs all channels and their properties.
         """
         self.logger.info("[handle] ChannelsKeyword handler invoked.")
         
         local_node = interface.getNode('^local')
         
-        # Determine response recipient
-        if 'to' in packet and packet['to'] == local_node.nodeNum:
-            to_id = packet['from']
-        else:
-            to_id = "^all"
-        
-        channel = packet.get('channel', 0)
-        
-        # Build channel list message
+        # Log all channels
         try:
             channels = local_node.channels if hasattr(local_node, 'channels') else []
             
             if not channels:
-                message = "No channels available."
+                self.logger.info("[handle] No channels available.")
             else:
-                # Filter for public channels (exclude admin channels)
-                public_channels = []
                 for idx, ch in enumerate(channels):
-                    if ch and hasattr(ch, 'settings'):
-                        settings = ch.settings
-                        # Check if channel is enabled and not admin
-                        is_enabled = settings.tx_power if hasattr(settings, 'tx_power') else False
-                        is_admin = ch.role == 3 if hasattr(ch, 'role') else False  # Admin role is typically 3
-                        
-                        # Also check by name
-                        if hasattr(ch, 'settings') and hasattr(ch.settings, 'name'):
-                            name = ch.settings.name
-                            is_admin_by_name = 'admin' in name.lower()
-                        else:
-                            is_admin_by_name = False
-                        
-                        if is_enabled and not is_admin and not is_admin_by_name:
-                            public_channels.append((idx, ch))
-                
-                if not public_channels:
-                    message = "No public channels available."
-                else:
-                    message = "Public Channels:\n"
-                    for idx, ch in public_channels:
-                        ch_name = ch.settings.name if (hasattr(ch, 'settings') and hasattr(ch.settings, 'name')) else f"Channel {idx}"
-                        message += f"  [{idx}] {ch_name}\n"
-            
-            self.logger.info(f"[handle] Channel list message: {message}")
-            self.message_sender.send_message(interface, message, channel, to_id)
+                    if ch:
+                        self.logger.info(f"[handle] Channel {idx}: {ch}")
+                        # Log channel properties
+                        if hasattr(ch, 'settings'):
+                            self.logger.info(f"[handle]   Settings: {ch.settings}")
+                        if hasattr(ch, 'role'):
+                            self.logger.info(f"[handle]   Role: {ch.role}")
+                        if hasattr(ch, 'index'):
+                            self.logger.info(f"[handle]   Index: {ch.index}")
         except Exception as e:
             self.logger.error(f"[handle] Error listing channels: {e}", exc_info=True)
-            self.message_sender.send_message(interface, f"Error listing channels: {str(e)}", channel, to_id)
