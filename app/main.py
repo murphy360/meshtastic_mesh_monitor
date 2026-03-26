@@ -156,14 +156,8 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         env_long_name = ConfigManager.get_node_long_name()
         
         if env_short_name or env_long_name:
-            logger.info(f"Updating node names from environment variables")
-            # Update the radio with new names if provided
-            if env_short_name:
-                interface.myInfo.user.short_name = env_short_name
-                logger.info(f"Set node short name to: {env_short_name}")
-            if env_long_name:
-                interface.myInfo.user.long_name = env_long_name
-                logger.info(f"Set node long name to: {env_long_name}")
+            logger.info(f"Setting node names: {env_short_name} ({env_long_name})")
+            localNode.setOwner(short_name=env_short_name, long_name=env_long_name)
         
         configure_node_position(interface, localNode)
 
