@@ -37,6 +37,10 @@ WORKDIR /app
 # Copy application source code
 COPY --chown=appuser:appuser app/ .
 
+# Copy health check script
+COPY --chown=appuser:appuser healthcheck.sh .
+RUN chmod +x /app/healthcheck.sh
+
 # Create data and config directories
 RUN mkdir -p /data /app/logs /app/config && \
     chown -R appuser:appuser /data /app/logs /app/config

@@ -58,9 +58,9 @@ services:
     networks:
       - mesh-network
     
-    # Health check - simple file existence check
+    # Health check - verify logs and data directories are accessible
     healthcheck:
-      test: ['CMD-SHELL', 'ls /data > /dev/null && echo "ok"']
+      test: ['CMD-SHELL', 'bash /app/healthcheck.sh > /dev/null']
       interval: 30s
       timeout: 10s
       retries: 3
