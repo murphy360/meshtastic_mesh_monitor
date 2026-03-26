@@ -201,15 +201,14 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         initial_connect = False
         message_sender.send_llm_message(interface, f"CQ CQ CQ de {node_short_name} in {location}", admin_channel_number, "^all")
         
-        # TODO: REMOVE LATER - Testing weather report on startup to verify channel delivery
+        # Send weather forecast once on initial startup
         if NODE_LATITUDE and NODE_LONGITUDE:
             try:
                 latitude = float(NODE_LATITUDE)
                 longitude = float(NODE_LONGITUDE)
-                logger.info(f"[WEATHER TEST] Sending to weather_channel={weather_channel}")
                 send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, weather_channel)
             except Exception as e:
-                logger.error(f"[WEATHER TEST] Error sending weather report: {e}")
+                logger.error(f"Error sending initial weather forecast: {e}")
     else:
         message_sender.send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
 
