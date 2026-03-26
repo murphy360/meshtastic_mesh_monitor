@@ -1,4 +1,5 @@
 from keywords.keyword_handler import KeywordHandler
+import base64
 
 
 class ChannelsKeyword(KeywordHandler):
@@ -10,32 +11,66 @@ class ChannelsKeyword(KeywordHandler):
         Return a human-readable description of the channels command.
         """
         self.logger.info("[get_description] Providing description for channels keyword.")
-        return "Lists all public (non-Admin) channels available on the mesh. Usage: channels"
+        return "Lists all public (non-Admin) channels with their PSK keys for subscription. Usage: channels"
+
+    def _psk_to_string(self, psk_bytes):
+        """
+        Convert PSK bytes to a readable string format.
+        If it's text, try to decode it; otherwise base64 encode it.
+        """
+        if not psk_bytes:
+            return "default"
+        
+        # Try to decode as UTF-8 first
+        try:
+            return psk_bytes.decode('utf-8')
+        except (UnicodeDecodeError, AttributeError):
+            pass
+        
+        # Fall back to base64
+        try:
+            return base64.b64encode(psk_bytes).decode('utf-8')
+        except Exception:
+            return str(psk_bytes)
 
     def handle(self, interface, packet):
         """
-        Handle the 'channels' keyword. Logs all channels and their properties.
+        Handle the 'channels' keyword. Lists all non-admin channels with their PSK keys.
         """
         self.logger.info("[handle] ChannelsKeyword handler invoked.")
         
         local_node = interface.getNode('^local')
         
-        # Log all channels
+        # Determine response recipient
+        if 'to' in packet and packet['to'] == local_node.nodeNum:
+            to_id = packet['from']
+        else:
+            to_id = "^all"
+        
+        channel = packet.get('channel', 0)
+        
+        # Find public channels (those with a name and not "Admin")
         try:
             channels = local_node.channels if hasattr(local_node, 'channels') else []
             
-            if not channels:
-                self.logger.info("[handle] No channels available.")
+            public_channels = []
+            for idx, ch in enumerate(channels):
+                if ch and hasattr(ch, 'settings'):
+                    # Channel is public if it has a name and is NOT named "Admin"
+                    ch_name = ch.settings.name if hasattr(ch.settings, 'name') else None
+                    if ch_name and ch_name.lower() != 'admin':
+                        ch_psk = ch.settings.psk if hasattr(ch.settings, 'psk') else None
+                        psk_str = self._psk_to_string(ch_psk)
+                        public_channels.append((idx, ch_name, psk_str))
+            
+            if not public_channels:
+                self.message_sender.send_message(interface, "No public channels available.", channel, to_id)
             else:
-                for idx, ch in enumerate(channels):
-                    if ch:
-                        self.logger.info(f"[handle] Channel {idx}: {ch}")
-                        # Log channel properties
-                        if hasattr(ch, 'settings'):
-                            self.logger.info(f"[handle]   Settings: {ch.settings}")
-                        if hasattr(ch, 'role'):
-                            self.logger.info(f"[handle]   Role: {ch.role}")
-                        if hasattr(ch, 'index'):
-                            self.logger.info(f"[handle]   Index: {ch.index}")
+                # Build messages with channel name and PSK
+                for idx, name, psk in public_channels:
+                    message = f"{name}: {psk}"
+                    self.logger.info(f"[handle] Sending channel info: {message}")
+                    self.message_sender.send_message(interface, message, channel, to_id)
         except Exception as e:
             self.logger.error(f"[handle] Error listing channels: {e}", exc_info=True)
+            self.message_sender.send_message(interface, f"Error listing channels: {str(e)}", channel, to_id)
