@@ -63,17 +63,7 @@ class ChannelsKeyword(KeywordHandler):
                         message += f"  [{idx}] {ch_name}\n"
             
             self.logger.info(f"[handle] Channel list message: {message}")
-            self.message_sender.send_text(
-                to_id=to_id,
-                message=message,
-                want_ack=False,
-                channel=channel
-            )
+            self.message_sender.send_message(interface, message, channel, to_id)
         except Exception as e:
             self.logger.error(f"[handle] Error listing channels: {e}", exc_info=True)
-            self.message_sender.send_text(
-                to_id=to_id,
-                message=f"Error listing channels: {str(e)}",
-                want_ack=False,
-                channel=channel
-            )
+            self.message_sender.send_message(interface, f"Error listing channels: {str(e)}", channel, to_id)
