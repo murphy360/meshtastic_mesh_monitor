@@ -155,10 +155,21 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
         location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
         logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
+        
+        # Get node names from config, defaulting to radio's actual names
+        node_short_name = ConfigManager.get_node_short_name()
+        if not node_short_name:  # If not set in env, use radio's short name
+            node_short_name = short_name
+        
+        node_long_name = ConfigManager.get_node_long_name()
+        if not node_long_name:  # If not set in env, use radio's long name
+            node_long_name = long_name
+        
         if gemini_interface is None:
-            gemini_interface = GeminiInterface.get_instance(location=location)
+            gemini_interface = GeminiInterface.get_instance(location=location, short_name=node_short_name, long_name=node_long_name)
         else: 
             gemini_interface.update_location(location)
+            gemini_interface.update_ai_names(node_short_name, node_long_name)
     
         logger.info(gemini_interface.get_status())
     logger.info(f"\n\n \

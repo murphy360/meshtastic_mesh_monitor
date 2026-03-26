@@ -23,6 +23,8 @@ class GeminiInterface(BaseInterface):
     gemini_api_key: str
     gemini_model: str
     location: str
+    short_name: str
+    long_name: str
     max_message_length: int
     max_output_tokens: int
     gemini_client: Any
@@ -41,34 +43,40 @@ class GeminiInterface(BaseInterface):
         return cls._instance
 
     @classmethod
-    def get_instance(cls, location: str = "Unknown Location") -> 'GeminiInterface':
+    def get_instance(cls, location: str = "Unknown Location", short_name: str = "AI", long_name: str = "Assistant") -> 'GeminiInterface':
         """
         Returns the singleton instance of GeminiInterface, creating it if necessary.
         This method should be used to access GeminiInterface throughout the application.
         Args:
             location: The location context for the interface.
+            short_name: The short name for the AI (callsign).
+            long_name: The long name/description for the AI.
         Returns:
             GeminiInterface: The singleton instance.
         """
         if cls._instance is None:
-            cls._instance = cls(location=location)
+            cls._instance = cls(location=location, short_name=short_name, long_name=long_name)
         return cls._instance
 
-    def __init__(self, location: str = "Unknown Location") -> None:
+    def __init__(self, location: str = "Unknown Location", short_name: str = "AI", long_name: str = "Assistant") -> None:
         """
         Initialize the Gemini AI interface.
         Args:
             location (str): Current location for context.
+            short_name (str): Short name/callsign for the AI.
+            long_name (str): Long name/description for the AI.
         This constructor sets up the Gemini API client and initializes chat objects for public, admin, and private channels.
         """
         super().__init__(cache_duration_seconds=0)  # No caching for AI responses
-        self.logger.info(f"Initializing GeminiInterface at location: {location}")
+        self.logger.info(f"Initializing GeminiInterface at location: {location}, AI: {short_name} ({long_name})")
         self.gemini_api_key: str = os.getenv('GEMINI_API_KEY', '')
         if not self.gemini_api_key:
             self.logger.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
         self.gemini_model: str = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
         self.location: str = location
+        self.short_name: str = short_name
+        self.long_name: str = long_name
         self.max_message_length: int = 200  # Maximum message length for transmission
         self.max_output_tokens: int = 100  # Maximum output tokens for responses
         # Load Gemini instructions/configs from external config file
@@ -90,11 +98,13 @@ class GeminiInterface(BaseInterface):
 
     def update_base_system_instruction(self):
         """
-        Update the base system instruction with the current location and message length.
-        Logs the current location and instruction.
+        Update the base system instruction with the current location, AI names, and message length.
+        Logs the current location, names, and instruction.
         """
-        self.logger.info(f"update_base_system_instruction called. location={self.location}")
+        self.logger.info(f"update_base_system_instruction called. location={self.location}, short_name={self.short_name}, long_name={self.long_name}")
         self.base_system_instruction = self.base_system_instruction_config.format(
+            short_name=self.short_name,
+            long_name=self.long_name,
             location=self.location,
             max_message_length=self.max_message_length
         )
@@ -112,6 +122,23 @@ class GeminiInterface(BaseInterface):
         self.location = new_location
         self.update_base_system_instruction()
         # Recreate chats with updated location
+        self.chats = {}
+        self.chats["public"] = self._create_chat("public")
+        self.chats["admin"] = self._create_chat("admin")
+    
+    def update_ai_names(self, short_name: str, long_name: str):
+        """
+        Update the AI's short and long names and recreate the chat models.
+        Logs the old and new names.
+        """
+        self.logger.info(f"update_ai_names called. short_name={short_name}, long_name={long_name}")
+        if short_name == self.short_name and long_name == self.long_name:
+            return
+        self.logger.info(f"Updating AI names from {self.short_name} ({self.long_name}) to {short_name} ({long_name})")
+        self.short_name = short_name
+        self.long_name = long_name
+        self.update_base_system_instruction()
+        # Recreate chats with updated names
         self.chats = {}
         self.chats["public"] = self._create_chat("public")
         self.chats["admin"] = self._create_chat("admin")

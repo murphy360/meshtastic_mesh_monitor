@@ -138,6 +138,16 @@ class ConfigManager:
         except ValueError:
             return 1
     
+    @staticmethod
+    def get_node_short_name() -> str:
+        """Get node's short name from environment variable, empty string means use radio's short name."""
+        return os.environ.get('NODE_SHORT_NAME', '')  # Empty string triggers use of radio's actual short name
+    
+    @staticmethod
+    def get_node_long_name() -> str:
+        """Get node's long name from environment variable, empty string means use radio's long name."""
+        return os.environ.get('NODE_LONG_NAME', '')  # Empty string triggers use of radio's actual long name
+    
     def get_web_scrapers(self) -> List[Dict[str, Any]]:
         """Get list of configured web scrapers."""
         return self.config.get("web_scrapers", [])

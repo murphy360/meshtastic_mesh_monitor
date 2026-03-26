@@ -16,6 +16,8 @@ services:
       # AI Configuration (optional but recommended)
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - NODE_SHORT_NAME=${NODE_SHORT_NAME:-DPMM}
+      - NODE_LONG_NAME=${NODE_LONG_NAME:-Don't Panic Mesh Monitor}
       
       # Node position (optional)
       - NODE_LATITUDE=${NODE_LATITUDE}
