@@ -15,21 +15,13 @@ class ChannelsKeyword(KeywordHandler):
 
     def _psk_to_string(self, psk_bytes):
         """
-        Convert PSK bytes to a readable string format.
-        Tries hex first (128-bit keys), then base64.
+        Convert PSK bytes to base64 string (as shown in Meshtastic GUI).
+        Meshtastic GUI stores PSKs as base64-encoded strings.
         """
         if not psk_bytes:
             return "default"
         
-        # Try to convert to hex (common for 128-bit PSK display)
-        try:
-            if isinstance(psk_bytes, bytes):
-                return psk_bytes.hex().upper()
-            return psk_bytes
-        except Exception:
-            pass
-        
-        # Fall back to base64
+        # Convert to base64 (this is what the Meshtastic GUI expects)
         try:
             return base64.b64encode(psk_bytes).decode('utf-8')
         except Exception:
