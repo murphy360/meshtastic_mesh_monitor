@@ -131,6 +131,14 @@ class ConfigManager:
             return 1
     
     @staticmethod
+    def get_twinsburg_channel() -> int:
+        """Get Twinsburg channel from environment variable, default to admin channel (1)."""
+        try:
+            return int(os.environ.get('TWINSBURG_CHANNEL', '1'))
+        except ValueError:
+            return 1
+    
+    @staticmethod
     def get_sitrep_channel() -> int:
         """Get sitrep channel from environment variable, default to admin channel (1)."""
         try:

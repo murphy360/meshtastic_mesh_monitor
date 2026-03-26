@@ -68,6 +68,7 @@ public_channel_number = ConfigManager.get_public_channel()
 admin_channel_number = ConfigManager.get_admin_channel()
 alert_channel = ConfigManager.get_alert_channel()
 weather_channel = ConfigManager.get_weather_channel()
+twinsburg_channel = ConfigManager.get_twinsburg_channel()
 
 active_health_alerts = {}
 last_routine_sitrep_date = None
@@ -734,13 +735,13 @@ while True:
 
             # Check rss feed
             rss_interface.check_feeds_if_needed(
-                channel=admin_channel_number,
+                channel=twinsburg_channel,
                 destination="^all"
             )
 
             # Check for website updates
             web_scraper.scrape_websites_if_needed(
-                admin_channel_number,  # or public_channel_number if you prefer
+                twinsburg_channel,
                 "^all",
                 sitrep.log_message_sent
             )
