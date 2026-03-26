@@ -171,11 +171,13 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         node_long_name = node_info['user']['longName']
         logger.info(f"Local Node: {node_short_name} - {node_long_name} ({localNode.nodeNum}) - Location: {location}")
         
+        # Always update gemini interface with correct node info
         if gemini_interface is None:
             gemini_interface = GeminiInterface.get_instance(location=location, short_name=node_short_name, long_name=node_long_name)
-        else: 
-            gemini_interface.update_location(location)
-            gemini_interface.update_ai_names(node_short_name, node_long_name)
+        
+        # Update location and names (handles both first init and singleton that was created elsewhere)
+        gemini_interface.update_location(location)
+        gemini_interface.update_ai_names(node_short_name, node_long_name)
     
         logger.info(gemini_interface.get_status())
     logger.info(f"\n\n \
