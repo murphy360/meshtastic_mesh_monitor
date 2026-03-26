@@ -60,12 +60,15 @@ class ChannelsKeyword(KeywordHandler):
             if not public_channels:
                 self.message_sender.send_message(interface, "No public channels available.", channel, to_id)
             else:
-                # Build messages with channel name and PSK
+                # Build a single message with all channels
+                message_lines = ["Public Channels:"]
                 for idx, name, psk in public_channels:
                     self.logger.info(f"[handle] Channel {idx}: name='{name}', psk='{psk}'")
-                    message = f"{name}: {psk}"
-                    self.logger.info(f"[handle] Sending channel info: {message}")
-                    self.message_sender.send_message(interface, message, channel, to_id)
+                    message_lines.append(f"{name}: {psk}")
+                
+                message = "\n".join(message_lines)
+                self.logger.info(f"[handle] Sending combined channel list: {message}")
+                self.message_sender.send_message(interface, message, channel, to_id)
         except Exception as e:
             self.logger.error(f"[handle] Error listing channels: {e}", exc_info=True)
             self.message_sender.send_message(interface, f"Error listing channels: {str(e)}", channel, to_id)
