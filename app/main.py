@@ -67,7 +67,8 @@ initial_node_discovery_complete = False  # Track when initial node discovery is 
 public_channel_number = ConfigManager.get_public_channel()
 admin_channel_number = ConfigManager.get_admin_channel()
 alert_channel = ConfigManager.get_alert_channel()
-forecast_channel = ConfigManager.get_forecast_channel()
+weather_channel = ConfigManager.get_weather_channel()
+
 active_health_alerts = {}
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
@@ -199,6 +200,16 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     if initial_connect:
         initial_connect = False
         message_sender.send_llm_message(interface, f"CQ CQ CQ de {node_short_name} in {location}", admin_channel_number, "^all")
+        
+        # TODO: REMOVE LATER - Testing weather report on startup to verify channel delivery
+        if NODE_LATITUDE and NODE_LONGITUDE:
+            try:
+                latitude = float(NODE_LATITUDE)
+                longitude = float(NODE_LONGITUDE)
+                logger.info(f"[WEATHER TEST] Sending to weather_channel={weather_channel}")
+                send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, weather_channel)
+            except Exception as e:
+                logger.error(f"[WEATHER TEST] Error sending weather report: {e}")
     else:
         message_sender.send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
 
@@ -721,7 +732,7 @@ while True:
             send_weather_alerts_if_needed(interface, alert_channel)
 
             # Check if we need to send a weather forecast
-            send_weather_forecast_if_needed(interface, forecast_channel)
+            send_weather_forecast_if_needed(interface, weather_channel)
 
             if sitrep is not None and sitrep.interface is not None:
                 # Send a routine sitrep every 24 hours at 00:00 UTC 

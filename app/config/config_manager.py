@@ -123,10 +123,10 @@ class ConfigManager:
             return 1
     
     @staticmethod
-    def get_forecast_channel() -> int:
-        """Get forecast channel from environment variable, default to admin channel (1)."""
+    def get_weather_channel() -> int:
+        """Get weather channel from environment variable, default to admin channel (1)."""
         try:
-            return int(os.environ.get('FORECAST_CHANNEL', '1'))
+            return int(os.environ.get('WEATHER_CHANNEL', '1'))
         except ValueError:
             return 1
     
