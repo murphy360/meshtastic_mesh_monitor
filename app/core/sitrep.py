@@ -4,6 +4,7 @@ import json
 from utils.logger import get_logger
 from core.database import SQLiteHelper
 from utils.node_info_utils import NodeInfoUtils
+from config.config_manager import ConfigManager
 
 class SITREP:
     _instance = None
@@ -622,7 +623,8 @@ class SITREP:
         if now.date() != self.sitrep_time.date():
             self.logger.info("📊 SITREP: New day started - sending routine report")
             self.update_sitrep(is_routine_sitrep=True)
-            self.send_report(1, '^all')
+            sitrep_channel = ConfigManager.get_sitrep_channel()
+            self.send_report(sitrep_channel, '^all')
 
         return False
 

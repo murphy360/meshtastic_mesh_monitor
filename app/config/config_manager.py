@@ -130,6 +130,14 @@ class ConfigManager:
         except ValueError:
             return 1
     
+    @staticmethod
+    def get_sitrep_channel() -> int:
+        """Get sitrep channel from environment variable, default to admin channel (1)."""
+        try:
+            return int(os.environ.get('SITREP_CHANNEL', '1'))
+        except ValueError:
+            return 1
+    
     def get_web_scrapers(self) -> List[Dict[str, Any]]:
         """Get list of configured web scrapers."""
         return self.config.get("web_scrapers", [])
