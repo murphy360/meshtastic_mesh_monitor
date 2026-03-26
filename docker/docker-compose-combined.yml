@@ -14,6 +14,7 @@ services:
       
       # AI Configuration (optional but recommended)
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-2.5-flash
       
       # Node position (optional)
       - NODE_LATITUDE=${NODE_LATITUDE}
