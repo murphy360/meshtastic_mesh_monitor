@@ -198,7 +198,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     if initial_connect:
         initial_connect = False
-        message_sender.send_llm_message(interface, f"CQ CQ CQ de {short_name} in {location}", admin_channel_number, "^all")
+        message_sender.send_llm_message(interface, f"CQ CQ CQ de {node_short_name} in {location}", admin_channel_number, "^all")
     else:
         message_sender.send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
 
