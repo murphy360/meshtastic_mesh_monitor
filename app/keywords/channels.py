@@ -68,6 +68,7 @@ class ChannelsKeyword(KeywordHandler):
             else:
                 # Build messages with channel name and PSK
                 for idx, name, psk in public_channels:
+                    self.logger.info(f"[handle] Channel {idx}: name='{name}', psk='{psk}'")
                     message = f"{name}: {psk}"
                     self.logger.info(f"[handle] Sending channel info: {message}")
                     self.message_sender.send_message(interface, message, channel, to_id)
