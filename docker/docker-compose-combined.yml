@@ -25,6 +25,12 @@ services:
       # Application
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Channel Configuration
+      - PUBLIC_CHANNEL=${PUBLIC_CHANNEL:-0}
+      - ADMIN_CHANNEL=${ADMIN_CHANNEL:-1}
+      - ALERT_CHANNEL=${ALERT_CHANNEL:-1}
+      - FORECAST_CHANNEL=${FORECAST_CHANNEL:-1}
     
     # USB device for serial connection (if using serial instead of TCP)
     # Uncomment and set SERIAL_DEVICE in .env to enable serial connections

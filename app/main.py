@@ -20,6 +20,7 @@ from interfaces.web_scraper_interface import WebScraperInterface
 from utils.logger import get_logger
 from utils.message_sender import MessageSender
 from utils.location_utils import LocationUtils
+from config.config_manager import ConfigManager
 from handlers.text_handler import TextHandler
 from handlers.position_handler import PositionHandler
 from handlers.data_handler import DataHandler
@@ -59,8 +60,10 @@ NODE_ALTITUDE = os.getenv('NODE_ALTITUDE')  # e.g., 300 (meters)
 
 initial_connect = True
 initial_node_discovery_complete = False  # Track when initial node discovery is done
-public_channel_number = 0
-admin_channel_number = 1
+public_channel_number = ConfigManager.get_public_channel()
+admin_channel_number = ConfigManager.get_admin_channel()
+alert_channel = ConfigManager.get_alert_channel()
+forecast_channel = ConfigManager.get_forecast_channel()
 active_health_alerts = {}
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
@@ -700,10 +703,10 @@ while True:
         if initial_connect == False:
 
             # Check for weather alerts
-            send_weather_alerts_if_needed(interface, admin_channel_number)
+            send_weather_alerts_if_needed(interface, alert_channel)
 
             # Check if we need to send a weather forecast
-            send_weather_forecast_if_needed(interface, admin_channel_number)
+            send_weather_forecast_if_needed(interface, forecast_channel)
 
             if sitrep is not None and sitrep.interface is not None:
                 # Send a routine sitrep every 24 hours at 00:00 UTC 

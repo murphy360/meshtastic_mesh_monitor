@@ -44,3 +44,7 @@ class UserHandler(BaseHandler):
         if localNode.nodeNum == from_node_num:
             # Ignore packets from local node
             return
+        # Additional processing can be added here if needed, such as updating node info or triggering events based on user packets.
+        # Printing the packet for debugging purposes
+        self.logger.debug(f"[on_receive_user] Received user packet from node {node_short_name} ({from_node_num}):")
+        self.logger.debug(packet)

@@ -98,6 +98,38 @@ class ConfigManager:
         """Get list of enabled RSS feeds only."""
         return [feed for feed in self.get_rss_feeds() if feed.get("enabled", True)]
     
+    @staticmethod
+    def get_public_channel() -> int:
+        """Get public channel from environment variable, default to 0."""
+        try:
+            return int(os.environ.get('PUBLIC_CHANNEL', '0'))
+        except ValueError:
+            return 0
+    
+    @staticmethod
+    def get_admin_channel() -> int:
+        """Get admin channel from environment variable, default to 1."""
+        try:
+            return int(os.environ.get('ADMIN_CHANNEL', '1'))
+        except ValueError:
+            return 1
+    
+    @staticmethod
+    def get_alert_channel() -> int:
+        """Get alert channel from environment variable, default to admin channel (1)."""
+        try:
+            return int(os.environ.get('ALERT_CHANNEL', '1'))
+        except ValueError:
+            return 1
+    
+    @staticmethod
+    def get_forecast_channel() -> int:
+        """Get forecast channel from environment variable, default to admin channel (1)."""
+        try:
+            return int(os.environ.get('FORECAST_CHANNEL', '1'))
+        except ValueError:
+            return 1
+    
     def get_web_scrapers(self) -> List[Dict[str, Any]]:
         """Get list of configured web scrapers."""
         return self.config.get("web_scrapers", [])
