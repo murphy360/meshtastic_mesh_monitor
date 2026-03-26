@@ -108,6 +108,7 @@ class GeminiInterface(BaseInterface):
             location=self.location,
             max_message_length=self.max_message_length
         )
+        self.logger.info(f"Base system instruction updated: {self.base_system_instruction}")
     
 
     def update_location(self, new_location: str):
