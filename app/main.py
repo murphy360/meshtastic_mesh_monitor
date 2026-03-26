@@ -157,7 +157,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     if initial_connect:
         # Set node names from environment variables if configured
         if NODE_SHORT_NAME or NODE_LONG_NAME:
-            logger.info(f"Setting node names: {NODE_SHORT_NAME} ({NODE_LONG_NAME})")
+            logger.info(f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}")
             localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
         
         configure_node_position(interface, localNode)
@@ -751,6 +751,7 @@ while True:
             Interface TCP Server: {TCP_SERVER}\n \
             Interface Node Number: {node_info['num']}\n \
             Interface Node Short Name: {node_info['user']['shortName']}\n \
+            Interface Node Long Name: {node_info['user']['longName']}\n \
             Public Key: {node_info['user']['publicKey']}\n \
             Connection Timeout: {connect_timeout}\n \
             Heartbeat Counter: {heartbeat_counter}\n \
