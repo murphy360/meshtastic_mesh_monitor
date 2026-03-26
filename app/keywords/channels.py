@@ -16,15 +16,17 @@ class ChannelsKeyword(KeywordHandler):
     def _psk_to_string(self, psk_bytes):
         """
         Convert PSK bytes to a readable string format.
-        If it's text, try to decode it; otherwise base64 encode it.
+        Tries hex first (128-bit keys), then base64.
         """
         if not psk_bytes:
             return "default"
         
-        # Try to decode as UTF-8 first
+        # Try to convert to hex (common for 128-bit PSK display)
         try:
-            return psk_bytes.decode('utf-8')
-        except (UnicodeDecodeError, AttributeError):
+            if isinstance(psk_bytes, bytes):
+                return psk_bytes.hex().upper()
+            return psk_bytes
+        except Exception:
             pass
         
         # Fall back to base64
