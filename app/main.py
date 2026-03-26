@@ -56,6 +56,10 @@ NODE_LATITUDE = os.getenv('NODE_LATITUDE')  # e.g., 41.234567
 NODE_LONGITUDE = os.getenv('NODE_LONGITUDE')  # e.g., -81.234567
 NODE_ALTITUDE = os.getenv('NODE_ALTITUDE')  # e.g., 300 (meters)
 
+# Radio node identification from environment variables
+NODE_SHORT_NAME = os.getenv('NODE_SHORT_NAME')  # e.g., W5XYZ (callsign/short name)
+NODE_LONG_NAME = os.getenv('NODE_LONG_NAME')  # e.g., Texas Mesh Monitor (long name/description)
+
 
 
 initial_connect = True
@@ -152,12 +156,9 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     # Configure fixed position on initial connection only
     if initial_connect:
         # Set node names from environment variables if configured
-        env_short_name = ConfigManager.get_node_short_name()
-        env_long_name = ConfigManager.get_node_long_name()
-        
-        if env_short_name or env_long_name:
-            logger.info(f"Setting node names: {env_short_name} ({env_long_name})")
-            localNode.setOwner(short_name=env_short_name, long_name=env_long_name)
+        if NODE_SHORT_NAME or NODE_LONG_NAME:
+            logger.info(f"Setting node names: {NODE_SHORT_NAME} ({NODE_LONG_NAME})")
+            localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
         
         configure_node_position(interface, localNode)
 
@@ -165,13 +166,8 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
         
         # Get node names (either from env vars we just set, or from radio defaults)
-        node_short_name = ConfigManager.get_node_short_name()
-        if not node_short_name:  # If not set in env, use radio's short name
-            node_short_name = short_name
-        
-        node_long_name = ConfigManager.get_node_long_name()
-        if not node_long_name:  # If not set in env, use radio's long name
-            node_long_name = long_name
+        node_short_name = NODE_SHORT_NAME if NODE_SHORT_NAME else short_name
+        node_long_name = NODE_LONG_NAME if NODE_LONG_NAME else long_name
         
         if gemini_interface is None:
             gemini_interface = GeminiInterface.get_instance(location=location, short_name=node_short_name, long_name=node_long_name)
