@@ -1,32 +1,60 @@
-FROM ubuntu:22.04
+# Multi-stage optimized build for Meshtastic Mesh Monitor
+# Reduces image size and improves security
 
-# Install dependencies and required Python packages
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
+FROM python:3.11-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python packages in virtual environment
+COPY requirements.txt /tmp/requirements.txt
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Production stage
+FROM python:3.11-slim
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
     sqlite3 \
-    vim
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements.txt before installing Python packages
-COPY requirements.txt /app/requirements.txt
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python packages from requirements.txt
-RUN pip3 install --no-cache-dir -r /app/requirements.txt
-
-# Copy the entire app directory structure to /app
-COPY app/ /app/
-
-# Copy configuration files to /app/config_files (separate from Python config module)  
-COPY config/ /app/config_files/
-
-# Create data and logs directories
-RUN mkdir -p /app/data /app/logs
-
-# Set the working directory
+# Create app directory and set ownership
+RUN mkdir -p /app && chown -R appuser:appuser /app
 WORKDIR /app
 
-# Set Python path to include the app directory  
-ENV PYTHONPATH=/app
+# Copy application source code
+COPY --chown=appuser:appuser app/ .
 
-# Use our custom entrypoint that ensures proper Python path
+# Create data and config directories
+RUN mkdir -p /data /app/logs /app/config && \
+    chown -R appuser:appuser /data /app/logs /app/config
+
+# Switch to non-root user
+USER appuser
+
+# Set Python environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Expose port if API is offered
+EXPOSE 8080
+
+# Health check - verify database connection
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python3 -c "import sqlite3; sqlite3('/data/mesh.db').execute('SELECT 1')" || exit 1
+
+# Run the application
 CMD ["python3", "entrypoint.py"]
