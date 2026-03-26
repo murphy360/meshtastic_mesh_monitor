@@ -152,8 +152,6 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     global localNode, sitrep, initial_connect, gemini_interface
     localNode = interface.getNode('^local')
     node_info = interface.getMyNodeInfo()
-    short_name = node_info['user']['shortName']
-    long_name = node_info['user']['longName']
 
     # Configure fixed position on initial connection only
     if initial_connect:
@@ -161,15 +159,17 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         if NODE_SHORT_NAME or NODE_LONG_NAME:
             logger.info(f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}")
             localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
+            # Re-fetch node info after setting names
+            node_info = interface.getMyNodeInfo()
         
         configure_node_position(interface, localNode)
 
         location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
-        logger.info(f"Local Node: {short_name} - {long_name} ({localNode.nodeNum}) - Location: {location}")
         
         # Get node names (either from env vars we just set, or from radio defaults)
-        node_short_name = NODE_SHORT_NAME if NODE_SHORT_NAME else short_name
-        node_long_name = NODE_LONG_NAME if NODE_LONG_NAME else long_name
+        node_short_name = node_info['user']['shortName']
+        node_long_name = node_info['user']['longName']
+        logger.info(f"Local Node: {node_short_name} - {node_long_name} ({localNode.nodeNum}) - Location: {location}")
         
         if gemini_interface is None:
             gemini_interface = GeminiInterface.get_instance(location=location, short_name=node_short_name, long_name=node_long_name)
