@@ -32,6 +32,7 @@ from handlers.routing_handler import RoutingHandler
 from handlers.traceroute_handler import TracerouteHandler
 from handlers.waypoint_handler import WaypointHandler
 from handlers.range_test_handler import RangeTestHandler
+from scheduled_events.scheduled_events_service import ScheduledEventsService
 
 # Initialize unified logging system
 logger = get_logger(__name__)
@@ -109,6 +110,23 @@ rss_interface = RSSInterface()
 # Initialize web scraper interface (config manager will be initialized internally)
 web_scraper = WebScraperInterface(discard_initial_items=True)
 
+# Initialize Scheduled Events Service
+scheduled_events_service = ScheduledEventsService.get_instance()
+scheduled_events_service.set_dependencies(
+    message_sender=message_sender,
+    db_helper=db_helper,
+    interfaces={
+        'tcp_interface': None,  # Will be set in main loop
+        'weather': weather_interface,
+        'rss': rss_interface,
+        'web_scraper': web_scraper,
+        'gemini': gemini_interface
+    },
+    config_manager=ConfigManager,
+    location_utils=location_utils,
+    sitrep=sitrep
+)
+scheduled_events_service.load_scheduled_events()
 
 
 def configure_node_position(interface, localNode):
@@ -755,6 +773,10 @@ while True:
                 "^all",
                 sitrep.log_message_sent
             )
+
+            # Run scheduled tasks (CRON and interval-based)
+            scheduled_events_service.interfaces['tcp_interface'] = interface
+            scheduled_events_service.run_scheduled_tasks()
 
         logger.info(f"\n\n \
         **************************************************************\n \

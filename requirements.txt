@@ -4,3 +4,4 @@ folium
 flask
 google-genai
 beautifulsoup4
+croniter
