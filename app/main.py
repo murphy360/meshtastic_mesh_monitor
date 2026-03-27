@@ -185,6 +185,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         logger.info(f"✅ GeminiInterface updated")
     
         logger.info(gemini_interface.get_status())
+        
     logger.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
