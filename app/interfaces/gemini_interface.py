@@ -43,7 +43,7 @@ class GeminiInterface(BaseInterface):
         return cls._instance
 
     @classmethod
-    def get_instance(cls, location: str = "Unknown Location", short_name: str = "AI", long_name: str = "Assistant") -> 'GeminiInterface':
+    def get_instance(cls, location: str = "Unknown Location", short_name: str = "MM", long_name: str = "Mesh Monitor") -> 'GeminiInterface':
         """
         Returns the singleton instance of GeminiInterface, creating it if necessary.
         This method should be used to access GeminiInterface throughout the application.
@@ -58,7 +58,7 @@ class GeminiInterface(BaseInterface):
             cls._instance = cls(location=location, short_name=short_name, long_name=long_name)
         return cls._instance
 
-    def __init__(self, location: str = "Unknown Location", short_name: str = "AI", long_name: str = "Assistant") -> None:
+    def __init__(self, location: str = "Unknown Location", short_name: str = "MM", long_name: str = "Mesh Monitor") -> None:
         """
         Initialize the Gemini AI interface.
         Args:
