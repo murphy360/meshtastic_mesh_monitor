@@ -50,7 +50,7 @@ class ScheduledEventsService:
         """Initialize the scheduler with a thread pool."""
         self.logger = get_logger(__name__)
         self.tasks: Dict[str, BaseScheduledEvent] = {}
-        self.executor = ThreadPoolExecutor(max_workers=3, daemon=True)
+        self.executor = ThreadPoolExecutor(max_workers=3)
         self.running_tasks: set = set()  # Track which tasks are currently executing
         
         # Dependencies injected by main.py
