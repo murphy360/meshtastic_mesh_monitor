@@ -152,6 +152,10 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     global localNode, sitrep, initial_connect, gemini_interface
     localNode = interface.getNode('^local')
     node_info = interface.getMyNodeInfo()
+    
+    # Get node names early so they're available throughout the function
+    node_short_name = node_info['user']['shortName']
+    node_long_name = node_info['user']['longName']
 
     # Configure fixed position on initial connection only
     if initial_connect:
@@ -159,25 +163,26 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
         if NODE_SHORT_NAME or NODE_LONG_NAME:
             logger.info(f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}")
             localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
-            # Re-fetch node info after setting names
-            node_info = interface.getMyNodeInfo()
+        
+        # Re-fetch node info to ensure we have latest names (after potential setOwner)
+        node_info = interface.getMyNodeInfo()
+        node_short_name = node_info['user']['shortName']
+        node_long_name = node_info['user']['longName']
         
         configure_node_position(interface, localNode)
 
         location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
-        
-        # Get node names (either from env vars we just set, or from radio defaults)
-        node_short_name = node_info['user']['shortName']
-        node_long_name = node_info['user']['longName']
         logger.info(f"Local Node: {node_short_name} - {node_long_name} ({localNode.nodeNum}) - Location: {location}")
         
-        # Always update gemini interface with correct node info
+        # Always update gemini interface with correct node info BEFORE any usage
         if gemini_interface is None:
             gemini_interface = GeminiInterface.get_instance(location=location, short_name=node_short_name, long_name=node_long_name)
         
         # Update location and names (handles both first init and singleton that was created elsewhere)
+        logger.info(f"Updating GeminiInterface with node info: {node_short_name} ({node_long_name}) - {location}")
         gemini_interface.update_location(location)
         gemini_interface.update_ai_names(node_short_name, node_long_name)
+        logger.info(f"✅ GeminiInterface updated")
     
         logger.info(gemini_interface.get_status())
     logger.info(f"\n\n \
