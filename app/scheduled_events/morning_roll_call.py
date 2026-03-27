@@ -10,7 +10,7 @@ Demonstrates:
 - Proper error handling
 """
 
-from base_scheduled_event import BaseScheduledEvent, ScheduleType
+from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 from datetime import datetime, timezone
 
 

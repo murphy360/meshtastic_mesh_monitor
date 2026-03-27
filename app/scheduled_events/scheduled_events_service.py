@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from utils.logger import get_logger
-from base_scheduled_event import BaseScheduledEvent, ScheduleType
+from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 
 try:
     from croniter import croniter
