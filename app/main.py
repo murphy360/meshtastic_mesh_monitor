@@ -580,7 +580,9 @@ def send_weather_forecast(interface, latitude, longitude, node_short_name, node_
             logger.error("❌ No forecast data available.")
             return
         
-        message = f"Weather forecast for {node_short_name} ({node_long_name}) in :\n\n{forecast_text}"
+        node_location = location_utils.find_location_by_coordinates(latitude, longitude)
+
+        message = f"Weather forecast for {node_short_name} ({node_location}) in :\n\n{forecast_text}"
         
         #db_helper.write_weather_report(forecast_data, forecast_text)
         
