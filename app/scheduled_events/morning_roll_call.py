@@ -58,9 +58,9 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
                     
                     message = f"🌅 Roll Call - {day_of_week} {time_str} UTC"
                     
-                    # Send to admin channel
+                    # Send to admin channel using LLM
                     admin_channel = self.config_manager.get_admin_channel()
-                    self.message_sender.send_message(
+                    self.message_sender.send_llm_message(
                         tcp_interface,
                         message,
                         admin_channel,
