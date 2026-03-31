@@ -38,17 +38,17 @@ class TestHeartbeatScheduledEvent(BaseScheduledEvent):
             self.logger.info(f"🫀 Test Heartbeat - {timestamp}")
             
             # Send message to admin channel
-            if self.message_sender and self.interfaces:
+            if self.message_sender and self.interfaces and self.config_manager:
                 tcp_interface = self.interfaces.get('tcp_interface')
-                if tcp_interface and self.config_manager:
+                if tcp_interface:
                     admin_channel = self.config_manager.get_admin_channel()
                     message = f"🫀 Heartbeat - {timestamp} UTC"
                     
                     self.message_sender.send_llm_message(
                         tcp_interface,
                         message,
-                        channel=admin_channel,
-                        want_ack=False
+                        admin_channel,
+                        "^all"
                     )
             
             return True
