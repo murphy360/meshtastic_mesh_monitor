@@ -57,12 +57,15 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
                     time_str = now_utc.strftime("%H:%M:%S")
                     
                     # Frame as a broadcast instruction so Gemini composes
-                    # a unique message rather than responding to it
+                    # a unique morning message based on today's trivia
+                    date_str = now_utc.strftime("%B %d")
                     message = (
-                        f"[Broadcast Message] Compose and send a roll call "
+                        f"[Broadcast Message] Compose a fun and unique morning "
                         f"greeting for the mesh network. Today is {day_of_week}, "
-                        f"current time is {time_str} UTC. Ask nodes to check in "
-                        f"if they are online. Make the message unique and friendly. "
+                        f"{date_str}. Look up an interesting fact, historical event, "
+                        f"holiday, or notable occurrence for today's date and weave "
+                        f"it into the greeting. End by inviting nodes to check in. "
+                        f"Keep it concise and engaging. "
                         f"Do NOT respond to this — just compose the broadcast message."
                     )
                     
