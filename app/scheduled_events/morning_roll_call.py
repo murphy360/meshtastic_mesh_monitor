@@ -47,7 +47,7 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
                 node_count = self.db_helper.get_node_count()
                 self.logger.info(f"   Current node count: {node_count}")
             
-            # Example: Send a message to the mesh
+            # Send a roll call message to the mesh
             if self.message_sender and self.interfaces and self.config_manager:
                 tcp_interface = self.interfaces.get('tcp_interface')
                 if tcp_interface:
@@ -56,7 +56,15 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
                     day_of_week = now_utc.strftime("%A")
                     time_str = now_utc.strftime("%H:%M:%S")
                     
-                    message = f"🌅 Roll Call - {day_of_week} {time_str} UTC"
+                    # Frame as a broadcast instruction so Gemini composes
+                    # a unique message rather than responding to it
+                    message = (
+                        f"[Broadcast Message] Compose and send a roll call "
+                        f"greeting for the mesh network. Today is {day_of_week}, "
+                        f"current time is {time_str} UTC. Ask nodes to check in "
+                        f"if they are online. Make the message unique and friendly. "
+                        f"Do NOT respond to this — just compose the broadcast message."
+                    )
                     
                     # Send to admin channel using LLM
                     admin_channel = self.config_manager.get_admin_channel()
@@ -67,7 +75,7 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
                         "^all"
                     )
                     
-                    self.logger.info(f"   Message sent to admin channel")
+                    self.logger.info(f"   Roll call message sent to admin channel")
             
             return True
         
