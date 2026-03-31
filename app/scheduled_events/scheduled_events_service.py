@@ -115,9 +115,10 @@ class ScheduledEventsService:
                 continue
             
             try:
-                # Load module dynamically
+                # Load module dynamically with full package path for relative imports
+                module_name = f"scheduled_events.{py_file.stem}"
                 spec = importlib.util.spec_from_file_location(
-                    py_file.stem,
+                    module_name,
                     py_file
                 )
                 module = importlib.util.module_from_spec(spec)
