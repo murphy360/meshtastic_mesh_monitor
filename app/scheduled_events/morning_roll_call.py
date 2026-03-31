@@ -1,10 +1,10 @@
 """
-Example scheduled task: Morning Roll Call
+Roll Call scheduled task - sends a roll call message every minute to admin channel
 
-This task sends a morning message every day at 9 AM UTC.
+This task sends a roll call message every minute.
 
 Demonstrates:
-- CRON-based scheduling
+- Interval-based scheduling
 - Using message_sender to broadcast messages
 - Accessing database
 - Proper error handling
@@ -16,10 +16,11 @@ from datetime import datetime, timezone
 
 class MorningRollCallScheduledEvent(BaseScheduledEvent):
     """
-    Send a morning roll call message at 9 AM UTC daily.
+    Send a roll call message every minute to admin channel.
     
     This is an example task showing how to:
-    - Define a CRON schedule
+    - Define an interval schedule
+    - Send to a specific channel
     - Access message_sender
     - Handle errors properly
     """
@@ -27,12 +28,12 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
     # Task configuration
     name = "Morning Roll Call"
     enabled = True
-    schedule_type = ScheduleType.CRON
-    cron_expression = "0 9 * * *"  # 9 AM UTC every day
+    schedule_type = ScheduleType.INTERVAL
+    interval_minutes = 1  # Every minute
     
     def execute(self) -> bool:
         """
-        Execute the morning roll call.
+        Execute the roll call.
         
         Returns:
             bool: True if successful, False if failed
@@ -47,24 +48,26 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
                 self.logger.info(f"   Current node count: {node_count}")
             
             # Example: Send a message to the mesh
-            if self.message_sender and self.interfaces:
+            if self.message_sender and self.interfaces and self.config_manager:
                 tcp_interface = self.interfaces.get('tcp_interface')
                 if tcp_interface:
                     # Get current date/time for greeting
                     now_utc = datetime.now(timezone.utc)
                     day_of_week = now_utc.strftime("%A")
+                    time_str = now_utc.strftime("%H:%M:%S")
                     
-                    message = f"🌅 Good morning! It's {day_of_week}. Time for roll call!"
+                    message = f"🌅 Roll Call - {day_of_week} {time_str} UTC"
                     
-                    # Send to public channel (channel 0)
-                    self.message_sender.send_llm_message(
+                    # Send to admin channel
+                    admin_channel = self.config_manager.get_admin_channel()
+                    self.message_sender.send_message(
                         tcp_interface,
                         message,
-                        channel=0,
-                        want_ack=False
+                        admin_channel,
+                        "^all"
                     )
                     
-                    self.logger.info(f"   Message sent to mesh")
+                    self.logger.info(f"   Message sent to admin channel")
             
             return True
         
