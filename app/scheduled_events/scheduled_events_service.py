@@ -14,6 +14,7 @@ TASK AUTO-DISCOVERY:
 """
 
 import os
+import sys
 import importlib.util
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -122,6 +123,8 @@ class ScheduledEventsService:
                     py_file
                 )
                 module = importlib.util.module_from_spec(spec)
+                # Register module in sys.modules BEFORE executing for relative imports to work
+                sys.modules[module_name] = module
                 spec.loader.exec_module(module)
                 
                 # Construct expected class name: my_task.py -> MyTaskScheduledEvent
