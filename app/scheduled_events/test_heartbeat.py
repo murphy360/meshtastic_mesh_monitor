@@ -24,7 +24,7 @@ class TestHeartbeatScheduledEvent(BaseScheduledEvent):
     name = "Test Heartbeat"
     enabled = True
     schedule_type = ScheduleType.INTERVAL
-    interval_minutes = 1  # Every minute
+    interval_minutes = 60  # Every hour
     
     def execute(self) -> bool:
         """
