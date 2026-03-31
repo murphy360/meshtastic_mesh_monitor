@@ -299,18 +299,20 @@ class ScheduledEventsService:
         Check if an interval-scheduled task should execute.
         
         Only executes if enough time has passed since last execution.
+        Includes a small grace period (5 seconds) to account for main loop timing jitter.
         """
         if task.interval_minutes is None or task.interval_minutes <= 0:
             return False
         
         interval_delta = timedelta(minutes=task.interval_minutes)
+        grace_period = timedelta(seconds=5)  # Allow 5 second variance for timing jitter
         
         # First execution
         if task.last_execution_time is None:
             return True
         
-        # Check if interval has elapsed
-        if (now - task.last_execution_time) >= interval_delta:
+        # Check if interval has elapsed (with grace period)
+        if (now - task.last_execution_time) >= (interval_delta - grace_period):
             return True
         
         return False
