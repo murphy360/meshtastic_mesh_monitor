@@ -22,7 +22,7 @@ class TestHeartbeatScheduledEvent(BaseScheduledEvent):
     
     # Task configuration
     name = "Test Heartbeat"
-    enabled = False
+    enabled = True
     schedule_type = ScheduleType.INTERVAL
     interval_minutes = 1  # Every minute
     
