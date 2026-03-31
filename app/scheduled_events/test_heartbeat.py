@@ -1,8 +1,8 @@
 """
-Test Heartbeat scheduled event - logs every 20 seconds
+Test Heartbeat scheduled event - logs every minute and sends to admin channel
 
-This is a simple test task that executes every 20 seconds and writes
-a single line to the log. Useful for verifying the scheduler is working.
+This is a simple test task that executes every minute, logs a heartbeat,
+and sends a message to the admin channel. Useful for verifying the scheduler is working.
 """
 
 from .base_scheduled_event import BaseScheduledEvent, ScheduleType
@@ -11,30 +11,46 @@ from datetime import datetime, timezone
 
 class TestHeartbeatScheduledEvent(BaseScheduledEvent):
     """
-    Simple test task that logs a heartbeat every 20 seconds.
+    Simple test task that logs and sends a heartbeat every minute.
     
     Demonstrates:
     - Interval-based scheduling (not CRON)
+    - Sending messages to a specific channel
+    - Using ConfigManager to get channel numbers
     - Minimal task implementation
-    - Logging to the main logger
     """
     
     # Task configuration
     name = "Test Heartbeat"
     enabled = True
     schedule_type = ScheduleType.INTERVAL
-    interval_minutes = 1/3  # 20 seconds (1/3 of a minute = 20 seconds)
+    interval_minutes = 1  # Every minute
     
     def execute(self) -> bool:
         """
-        Execute the test heartbeat.
+        Execute the test heartbeat - log and send message to admin channel.
         
         Returns:
             bool: True if successful, False if failed
         """
         try:
-            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
             self.logger.info(f"🫀 Test Heartbeat - {timestamp}")
+            
+            # Send message to admin channel
+            if self.message_sender and self.interfaces:
+                tcp_interface = self.interfaces.get('tcp_interface')
+                if tcp_interface and self.config_manager:
+                    admin_channel = self.config_manager.get_admin_channel()
+                    message = f"🫀 Heartbeat - {timestamp} UTC"
+                    
+                    self.message_sender.send_llm_message(
+                        tcp_interface,
+                        message,
+                        channel=admin_channel,
+                        want_ack=False
+                    )
+            
             return True
         
         except Exception as e:
