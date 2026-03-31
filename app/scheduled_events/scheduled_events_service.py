@@ -201,8 +201,9 @@ class ScheduledEventsService:
                 future = self.executor.submit(self._execute_task_wrapper, task_name, task)
                 
                 # Add callback to mark task complete
+                # Use default arg to capture task_name by value (not by reference)
                 future.add_done_callback(
-                    lambda f: self.running_tasks.discard(task_name)
+                    lambda f, name=task_name: self.running_tasks.discard(name)
                 )
                 
             except Exception as e:
