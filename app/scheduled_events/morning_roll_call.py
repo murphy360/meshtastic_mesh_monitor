@@ -1,13 +1,8 @@
 """
-Roll Call scheduled task - sends a roll call message every minute to admin channel
+Morning Roll Call scheduled task - sends a daily greeting to the public channel at 5am ET.
 
-This task sends a roll call message every minute.
-
-Demonstrates:
-- Interval-based scheduling
-- Using message_sender to broadcast messages
-- Accessing database
-- Proper error handling
+Gemini composes a unique message based on an interesting fact, historical event,
+holiday, or notable occurrence for today's date.
 """
 
 from .base_scheduled_event import BaseScheduledEvent, ScheduleType
@@ -15,21 +10,13 @@ from datetime import datetime, timezone
 
 
 class MorningRollCallScheduledEvent(BaseScheduledEvent):
-    """
-    Send a roll call message every minute to admin channel.
-    
-    This is an example task showing how to:
-    - Define an interval schedule
-    - Send to a specific channel
-    - Access message_sender
-    - Handle errors properly
-    """
+    """Send a daily morning greeting to the public channel at 5am ET (9am UTC)."""
     
     # Task configuration
     name = "Morning Roll Call"
     enabled = True
-    schedule_type = ScheduleType.INTERVAL
-    interval_minutes = 1  # Every minute
+    schedule_type = ScheduleType.CRON
+    cron_expression = "0 9 * * *"  # 9:00 UTC = 5:00 AM ET (EDT)
     
     def execute(self) -> bool:
         """
@@ -62,23 +49,25 @@ class MorningRollCallScheduledEvent(BaseScheduledEvent):
                     message = (
                         f"[Broadcast Message] Compose a fun and unique morning "
                         f"greeting for the mesh network. Today is {day_of_week}, "
-                        f"{date_str}. Look up an interesting fact, historical event, "
-                        f"holiday, or notable occurrence for today's date and weave "
-                        f"it into the greeting. End by inviting nodes to check in. "
-                        f"Keep it concise and engaging. "
+                        f"{date_str}. Share a lighthearted fun fact, quirky holiday, "
+                        f"pop culture moment, science tidbit, or weird-but-true "
+                        f"historical event for today's date. Keep it fun and "
+                        f"low-stakes — avoid politics, religion, war, tragedy, "
+                        f"or anything controversial. End by inviting nodes to "
+                        f"check in. Keep it concise and engaging. "
                         f"Do NOT respond to this — just compose the broadcast message."
                     )
                     
-                    # Send to admin channel using LLM
-                    admin_channel = self.config_manager.get_admin_channel()
+                    # Send to public channel using LLM
+                    public_channel = self.config_manager.get_public_channel()
                     self.message_sender.send_llm_message(
                         tcp_interface,
                         message,
-                        admin_channel,
+                        public_channel,
                         "^all"
                     )
                     
-                    self.logger.info(f"   Roll call message sent to admin channel")
+                    self.logger.info(f"   Roll call message sent to public channel")
             
             return True
         
