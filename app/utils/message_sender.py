@@ -106,17 +106,25 @@ class MessageSender:
 
     def _send_message_now(self, interface, message, channel, to_id):
         self.logger.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
-        try:
-            sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
-            self.logger.info(f"Sent message: {sent_message}")
-        except Exception as e:
-            if "Data payload too big" in str(e):
-                self.logger.error("Message too long to send. Please shorten the message.")
-                if hasattr(self, 'send_llm_message'):
-                    self.send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
+                self.logger.info(f"Sent message: {sent_message}")
                 return
-            self.logger.error(f"Error sending message: {e}")
-            return
+            except Exception as e:
+                if "Data payload too big" in str(e):
+                    self.logger.error("Message too long to send. Please shorten the message.")
+                    if hasattr(self, 'send_llm_message'):
+                        self.send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
+                    return
+                if attempt < max_retries:
+                    wait_time = attempt * 5
+                    self.logger.warning(f"Error sending message (attempt {attempt}/{max_retries}): {e} - retrying in {wait_time}s")
+                    time.sleep(wait_time)
+                else:
+                    self.logger.error(f"Error sending message after {max_retries} attempts: {e} - message dropped")
+                    return
            
             
 
