@@ -73,7 +73,7 @@ class GeminiInterface(BaseInterface):
         if not self.gemini_api_key:
             self.logger.error("GEMINI_API_KEY environment variable not set")
             raise ValueError("GEMINI_API_KEY environment variable not set")
-        self.gemini_model: str = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+        self.gemini_model: str = os.getenv('GEMINI_MODEL', 'gemini-3.1-flash-lite-preview')
         self.location: str = location
         self.short_name: str = short_name
         self.long_name: str = long_name
