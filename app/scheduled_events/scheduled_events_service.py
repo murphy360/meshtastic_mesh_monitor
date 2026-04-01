@@ -311,7 +311,12 @@ class ScheduledEventsService:
         
         # First execution
         if task.last_execution_time is None:
-            return True
+            if task.run_on_startup:
+                return True
+            # Defer first execution by one full interval
+            task.last_execution_time = now
+            self.logger.debug(f"⏳ Deferring first execution of {task.name} by {task.interval_minutes}min")
+            return False
         
         # Check if interval has elapsed (with grace period)
         if (now - task.last_execution_time) >= (interval_delta - grace_period):

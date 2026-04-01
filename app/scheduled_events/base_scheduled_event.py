@@ -105,6 +105,10 @@ class BaseScheduledEvent(ABC):
     # Interval-based scheduling
     interval_minutes: Optional[int] = None  # e.g., 60 for every hour
     
+    # Whether to execute immediately on startup (interval tasks only)
+    # If False (default), waits one full interval before first execution
+    run_on_startup: bool = False
+    
     # ===== INTERNAL STATE (set by scheduler) =====
     last_execution_time: Optional[datetime] = None
     is_running: bool = False
