@@ -97,6 +97,20 @@ class WeatherAlertsScheduledEvent(BaseScheduledEvent):
 
             weather_interface.clear_alerts()
 
+            # Summary log
+            new_count = len(new_alerts) if new_alerts else 0
+            updated_count = len(updated_alerts) if updated_alerts else 0
+            expired_count = len(expired_alerts) if expired_alerts else 0
+            total_active = len(weather_interface.current_alerts) if hasattr(weather_interface, 'current_alerts') else 0
+
+            if new_count or updated_count or expired_count:
+                self.logger.info(
+                    f"⚠️ Weather Alerts: {new_count} new, {updated_count} updated, "
+                    f"{expired_count} expired — {total_active} active"
+                )
+            else:
+                self.logger.info(f"⚠️ Weather Alerts: no changes — {total_active} active")
+
             return True
 
         except Exception as e:
