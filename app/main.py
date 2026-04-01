@@ -121,6 +121,9 @@ def configure_node_position(interface, localNode):
     Args:
         interface: The interface object representing the connection.
         localNode: The local node object.
+    
+    Returns:
+        bool: True if config was written (radio will reboot), False otherwise.
     """
     if NODE_LATITUDE and NODE_LONGITUDE:
         try:
@@ -128,18 +131,35 @@ def configure_node_position(interface, localNode):
             longitude = float(NODE_LONGITUDE)
             altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
             
-            logger.info(f"Configuring fixed position from environment: lat={latitude}, lon={longitude}, alt={altitude}")
+            # Check if position already matches to avoid unnecessary config write (causes radio reboot)
+            current_pos = interface.getMyNodeInfo().get('position', {})
+            current_lat = current_pos.get('latitude', 0)
+            current_lon = current_pos.get('longitude', 0)
+            current_alt = current_pos.get('altitude', 0)
             
-            localNode.localConfig.position.gps_mode = "DISABLED"
-            localNode.localConfig.position.fixed_position = True
-            localNode.setFixedPosition(latitude, longitude, altitude)
-            localNode.writeConfig("position")
+            # Compare with tolerance for floating point
+            pos_matches = (
+                abs(current_lat - latitude) < 0.0001
+                and abs(current_lon - longitude) < 0.0001
+                and abs(current_alt - altitude) < 5
+            )
             
-            logger.info(f"✅ Fixed position configured successfully")
+            if pos_matches:
+                logger.info(f"Fixed position already correct (lat={latitude}, lon={longitude}, alt={altitude}), skipping config write")
+                return False
+            else:
+                logger.info(f"Configuring fixed position from environment: lat={latitude}, lon={longitude}, alt={altitude}")
+                localNode.localConfig.position.gps_mode = "DISABLED"
+                localNode.localConfig.position.fixed_position = True
+                localNode.setFixedPosition(latitude, longitude, altitude)
+                localNode.writeConfig("position")
+                logger.info(f"✅ Fixed position configured - radio will reboot")
+                return True
         except (ValueError, TypeError) as e:
             logger.error(f"❌ Invalid position configuration in environment variables: {e}")
         except Exception as e:
             logger.error(f"❌ Error configuring fixed position: {e}")
+    return False
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
@@ -161,17 +181,25 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     # Configure fixed position on initial connection only
     if initial_connect:
-        # Set node names from environment variables if configured
+        # Set node names from environment variables if configured (only if changed)
         if NODE_SHORT_NAME or NODE_LONG_NAME:
-            logger.info(f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}")
-            localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
+            needs_name_update = False
+            if NODE_SHORT_NAME and node_short_name != NODE_SHORT_NAME:
+                needs_name_update = True
+            if NODE_LONG_NAME and node_long_name != NODE_LONG_NAME:
+                needs_name_update = True
+            if needs_name_update:
+                logger.info(f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}")
+                localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
+                logger.info("Owner config written - radio may reboot, waiting for reconnection")
+                return
+            else:
+                logger.info(f"Node names already correct ({node_short_name} / {node_long_name}), skipping setOwner")
         
-        # Re-fetch node info to ensure we have latest names (after potential setOwner)
-        node_info = interface.getMyNodeInfo()
-        node_short_name = node_info['user']['shortName']
-        node_long_name = node_info['user']['longName']
-        
-        configure_node_position(interface, localNode)
+        radio_rebooting = configure_node_position(interface, localNode)
+        if radio_rebooting:
+            logger.info("Radio is rebooting after config write - waiting for reconnection")
+            return
 
         location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
         logger.info(f"Local Node: {node_short_name} - {node_long_name} ({localNode.nodeNum}) - Location: {location}")
