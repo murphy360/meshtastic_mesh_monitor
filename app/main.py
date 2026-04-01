@@ -528,6 +528,18 @@ def check_node_health(interface, node):
     
     
 def onLog(line, interface):
+    """
+    Handle log messages from the Meshtastic device.
+
+    Args:
+        line (str): The log message.
+    """
+    logger.debug(f"[onLog] {line}")
+
+# Main loop
+logger.info("=" * 60)
+logger.info("🔄 STARTING MAIN LOOP")
+logger.info("=" * 60)
 
 pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onReceiveUser, "meshtastic.receive.user")
