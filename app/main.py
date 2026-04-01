@@ -67,7 +67,6 @@ initial_connect = True
 initial_node_discovery_complete = False  # Track when initial node discovery is done
 public_channel_number = ConfigManager.get_public_channel()
 admin_channel_number = ConfigManager.get_admin_channel()
-twinsburg_channel = ConfigManager.get_twinsburg_channel()
 
 active_health_alerts = {}
 last_routine_sitrep_date = None
@@ -592,19 +591,6 @@ while True:
                 sitrep.write_mesh_data_to_file()
             elif sitrep is not None:
                 sitrep.set_interface(interface)
-
-            # Check rss feed
-            rss_interface.check_feeds_if_needed(
-                channel=twinsburg_channel,
-                destination="^all"
-            )
-
-            # Check for website updates
-            web_scraper.scrape_websites_if_needed(
-                twinsburg_channel,
-                "^all",
-                sitrep.log_message_sent
-            )
 
             # Run scheduled tasks (CRON and interval-based)
             scheduled_events_service.interfaces['tcp_interface'] = interface
