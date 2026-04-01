@@ -525,16 +525,6 @@ def check_node_health(interface, node):
             if should_send_message:
                 logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
                 message_sender.send_llm_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
-    
-    
-def onLog(line, interface):
-    """
-    Handle log messages from the Meshtastic device.
-
-    Args:
-        line (str): The log message.
-    """
-    logger.debug(f"[onLog] {line}")
 
 # Main loop
 logger.info("=" * 60)
