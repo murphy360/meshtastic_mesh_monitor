@@ -149,12 +149,15 @@ def configure_node_position(interface, localNode):
                 return False
             else:
                 logger.info(f"Configuring fixed position from environment: lat={latitude}, lon={longitude}, alt={altitude}")
+                message_sender.send_message(interface, f"Updating position config — radio will reboot. Stand by.", admin_channel_number, "^all")
+                time.sleep(3)  # Allow message to transmit before config write
                 localNode.localConfig.position.gps_mode = "DISABLED"
                 localNode.localConfig.position.fixed_position = True
                 localNode.setFixedPosition(latitude, longitude, altitude)
                 localNode.writeConfig("position")
                 logger.info(f"✅ Fixed position configured - radio will reboot")
                 return True
+
         except (ValueError, TypeError) as e:
             logger.error(f"❌ Invalid position configuration in environment variables: {e}")
         except Exception as e:
@@ -190,8 +193,10 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
                 needs_name_update = True
             if needs_name_update:
                 logger.info(f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}")
+                message_sender.send_message(interface, f"Updating node name config — radio will reboot. Stand by.", admin_channel_number, "^all")
+                time.sleep(3)  # Allow message to transmit before config write
                 localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
-                logger.info("Owner config written - radio may reboot, waiting for reconnection")
+                logger.info("Owner config written - radio will reboot, waiting for reconnection")
                 return
             else:
                 logger.info(f"Node names already correct ({node_short_name} / {node_long_name}), skipping setOwner")
