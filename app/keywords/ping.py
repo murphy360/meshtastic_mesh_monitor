@@ -59,6 +59,7 @@ class PingKeyword(KeywordHandler):
         # Send reply using MessageSender
         # Use channel and to_id from packet if available, else defaults
         channel = packet.get('channel', 0)
+        original_message_id = packet.get('id')
         self.logger.info(f"[handle] channel set to {channel}")
         # Check if this is a direct message or channel message
         if packet['to'] == local_node.nodeNum:
@@ -67,4 +68,4 @@ class PingKeyword(KeywordHandler):
         else:
             # Channel message, reply to channel
             to_id = "^all"
-        self.message_sender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_llm_reply(interface, channel, original_message_id, to_id, reply)

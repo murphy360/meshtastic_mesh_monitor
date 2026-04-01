@@ -45,6 +45,7 @@ class TestKeyword(KeywordHandler):
 
         # Send reply using MessageSender
         channel = packet.get('channel', 0)
+        original_message_id = packet.get('id')
         self.logger.info(f"[handle] channel set to {channel}")
 
         # Check if this is a direct message or channel message
@@ -53,4 +54,4 @@ class TestKeyword(KeywordHandler):
         else:
             to_id = "^all"
         self.logger.info(f"[handle] Sending reply: {reply}")
-        self.message_sender.send_message(interface, reply, channel, to_id)
+        self.message_sender.send_llm_reply(interface, channel, original_message_id, to_id, reply)
