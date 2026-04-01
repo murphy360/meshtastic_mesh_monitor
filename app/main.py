@@ -584,12 +584,8 @@ while True:
         # Only if initial connection is established
         if initial_connect == False:
 
-            if sitrep is not None and sitrep.interface is not None:
-                # Send a routine sitrep every 24 hours at 00:00 UTC 
-                sitrep.send_sitrep_if_new_day()
-                # Used by meshtastic_mesh_visualizer to display nodes on a map
-                sitrep.write_mesh_data_to_file()
-            elif sitrep is not None:
+            # Ensure sitrep has the interface
+            if sitrep is not None and sitrep.interface is None:
                 sitrep.set_interface(interface)
 
             # Run scheduled tasks (CRON and interval-based)
