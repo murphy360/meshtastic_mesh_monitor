@@ -263,32 +263,33 @@ class ScheduledEventsService:
         
         Only executes if:
         - croniter is available
-        - cron_expression is valid
+        - cron_expression or cron_expressions is valid
         - Enough time has passed since last execution (prevent duplicates in same minute)
         """
         if not CRONITER_AVAILABLE:
             return False
         
-        if not task.cron_expression:
+        # Collect all cron expressions (single or list)
+        expressions = []
+        if task.cron_expression:
+            expressions.append(task.cron_expression)
+        if task.cron_expressions:
+            expressions.extend(task.cron_expressions)
+        
+        if not expressions:
             return False
         
         try:
-            # Create croniter instance
-            cron = croniter(task.cron_expression, now)
+            for expr in expressions:
+                cron = croniter(expr, now)
+                last_execution_scheduled = cron.get_prev(datetime)
             
-            # Get the last scheduled execution time
-            last_execution_scheduled = cron.get_prev(datetime)
-            
-            # If no previous execution recorded, or if we've passed the scheduled time
-            if task.last_execution_time is None:
-                # First execution: check if we're past the scheduled time
-                # Add 1 minute buffer to account for timing jitter
-                if (now - last_execution_scheduled).total_seconds() < 60:
-                    return True
-            else:
-                # Check if the last scheduled time is after our last execution
-                if last_execution_scheduled > task.last_execution_time:
-                    return True
+                if task.last_execution_time is None:
+                    if (now - last_execution_scheduled).total_seconds() < 60:
+                        return True
+                else:
+                    if last_execution_scheduled > task.last_execution_time:
+                        return True
         
         except Exception as e:
             self.logger.warning(f"Invalid CRON expression for {task.name}: {e}")
@@ -347,7 +348,12 @@ class ScheduledEventsService:
     def _get_schedule_info(task: BaseScheduledEvent) -> str:
         """Get human-readable schedule information."""
         if task.schedule_type == ScheduleType.CRON:
-            return f"CRON: {task.cron_expression}"
+            expressions = []
+            if task.cron_expression:
+                expressions.append(task.cron_expression)
+            if task.cron_expressions:
+                expressions.extend(task.cron_expressions)
+            return f"CRON: {', '.join(expressions)}"
         elif task.schedule_type == ScheduleType.INTERVAL:
             return f"Interval: {task.interval_minutes} min"
         return "Unknown schedule"

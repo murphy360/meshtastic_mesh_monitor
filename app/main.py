@@ -67,20 +67,11 @@ initial_connect = True
 initial_node_discovery_complete = False  # Track when initial node discovery is done
 public_channel_number = ConfigManager.get_public_channel()
 admin_channel_number = ConfigManager.get_admin_channel()
-alert_channel = ConfigManager.get_alert_channel()
-weather_channel = ConfigManager.get_weather_channel()
 twinsburg_channel = ConfigManager.get_twinsburg_channel()
 
 active_health_alerts = {}
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
-# Take the modulo 6 of the current hour to find how many hours back to set initial time
-last_forecast_sent_time = datetime.now(timezone.utc) - timedelta(
-    hours=datetime.now(timezone.utc).hour % 6, 
-    minutes=datetime.now(timezone.utc).minute, 
-    seconds=datetime.now(timezone.utc).second, 
-    microseconds=datetime.now(timezone.utc).microsecond
-)  # Initialize last forecast sent time to delay the first forecast
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
 serial_port = '/dev/ttyUSB0'
 # Log File is a dated file on startup
@@ -96,13 +87,8 @@ gemini_interface = None
 # Initialize location utils
 location_utils = LocationUtils()
 
-# Initialize weather interface
+# Initialize weather interface (used by scheduled events)
 weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
-
-# Add these global variables at the beginning of the file, with the other globals
-last_alert_check_time = datetime.now(timezone.utc)
-alert_check_interval = timedelta(minutes=1)  # Check for alerts every minute
-previous_alerts = None  # Store previous alerts to detect changes
 
 # Initialize RSS interface (config manager will be initialized internally)
 rss_interface = RSSInterface()
@@ -540,158 +526,8 @@ def check_node_health(interface, node):
                 logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
                 message_sender.send_llm_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
     
-def send_weather_forecast_if_needed(interface, channel):
-    """
-    Check if a weather forecast needs to be sent and send it if necessary.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        channel (int): The channel to send the message to.
-
-    This function automatically determines the local node's latitude, longitude, short name, and long name, and sends a weather forecast if enough time has passed since the last forecast.
-    """
-    global last_forecast_sent_time
     
-    # Get local node's position for weather forecast
-    local_node_info = interface.getMyNodeInfo()
-    if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
-        logger.debug("Can't send forecast: Local node has no position information")
-        return
-    wx_lat = local_node_info['position']['latitude']
-    wx_lon = local_node_info['position']['longitude']
-    node_short_name = local_node_info['user']['shortName']
-    node_long_name = local_node_info['user']['longName']
-    # Check if we have already sent a forecast recently
-    now = datetime.now(timezone.utc)
-    if now - last_forecast_sent_time < timedelta(minutes=360): # 6 hours
-        #logger.info("Weather forecast already sent recently, skipping.")
-        return
-    
-    # Update last forecast sent time
-    last_forecast_sent_time = now
-    
-    # Send the weather forecast
-    logger.info(f"🌤️ SENDING weather forecast for {node_short_name} ({node_long_name}) at {wx_lat}, {wx_lon}")
-    try:
-        send_weather_forecast(interface, wx_lat, wx_lon, node_short_name, node_long_name, channel)
-        logger.info("✅ Weather forecast sent successfully.")
-    except Exception as e:
-        logger.error(f"❌ ERROR sending weather forecast: {e}")
-    
-def send_weather_forecast(interface, latitude, longitude, node_short_name, node_long_name, channel):
-    """
-    Send a weather forecast for a specified node.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        latitude (float): The latitude of the location.
-        longitude (float): The longitude of the location.
-        node_short_name (str): The short name of the node to send the forecast to.
-        node_long_name (str): The long name of the node to send the forecast to.
-        channel (int): The channel to send the message to.
-    """
-    try:
-        
-        forecast_text = weather_interface.get_forecast_string(latitude, longitude)
-        
-        if not forecast_text:
-            logger.error("❌ No forecast data available.")
-            return
-        
-        node_location = location_utils.find_location_by_coordinates(latitude, longitude)
-
-        message = f"Weather forecast for {node_short_name} ({node_location}) in :\n\n{forecast_text}"
-        
-        #db_helper.write_weather_report(forecast_data, forecast_text)
-        
-        message_sender.send_llm_message(interface, message, channel, "^all")
-        
-    except Exception as e:
-        logger.error(f"❌ ERROR sending weather forecast: {e}")
-
-def send_weather_alerts_if_needed(interface, channel):
-    """
-    Check for weather alerts at the local node's location and broadcast any new alerts.
-    
-    Args:
-        interface: The interface to interact with the mesh network.
-    """
-    try:
-        # Get local node's position for weather alerts
-        local_node_info = interface.getMyNodeInfo()
-        
-        if not local_node_info or 'position' not in local_node_info or 'latitude' not in local_node_info['position'] or 'longitude' not in local_node_info['position']:
-            logger.debug("Can't check for alerts: Local node has no position information")
-            return
-            
-        wx_lat = local_node_info['position']['latitude']
-        wx_lon = local_node_info['position']['longitude']
-        
-        # Update weather alerts
-        weather_interface.update_alerts(wx_lat, wx_lon)
-
-        # Check for expired alerts first
-        expired_alerts = weather_interface.get_expired_alerts()
-        if expired_alerts is not None and len(expired_alerts) > 0:
-            logger.info(f"⏰ SENDING {len(expired_alerts)} expired weather alert notifications")
-            
-            expired_message = f"The following weather alerts are no longer active:\n"
-            for alert_id, alert_data in expired_alerts.items():
-                expired_message += f"- {alert_data['event']}: {alert_data['headline']}\n"
-
-            # Send to specified channel
-            message_sender.send_llm_message(interface, expired_message, channel, "^all")
-            sitrep.log_message_sent("weather-alert-expired")
-
-
-        # Check for updated alerts
-        updated_alerts = weather_interface.get_updated_alerts()
-        if updated_alerts is not None and len(updated_alerts) > 0:
-            logger.info(f"📝 SENDING {len(updated_alerts)} updated weather alert notifications")
-            
-            for alert_id, alert_data in updated_alerts.items():
-                alert_message = f"UPDATED WEATHER ALERT\n"
-                alert_message += f"Type: {alert_data['event']}\n"
-                alert_message += f"Severity: {alert_data['severity']}\n"
-                alert_message += f"Urgency: {alert_data['urgency']}\n"
-                alert_message += f"{alert_data['headline']}"
-                alert_message += f"Onset: {alert_data['onset']}\n"
-                alert_message += f"Expires: {alert_data['expires']}\n"
-                alert_message += f"Description: {alert_data['description']}\n"
-
-                # Send to specified channel
-                message_sender.send_llm_message(interface, alert_message, channel, "^all")
-                sitrep.log_message_sent("weather-alert-updated")
-
-        # Check for new alerts
-        new_alerts = weather_interface.get_new_alerts()
-        if new_alerts is not None and len(new_alerts) > 0:
-            logger.info(f"🆕 SENDING {len(new_alerts)} new weather alert notifications")
-            
-            for alert_id, alert_data in new_alerts.items():
-                alert_message = f"NEW WEATHER ALERT\n"
-                alert_message += f"Type: {alert_data['event']}\n"
-                alert_message += f"Severity: {alert_data['severity']}\n"
-                alert_message += f"Urgency: {alert_data['urgency']}\n"
-                alert_message += f"{alert_data['headline']}\n"
-                alert_message += f"Onset: {alert_data['onset']}\n"
-                alert_message += f"Expires: {alert_data['expires']}\n"
-                alert_message += f"Description: {alert_data['description']}\n"
-
-                # Send to specified channel
-                message_sender.send_llm_message(interface, alert_message, channel, "^all")
-                sitrep.log_message_sent("weather-alert-new")
-        
-        weather_interface.clear_alerts()  # Clear alerts after processing
-
-    except Exception as e:
-        logger.error(f"❌ ERROR checking for weather alerts: {e}")
-
-
-# Main loop
-logger.info("=" * 60)
-logger.info("🔄 STARTING MAIN LOOP")
-logger.info("=" * 60)
+def onLog(line, interface):
 
 pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onReceiveUser, "meshtastic.receive.user")
@@ -747,12 +583,6 @@ while True:
         # Only if initial connection is established
         if initial_connect == False:
 
-            # Check for weather alerts
-            send_weather_alerts_if_needed(interface, alert_channel)
-
-            # Check if we need to send a weather forecast
-            send_weather_forecast_if_needed(interface, weather_channel)
-
             if sitrep is not None and sitrep.interface is not None:
                 # Send a routine sitrep every 24 hours at 00:00 UTC 
                 sitrep.send_sitrep_if_new_day()
@@ -792,7 +622,6 @@ while True:
             Initial Connect: {initial_connect}\n \
             Initial Node Discovery Complete: {initial_node_discovery_complete}\n \
             Total Nodes in Database: {db_helper.get_node_count()}\n \
-            Last Weather Forecast Sent: {last_forecast_sent_time}\n \
             Gemini Chats: {(gemini_interface.get_chats_string() if gemini_interface else 'No Gemini interface')}\n \
         **************************************************************\n \
         **************************************************************\n\n ")

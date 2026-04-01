@@ -98,8 +98,9 @@ class BaseScheduledEvent(ABC):
     enabled: bool = True
     schedule_type: ScheduleType = ScheduleType.INTERVAL
     
-    # CRON-based scheduling
+    # CRON-based scheduling (single expression or list for multiple times)
     cron_expression: Optional[str] = None  # e.g., "0 9 * * *" for 9 AM daily
+    cron_expressions: Optional[list] = None  # e.g., ["30 10 * * *", "0 17,23 * * *"]
     
     # Interval-based scheduling
     interval_minutes: Optional[int] = None  # e.g., 60 for every hour
@@ -158,9 +159,9 @@ class BaseScheduledEvent(ABC):
             raise ValueError(f"{self.__class__.__name__}: name is required")
         
         if self.schedule_type == ScheduleType.CRON:
-            if not self.cron_expression:
+            if not self.cron_expression and not self.cron_expressions:
                 raise ValueError(
-                    f"{self.name}: CRON schedule type requires cron_expression"
+                    f"{self.name}: CRON schedule type requires cron_expression or cron_expressions"
                 )
         elif self.schedule_type == ScheduleType.INTERVAL:
             if self.interval_minutes is None or self.interval_minutes <= 0:
