@@ -682,7 +682,32 @@ class SQLiteHelper:
         for result in results:
             aircraft.append(result[0])
         return aircraft
-    
+
+    def get_nodes_of_interest_details(self):
+        """
+        Get detailed info for all nodes of interest.
+
+        Returns:
+            list[dict]: List of dicts with node telemetry fields.
+        """
+        self.logger.info("Getting nodes of interest details")
+        query = "SELECT num, shortname, longname, batteryLevel, voltage, uptimeSeconds, lastHeard FROM node_database WHERE nodeOfInterest = 1"
+        cursor = self.conn.execute(query)
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    def get_aircraft_node_details(self):
+        """
+        Get detailed info for all aircraft nodes.
+
+        Returns:
+            list[dict]: List of dicts with node telemetry fields.
+        """
+        query = "SELECT num, shortname, longname, batteryLevel, voltage, uptimeSeconds, lastHeard FROM node_database WHERE aircraft = 1"
+        cursor = self.conn.execute(query)
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
     def write_private_message(self, message_id, from_node_num, to_node_num, message, model):
         """
         Write a private message to the database.

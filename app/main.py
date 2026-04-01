@@ -68,7 +68,6 @@ initial_node_discovery_complete = False  # Track when initial node discovery is 
 public_channel_number = ConfigManager.get_public_channel()
 admin_channel_number = ConfigManager.get_admin_channel()
 
-active_health_alerts = {}
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
 trace_interval = timedelta(hours=6)  # Minimum interval between traces
@@ -434,7 +433,6 @@ def onReceive(packet, interface):
 
         if node_of_interest:
             log_message += f" - Node of Interest"
-            check_node_health(interface, node)
 
         if 'decoded' in packet:
             portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
@@ -474,56 +472,6 @@ def onLog(line, interface):
         line (str): The log message.
     """
     logger.debug(f"[onLog] {line}")
-
-def check_node_health(interface, node):
-    """
-    Check the health of a node and send warnings if necessary.
-
-    This function accesses and modifies the global variable `active_health_alerts`
-    to track and manage health alerts for nodes.
-
-    Args:
-        interface: The interface to interact with the mesh network.
-        node (dict): The node data.
-    """  
-    
-    logger.debug(f"Checking health of node {node['user']['shortName']}")
-    if "deviceMetrics" not in node:
-        logger.info(f"Node {node['user']['shortName']} does not have device metrics")
-        return
-
-    if "batteryLevel" in node["deviceMetrics"]:
-        #logger.info(f"Checking battery level of node {node['user']['shortName']}")
-        battery_level = node["deviceMetrics"]["batteryLevel"]
-        if battery_level < 5:
-            # prevent sending multiple critical alerts in a short time
-            alert_key = f"critical_battery_{node['num']}"
-            if alert_key not in active_health_alerts:
-                active_health_alerts[alert_key] = datetime.now(timezone.utc)
-                logger.info(f"Critical Battery Alert: {node['user']['shortName']} - {battery_level}%")
-                message_sender.send_message(interface, f"Critical Alert: {node['user']['shortName']} has a critical battery level ({battery_level}%)", admin_channel_number, "^all")
-        elif battery_level < 10:
-            if f"battery_{node['num']}_warning" not in active_health_alerts:
-                active_health_alerts[f"battery_{node['num']}_warning"] = datetime.now(timezone.utc)
-                logger.info(f"Low Battery Warning: {node['user']['shortName']} - {battery_level}%")
-                message_sender.send_message(interface, f"Low Battery Warning: {node['user']['shortName']} has a low battery level ({battery_level}%)", admin_channel_number, "^all")
-        elif battery_level < 20:
-            if f"battery_{node['num']}_notification" not in active_health_alerts:
-                active_health_alerts[f"battery_{node['num']}_notification"] = datetime.now(timezone.utc)
-                logger.info(f"Low Battery Notification: {node['user']['shortName']} - {battery_level}%")
-                message_sender.send_message(interface, f"Notification: {node['user']['shortName']} has a low battery ({battery_level}%)", admin_channel_number, "^all")
-        elif battery_level > 50:
-            logger.info(f"Battery level is returning to normal for node {node['user']['shortName']} - {battery_level}%")
-            # Clear any active alerts for this node
-            should_send_message= False
-            for key in list(active_health_alerts.keys()):
-                if key.startswith(f"battery_{node['num']}"):
-                    should_send_message = True
-                    del active_health_alerts[key]
-
-            if should_send_message:
-                logger.info(f"Cleared active battery alerts for node {node['user']['shortName']}")
-                message_sender.send_llm_message(interface, f"Battery level is normal for node {node['user']['shortName']} - {battery_level}%", admin_channel_number, "^all")
 
 # Main loop
 logger.info("=" * 60)
