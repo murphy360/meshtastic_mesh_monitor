@@ -395,9 +395,11 @@ class MessageSender:
                 wait_factor = max(
                     1, min(node_count - 1 if node_count > 1 else hop_limit + 1, hop_limit + 1)
                 )
+                base_timeout = getattr(interface._timeout, "expireTimeout", 20)
+                estimated_timeout = base_timeout * wait_factor
                 self.logger.info(
-                    f"[traceroute] Node count={node_count}, estimated wait_factor={wait_factor} — "
-                    f"this may block for a while"
+                    f"[traceroute] Node count={node_count}, wait_factor={wait_factor}, "
+                    f"estimated timeout={estimated_timeout}s"
                 )
                 interface.sendTraceRoute(node_num, hop_limit, trace_channel)
                 self.logger.info(
@@ -405,7 +407,8 @@ class MessageSender:
                 )
             except Exception as e:
                 self.logger.error(
-                    f"[traceroute] Exception during traceroute to {node_name} ({node_num}): {type(e).__name__}: {e}"
+                    f"[traceroute] Exception during traceroute to {node_name} ({node_num}): "
+                    f"{type(e).__name__}: {e}"
                 )
                 if "Timed out waiting for traceroute" in str(e):
                     user_response = f"Timed out waiting for traceroute response from {node_name}. Try again later."

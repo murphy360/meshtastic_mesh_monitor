@@ -34,8 +34,11 @@ class RoutingHandler(BaseHandler):
         from_node_num = packet["from"]
         node = self.node_info_utils.lookup_node(interface, from_node_num)
         node_short_name = self._get_node_short_name(node)
+        routing_data = packet.get("decoded", {}).get("routing", {})
+        error_reason = routing_data.get("errorReason", "NONE")
         self.logger.info(
-            f"[on_receive_routing] onReceiveRouting called for node {node_short_name} - {from_node_num}"
+            f"[on_receive_routing] onReceiveRouting called for node {node_short_name} - {from_node_num} "
+            f"errorReason={error_reason}"
         )
         if node is None:
             self.logger.warning(
@@ -43,6 +46,11 @@ class RoutingHandler(BaseHandler):
             )
             return
         if self._is_local_node(interface, from_node_num):
+            if error_reason != "NONE":
+                self.logger.warning(
+                    f"[on_receive_routing] Local node routing error: {error_reason} "
+                    f"(to={packet.get('to')}, decoded={packet.get('decoded', {}).get('requestId')})"
+                )
             return
         now = datetime.now(timezone.utc)
         now_string = now.strftime("%Y-%m-%d %H:%M:%S")
