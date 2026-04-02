@@ -85,7 +85,19 @@ class MessageSender:
             self.logger.warning("LLM did not return a response.")
             self.send_message(interface, message, channel, to_id)
 
-        
+    def send_weather_message(self, interface, forecast_text, channel, to_id):
+        """
+        Send a weather forecast through the dedicated weather Gemini chat context.
+        Keeps weather reports isolated from admin/public chat history.
+        """
+        self.logger.info(f"send_weather_message called, channel: {channel}, to_id: {to_id}")
+        response = self.gemini_interface.generate_weather_response(forecast_text)
+        if response:
+            self.logger.info(f"Weather Response: {response}")
+            self.send_message(interface, response, channel, to_id)
+        else:
+            self.logger.warning("Weather LLM did not return a response, sending raw forecast.")
+            self.send_message(interface, forecast_text, channel, to_id)
 
     def send_message(self, interface, message, channel, to_id):
         """

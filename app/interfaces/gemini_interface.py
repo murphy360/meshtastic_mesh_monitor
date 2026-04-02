@@ -92,7 +92,8 @@ class GeminiInterface(BaseInterface):
         # All chats (public, admin, private) are managed in a single dictionary
         self.chats = {
             "public": self._create_chat("public"),
-            "admin": self._create_chat("admin")
+            "admin": self._create_chat("admin"),
+            "weather": self._create_chat("weather")
         }
         self.summarize_and_cleanup_chat_histories()
 
@@ -126,6 +127,7 @@ class GeminiInterface(BaseInterface):
         self.chats = {}
         self.chats["public"] = self._create_chat("public")
         self.chats["admin"] = self._create_chat("admin")
+        self.chats["weather"] = self._create_chat("weather")
     
     def update_ai_names(self, short_name: str, long_name: str):
         """
@@ -143,6 +145,7 @@ class GeminiInterface(BaseInterface):
         self.chats = {}
         self.chats["public"] = self._create_chat("public")
         self.chats["admin"] = self._create_chat("admin")
+        self.chats["weather"] = self._create_chat("weather")
         
     
     def _create_chat(self, key: str) -> Any:
@@ -153,7 +156,7 @@ class GeminiInterface(BaseInterface):
         Returns:
             Chat object configured for the specified key.
         """
-        if key in ["public", "admin"]:
+        if key in ["public", "admin", "weather"]:
             instruction = self.base_system_instruction + self.chat_configs[key]["instruction"]
         else:
             # Private chat: use "private" config and format with node_short_name
@@ -232,6 +235,29 @@ class GeminiInterface(BaseInterface):
         except Exception as e:
             self.logger.error(f"Error generating response: {e}")
             return message
+    
+    def generate_weather_response(self, forecast_text: str) -> str:
+        """
+        Generate a weather report using the dedicated weather chat context.
+        This keeps weather responses isolated from admin/public chat history,
+        while allowing Gemini to track forecast changes over time.
+        
+        Args:
+            forecast_text: Raw forecast data from the NWS API.
+        Returns:
+            Cleaned-up weather report string.
+        """
+        self.logger.info("generate_weather_response called.")
+        try:
+            chat = self.get_chat("weather")
+            response = chat.send_message(forecast_text)
+            response_text = response.text
+            self.logger.info(f"generate_weather_response returning: {response_text}")
+            self.write_chat_to_file("weather", "logs/weather_chat_history.txt")
+            return response_text
+        except Exception as e:
+            self.logger.error(f"Error generating weather response: {e}")
+            return forecast_text
         
     def summarize_error_log(self, text: str) -> str:
         """

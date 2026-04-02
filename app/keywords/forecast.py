@@ -53,8 +53,8 @@ class ForecastKeyword(KeywordHandler):
                     self.logger.error("[handle] No valid coordinates found for weather forecast")
                     self.message_sender.send_message(interface, "I can't provide a forecast because I don't have location information. Please ensure your node has GPS coordinates or manually set your location.", channel, to_id)
                     return
-                message_text = f"Weather forecast for {from_node['user']['shortName']} ({from_node['user']['longName']}) in :\n\n{forecast_text}"
-                self.message_sender.send_llm_message(interface, message_text, channel, to_id)
+                message_text = f"Weather forecast for {from_node['user']['shortName']} ({from_node['user']['longName']}):\n\n{forecast_text}"
+                self.message_sender.send_weather_message(interface, message_text, channel, to_id)
                 #if sitrep:
                     #sitrep.log_message_sent("weather-forecast-requested")
         except Exception as e:

@@ -49,10 +49,10 @@ class WeatherUpdatesScheduledEvent(BaseScheduledEvent):
                 return False
 
             node_location = self.location_utils.find_location_by_coordinates(wx_lat, wx_lon)
-            message = f"Weather forecast for {node_short_name} ({node_location}) in :\n\n{forecast_text}"
+            message = f"Weather forecast for {node_short_name} ({node_location}):\n\n{forecast_text}"
 
             weather_channel = self.config_manager.get_weather_channel()
-            self.message_sender.send_llm_message(tcp_interface, message, weather_channel, "^all")
+            self.message_sender.send_weather_message(tcp_interface, message, weather_channel, "^all")
 
             self.logger.info("✅ Weather forecast sent successfully")
             return True
