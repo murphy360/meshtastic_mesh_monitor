@@ -1,3 +1,4 @@
+from config.config_manager import ConfigManager
 from core.constants import DEFAULT_HOP_LIMIT
 from keywords.keyword_handler import KeywordHandler
 
@@ -16,6 +17,7 @@ class TraceKeyword(KeywordHandler):
     def handle(self, interface, packet):
         self.logger.info("[handle] TraceNodeKeyword handler invoked.")
         channel, to_id = self._get_reply_target(packet, interface)
+        public_channel = ConfigManager.get_public_channel()
         original_message_id = packet.get("id")
         # Extract message and args from decoded payload
         args = self._extract_message_args(packet)
@@ -33,7 +35,7 @@ class TraceKeyword(KeywordHandler):
 
             try:
                 self.message_sender.send_trace_route(
-                    interface, node["num"], channel, hop_limit, to_id, original_message_id
+                    interface, node["num"], public_channel, hop_limit, to_id, original_message_id
                 )
                 self.logger.info(
                     f"[handle] Traceroute request sent to message_sender {node_identifier} - {node['num']} with hop_limit {hop_limit}"
