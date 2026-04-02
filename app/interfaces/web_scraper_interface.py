@@ -2,17 +2,18 @@
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 
 import os
+import re
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Callable, Any, Optional, Tuple
-import time
-import re
-import sys
 from config.config_manager import ConfigManager
+from core.constants import BROADCAST_DESTINATION
+from interfaces.gemini_interface import GeminiInterface
 from utils.logger import get_logger
 from utils.message_sender import MessageSender
-from interfaces.gemini_interface import GeminiInterface
 
 
 class WebScraperInterface:
@@ -21,13 +22,13 @@ class WebScraperInterface:
     # TODO: Add comments explaining non-obvious logic in website extraction and change detection.
     # TODO: Add type hints to all public methods for clarity.
     """Interface for scraping websites and monitoring for changes."""
-    
+
     def __init__(self, discard_initial_items: bool = True, config_manager=None):
         """
         Initialize the web scraper interface.
-        
+
         Args:
-            discard_initial_items: If True, items found on first check will be 
+            discard_initial_items: If True, items found on first check will be
                                   stored but not reported as new
             config_manager: ConfigManager instance for loading scraper configuration
         """
@@ -49,7 +50,9 @@ class WebScraperInterface:
         if self.config_manager is None:
             self.config_manager = ConfigManager()
         self._load_websites_from_config()
-        self.logger.info(f"Web Scraper Interface initialized with {len(self.websites)} websites (discard_initial_items={self.discard_initial_items})")
+        self.logger.info(
+            f"Web Scraper Interface initialized with {len(self.websites)} websites (discard_initial_items={self.discard_initial_items})"
+        )
 
     def _load_websites_from_config(self):
         """Load website scrapers from configuration manager."""
@@ -62,38 +65,49 @@ class WebScraperInterface:
                     check_interval_hours = scraper_config.get("check_interval_hours", 1)
                     extractor_type = scraper_config.get("extractor_type", "generic")
                     css_selector = scraper_config.get("css_selector")
-                    
+
                     if scraper_id and scraper_url:
                         self.add_website(
                             scraper_id,
                             scraper_url,
                             css_selector=css_selector,
-                            extractor_type=extractor_type
+                            extractor_type=extractor_type,
                         )
                         # Set custom check interval for this website
                         self.website_intervals[scraper_id] = timedelta(hours=check_interval_hours)
-                        self.logger.info(f"Loaded web scraper: {scraper_config.get('name', scraper_id)} ({scraper_id})")
+                        self.logger.info(
+                            f"Loaded web scraper: {scraper_config.get('name', scraper_id)} ({scraper_id})"
+                        )
                     else:
-                        self.logger.warning(f"Invalid scraper configuration: missing id or url - {scraper_config}")
+                        self.logger.warning(
+                            f"Invalid scraper configuration: missing id or url - {scraper_config}"
+                        )
             except Exception as e:
                 self.logger.error(f"Error loading scrapers from configuration: {e}")
         else:
             self.logger.warning("No configuration manager provided for web scrapers")
+
     def set_interface(self, interface: Any):
         """
         Set the mesh network interface for sending messages.
-        
+
         Args:
             interface: The mesh network interface object
         """
         self.interface = interface
         self.logger.info("Mesh network interface set for WebScraperInterface")
 
-    def add_website(self, website_id: str, url: str, css_selector: str = None, 
-                   extractor_type: str = "generic", custom_parser: Callable = None):
+    def add_website(
+        self,
+        website_id: str,
+        url: str,
+        css_selector: str | None = None,
+        extractor_type: str = "generic",
+        custom_parser: Callable | None = None,
+    ):
         """
         Add a website to monitor.
-        
+
         Args:
             website_id: A unique identifier for this website
             url: The URL of the website to scrape
@@ -102,27 +116,29 @@ class WebScraperInterface:
             custom_parser: Optional custom parsing function for special cases
         """
         self.websites[website_id] = {
-            'url': url,
-            'css_selector': css_selector,
-            'extractor_type': extractor_type,
-            'custom_parser': custom_parser
+            "url": url,
+            "css_selector": css_selector,
+            "extractor_type": extractor_type,
+            "custom_parser": custom_parser,
         }
         # Set default interval if not already set
         if website_id not in self.website_intervals:
             self.website_intervals[website_id] = self.check_interval
-        
-        self.last_check_time[website_id] = datetime.now(timezone.utc) - self.website_intervals[website_id]
+
+        self.last_check_time[website_id] = (
+            datetime.now(timezone.utc) - self.website_intervals[website_id]
+        )
         self.previous_items[website_id] = {}
         self.initial_check_complete[website_id] = False
         self.logger.info(f"Added website to monitor: {website_id} - {url} - {extractor_type}")
-    
+
     def remove_website(self, website_id: str) -> bool:
         """
         Remove a website from monitoring.
-        
+
         Args:
             website_id: The identifier of the website to remove
-            
+
         Returns:
             bool: True if the website was removed, False if it wasn't found
         """
@@ -134,30 +150,32 @@ class WebScraperInterface:
             self.logger.info(f"Removed website: {website_id}")
             return True
         return False
-    
+
     def set_check_interval(self, hours: float):
         """
         Set how often to check websites for changes.
-        
+
         Args:
             hours: Number of hours between website checks
         """
         self.check_interval = timedelta(hours=hours)
         self.logger.info(f"Website check interval set to {hours} hours")
-    
-    def _extract_links_and_titles(self, soup: BeautifulSoup, css_selector: str = None) -> List[Dict[str, str]]:
+
+    def _extract_links_and_titles(
+        self, soup: BeautifulSoup, css_selector: str | None = None
+    ) -> list[dict[str, str]]:
         """
         Extract links and their titles from HTML.
-        
+
         Args:
             soup: BeautifulSoup object of the parsed HTML
             css_selector: CSS selector to find the container elements
-            
+
         Returns:
             List of dicts with 'url', 'title', and 'id' keys
         """
         items = []
-        
+
         try:
             # If a CSS selector is provided, use it to find container elements
             if css_selector:
@@ -165,177 +183,161 @@ class WebScraperInterface:
             else:
                 # Otherwise just look for all links
                 containers = [soup]
-            
+
             # Process each container
             for container in containers:
-                links = container.find_all('a')
-                
+                links = container.find_all("a")
+
                 for link in links:
-                    href = link.get('href')
+                    href = link.get("href")
                     if href:
                         # Try to get the title from different sources
                         title = link.get_text(strip=True)
                         if not title:
-                            title = link.get('title', '')
-                        
+                            title = link.get("title", "")
+
                         # Create a unique ID for this item
                         item_id = f"{href}|{title}"
-                        
-                        items.append({
-                            'url': href,
-                            'title': title,
-                            'id': item_id
-                        })
-        
+
+                        items.append({"url": href, "title": title, "id": item_id})
+
         except Exception as e:
             self.logger.error(f"Error extracting links and titles: {e}")
-        
+
         return items
-    
-    def _extract_rock_the_park_links(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+
+    def _extract_rock_the_park_links(self, soup: BeautifulSoup) -> list[dict[str, str]]:
         """
         Extract links and titles from the Rock the Park website.
-        
+
         Args:
             soup: BeautifulSoup object of the parsed HTML
-            
+
         Returns:
             List of dicts with link information
         """
         items = []
-        
+
         try:
             # Find all links in the soup object
-            links = soup.find_all('a')
-            
+            links = soup.find_all("a")
+
             for link in links:
-                href = link.get('href')
+                href = link.get("href")
                 title = link.get_text(strip=True)
-                class_ = link.get('class')
 
                 # Skip if href is missing
                 if not href:
                     continue
-                
+
                 # Looking for specific Rock the Park links
-                if not href.startswith('https://rocktheparkconcert.com/schedule/'):
+                if not href.startswith("https://rocktheparkconcert.com/schedule/"):
                     continue
 
                 # Example link format:
-                '''
+                """
                     "<a href="https://rocktheparkconcert.com/schedule/august-16/">
 				AUGUST 16: Cocktail Johnny			</a>"
-                '''     
-                           
+                """
+
                 self.logger.debug(f"Processing link: {link}")
                 link_type = "event"
-                date = href.split('/')[-2]
+                date = href.split("/")[-2]
                 self.logger.debug(f"Extracted date: {date} from link: {href}")
-                
+
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
-                
-                items.append({
-                    'url': href,
-                    'title': title,
-                    'id': item_id,
-                    'type': link_type
-                })
-        
+
+                items.append({"url": href, "title": title, "id": item_id, "type": link_type})
+
         except Exception as e:
             self.logger.error(f"Error extracting Rock the Park links: {e}")
-        
+
         return items
-    
-    def _extract_twinsburg_links(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+
+    def _extract_twinsburg_links(self, soup: BeautifulSoup) -> list[dict[str, str]]:
         """
         Extract links and titles from Twinsburg school website.
-        
+
         Args:
             soup: BeautifulSoup object of the parsed HTML
-            
+
         Returns:
             List of dicts with link information
         """
         items = []
-        
+
         try:
-            
-            links = soup.find_all('a')
-            
+
+            links = soup.find_all("a")
+
             for link in links:
-                
-                href = link.get('href')
+
+                href = link.get("href")
                 title = link.get_text(strip=True)
-                class_ = link.get('class')
+                class_ = link.get("class")
                 # Skip if href, title, or class is missing
                 if not href or not title or not class_:
                     continue
                 # Ensure href is absolute URL
-                if not href.startswith(('http://', 'https://')):
+                if not href.startswith(("http://", "https://")):
                     continue
 
                 link_type = "unknown"
 
                 # Are we dealing with a PDF link?
-                if '.pdf' in href or 'pdf' in class_:  
+                if ".pdf" in href or "pdf" in class_:
                     link_type = "pdf"
                 else:
                     link_type = "unknown"
-                
+
                 # Create a unique ID for this item
                 item_id = f"{href}|{title}"
 
-                
-                items.append({
-                    'url': href,
-                    'title': title,
-                    'id': item_id,
-                    'type': link_type
-                })
-        
+                items.append({"url": href, "title": title, "id": item_id, "type": link_type})
+
         except Exception as e:
             self.logger.error(f"Error extracting {link}:\n\n {e}")
 
         return items
-    
-    def check_website(self, website_id: str) -> List[Dict[str, Any]]:
+
+    def check_website(self, website_id: str) -> list[dict[str, Any]]:
         """
         Check a specific website for new content.
-        
+
         Args:
             website_id: The identifier of the website to check
-            
+
         Returns:
             List of new items found (may be empty on first check if discard_initial_items is True)
         """
         if website_id not in self.websites:
             self.logger.warning(f"Website ID '{website_id}' not found")
             return []
-        
+
         config = self.websites[website_id]
-        url = config['url']
-        css_selector = config['css_selector']
-        extractor_type = config['extractor_type']
-        custom_parser = config['custom_parser']
-        
+        url = config["url"]
+        css_selector = config["css_selector"]
+        extractor_type = config["extractor_type"]
+        custom_parser = config["custom_parser"]
+
         new_items = []
-        
+
         try:
             # Fetch the webpage
             response = requests.get(url, timeout=10)
             response.raise_for_status()
-            
+
             # Parse the HTML
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
+            soup = BeautifulSoup(response.text, "html.parser")
+
             # Store base URL in soup object for reference
             soup.base_url = url
-            
+
             # Extract items based on extractor type
             current_items = {}
             items = []
-            
+
             if extractor_type == "links":
                 items = self._extract_links_and_titles(soup, css_selector)
             elif extractor_type == "twinsburg_links":
@@ -348,51 +350,56 @@ class WebScraperInterface:
                 # Generic content extraction
                 if css_selector:
                     elements = soup.select(css_selector)
-                    content_text = '\n'.join([element.get_text(strip=True) for element in elements])
+                    content_text = "\n".join([element.get_text(strip=True) for element in elements])
                 else:
                     content_text = soup.body.get_text(strip=True)
-                
-                items = [{
-                    'id': 'content',
-                    'content': content_text,
-                    'type': 'text'
-                }]
-            
+
+                items = [{"id": "content", "content": content_text, "type": "text"}]
+
             # Convert items to a dictionary keyed by ID
             for item in items:
-                item_id = item.get('id')
+                item_id = item.get("id")
                 if item_id:
                     current_items[item_id] = item
-                    #self.logger.info(f"Checking item: {item_id} on website '{website_id}'")
+                    # self.logger.info(f"Checking item: {item_id} on website '{website_id}'")
                     # Check if this is a new item
-                    if item_id not in self.previous_items[website_id] and self.initial_check_complete[website_id]:
+                    if (
+                        item_id not in self.previous_items[website_id]
+                        and self.initial_check_complete[website_id]
+                    ):
                         self.logger.info(f"New item found on website '{website_id}': {item_id}")
                         new_items.append(item)
                 else:
-                    self.logger.warning(f"Item on website '{website_id}' has no ID, skipping: {item}")
-            
+                    self.logger.warning(
+                        f"Item on website '{website_id}' has no ID, skipping: {item}"
+                    )
+
             # Update previous items
             self.previous_items[website_id] = current_items
             self.last_check_time[website_id] = datetime.now(timezone.utc)
-            
+
             # Mark initial check as complete
             if not self.initial_check_complete[website_id]:
                 self.initial_check_complete[website_id] = True
-                self.logger.info(f"Initial check of website '{website_id}', discarding {len(items)} items")
+                self.logger.info(
+                    f"Initial check of website '{website_id}', discarding {len(items)} items"
+                )
             else:
-                self.logger.info(f"Checked website '{website_id}', found {len(new_items)} new items")
-            
+                self.logger.info(
+                    f"Checked website '{website_id}', found {len(new_items)} new items"
+                )
+
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching website '{website_id}': {e}")
 
         except Exception as e:
             self.logger.error(f"Unexpected error checking website '{website_id}': {e}")
         return new_items
-    
-    def download_pdf(self, url: str, destination: str) -> Optional[str]:
+
+    def download_pdf(self, url: str, destination: str) -> str | None:
         """
         Download a PDF file from the given URL.
-        
+
         Args:
             url: The URL of the PDF file
             destination: Local path to save the downloaded PDF
@@ -402,43 +409,42 @@ class WebScraperInterface:
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
-            
+
             # Ensure the destination directory exists
             os.makedirs(os.path.dirname(destination), exist_ok=True)
-            
-            with open(destination, 'wb') as f:
+
+            with open(destination, "wb") as f:
                 f.write(response.content)
-            
+
             self.logger.info(f"Downloaded PDF from {url} to {destination}")
             return destination
-        
+
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error downloading PDF from '{url}': {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error downloading PDF from '{url}': {e}")
-        
+
         return None
-    
-    def scrape_websites_if_needed(self, 
-                                 channel: int,
-                                 destination: str,
-                                 log_callback: Callable[[str], None] = None) -> Dict[str, List[Dict[str, Any]]]:
+
+    def scrape_websites_if_needed(
+        self, channel: int, destination: str, log_callback: Callable[[str], None] | None = None
+    ) -> dict[str, list[dict[str, Any]]]:
         """
         Check all websites for changes if the check interval has elapsed.
-        
+
         Args:
             message_callback: Function to send messages to the mesh network
             channel: Channel number for notifications
             destination: Destination ID for messages (usually "^all")
             log_callback: Optional function to log message types
-            
+
         Returns:
             Dict mapping website IDs to lists of new items
         """
         now = datetime.now(timezone.utc)
         result = {}
-        
-        for website_id, config in self.websites.items():
+
+        for website_id, _config in self.websites.items():
             # Only check if interval has elapsed
             website_interval = self.website_intervals.get(website_id, self.check_interval)
             if now - self.last_check_time[website_id] >= website_interval:
@@ -449,42 +455,56 @@ class WebScraperInterface:
                     for item in new_items:
                         # Format message based on item type
                         pdf_path = None
-                        if 'title' in item and 'url' in item and 'type' in item:
+                        if "title" in item and "url" in item and "type" in item:
                             # If .pdf in url, download and process it
-                            if item['type'] == 'pdf':
+                            if item["type"] == "pdf":
                                 self.logger.info(f"Downloading PDF from {item['url']}")
-                                clean_filename = re.sub(r'[\\/*?:"<>|]', '', item['title'].strip())                    
+                                clean_filename = re.sub(r'[\\/*?:"<>|]', "", item["title"].strip())
                                 pdf_path = f"/data/{website_id}/{clean_filename}.pdf"
-                                self.download_pdf(item['url'], pdf_path)
+                                self.download_pdf(item["url"], pdf_path)
                                 pdf_summary = self.gemini_interface.summarize_pdf(pdf_path)
                             # Format link items
-                            self.logger.info(f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}")
+                            self.logger.info(
+                                f"Found new {item['type']} on Site: {website_id.replace('_', ' ').title()}"
+                            )
                             message = f"New {item['title']} on Site: {website_id.replace('_', ' ').title()}"
                             message += f"\n\n{pdf_summary}" if pdf_path and pdf_summary else ""
-                        elif 'content' in item:
+                        elif "content" in item:
                             # Format text content
-                            self.logger.info(f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄")
-                            message = f"📄 Content Update: {website_id.replace('_', ' ').title()} 📄\n\n"
-                            content = item['content']
+                            self.logger.info(
+                                f"Found new content on Site: {website_id.replace('_', ' ').title()} 📄"
+                            )
+                            message = (
+                                f"📄 Content Update: {website_id.replace('_', ' ').title()} 📄\n\n"
+                            )
+                            content = item["content"]
                             if len(content) > 300:
                                 content = content[:297] + "..."
                             message += content
                         else:
                             # Generic format for other items
-                            self.logger.info(f"Update detected on Site: {website_id.replace('_', ' ').title()} 🌐")
-                            message = f"🌐 Update Detected: {website_id.replace('_', ' ').title()} 🌐\n\n"
-                            message += f"New content has been detected on this website."
-                            
+                            self.logger.info(
+                                f"Update detected on Site: {website_id.replace('_', ' ').title()} 🌐"
+                            )
+                            message = (
+                                f"🌐 Update Detected: {website_id.replace('_', ' ').title()} 🌐\n\n"
+                            )
+                            message += "New content has been detected on this website."
+
                         self.logger.info(f"Sending message for {website_id}: {message}")
                         # Send message
                         self.logger.info(message)
 
-                        if item.get('url', None):
-                            self.message_sender.send_llm_message_with_url(self, message, channel, destination, item.get('url', None))
+                        if item.get("url", None):
+                            self.message_sender.send_llm_message_with_url(
+                                self, message, channel, destination, item.get("url", None)
+                            )
                         else:
-                            self.message_sender.send_llm_message(self, self.interface, message, channel, '^all')
-                        
+                            self.message_sender.send_llm_message(
+                                self, self.interface, message, channel, BROADCAST_DESTINATION
+                            )
+
                         if log_callback:
                             log_callback(f"web-scrape-{website_id}")
-        
+
         return result

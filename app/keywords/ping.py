@@ -1,5 +1,8 @@
+import contextlib
 
+from core.constants import LOCAL_NODE_ID
 from keywords.keyword_handler import KeywordHandler
+
 
 class PingKeyword(KeywordHandler):
 
@@ -12,7 +15,7 @@ class PingKeyword(KeywordHandler):
         """
         self.logger.info("[get_description] Providing description for ping keyword.")
         return "Responds with a pong and, if available, location/distance from sender"
-    
+
     def handle(self, interface, packet):
         """
         Handle incoming 'ping' keyword messages.
@@ -31,41 +34,41 @@ class PingKeyword(KeywordHandler):
         self.logger.info("[handle] PingKeyword handler invoked.")
 
         # Extract sender and local node info
-        from_node_num = packet['from']
-        local_node = interface.getNode('^local')
+        from_node_num = packet["from"]
+        local_node = interface.getNode(LOCAL_NODE_ID)
         from_node = self.node_info_utils.lookup_node(interface, from_node_num)
         if not from_node:
             self.logger.warning(f"[handle] Could not find from_node for num {from_node_num}")
             return
 
         # Get short names
-        from_short_name = from_node['user']['shortName'] if 'user' in from_node and 'shortName' in from_node['user'] else str(from_node_num)
+        from_short_name = (
+            from_node["user"]["shortName"]
+            if "user" in from_node and "shortName" in from_node["user"]
+            else str(from_node_num)
+        )
         local_node_info = interface.getMyNodeInfo()
-        local_node_short_name = local_node_info['user']['shortName'] if 'user' in local_node_info and 'shortName' in local_node_info['user'] else str(local_node_info['num'])
+        local_node_short_name = (
+            local_node_info["user"]["shortName"]
+            if "user" in local_node_info and "shortName" in local_node_info["user"]
+            else str(local_node_info["num"])
+        )
         # Get location and distance using LocationUtils
         location = self.location_utils.find_location_by_node_num(interface, local_node.nodeNum)
-        distance = self.location_utils.find_distance_between_nodes(interface, from_node_num, local_node.nodeNum)
+        distance = self.location_utils.find_distance_between_nodes(
+            interface, from_node_num, local_node.nodeNum
+        )
 
         # Prepare message
         if distance != "Unknown" and location != "Unknown":
-            try:
+            with contextlib.suppress(Exception):
                 distance = round(float(distance), 2)
-            except Exception:
-                pass
             reply = f"{from_short_name} this is {local_node_short_name}, Pong from {location}. Distance: {distance} miles"
         else:
             reply = f"{from_short_name} this is {local_node_short_name}, Pong"
 
         # Send reply using MessageSender
-        # Use channel and to_id from packet if available, else defaults
-        channel = packet.get('channel', 0)
-        original_message_id = packet.get('id')
+        channel, to_id = self._get_reply_target(packet, interface)
+        original_message_id = packet.get("id")
         self.logger.info(f"[handle] channel set to {channel}")
-        # Check if this is a direct message or channel message
-        if packet['to'] == local_node.nodeNum:
-            # Direct message, reply directly
-            to_id = from_node_num
-        else:
-            # Channel message, reply to channel
-            to_id = "^all"
         self.message_sender.send_llm_reply(interface, channel, original_message_id, to_id, reply)

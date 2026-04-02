@@ -1,4 +1,14 @@
+from core.constants import (
+    SECONDS_PER_DAY,
+    SECONDS_PER_HOUR,
+    SECONDS_PER_MINUTE,
+    SECONDS_PER_MONTH,
+    SECONDS_PER_WEEK,
+    SECONDS_PER_YEAR,
+)
+
 from utils.logger import get_logger
+
 
 class NodeInfoUtils:
     logger = get_logger(__name__)
@@ -19,7 +29,9 @@ class NodeInfoUtils:
             for n in interface.nodes.values():
                 node_num = n["num"]
                 if node_generic_identifier == node_num:
-                    NodeInfoUtils.logger.debug(f"[lookup_nodes] Node found by number: {n['user']['shortName']} - {n['num']}")
+                    NodeInfoUtils.logger.debug(
+                        f"[lookup_nodes] Node found by number: {n['user']['shortName']} - {n['num']}"
+                    )
                     nodes.append(n)
         else:
             node_generic_identifier_lower = str(node_generic_identifier).lower()
@@ -28,8 +40,15 @@ class NodeInfoUtils:
                 node_long_name = n["user"]["longName"].lower()
                 node_num = n["num"]
                 node_user_id = n["user"]["id"]
-                if node_generic_identifier_lower in [node_short_name, node_long_name, str(node_num), node_user_id.lower()]:
-                    NodeInfoUtils.logger.debug(f"[lookup_nodes] Node found by name/ID: {n['user']['shortName']} - {n['num']}")
+                if node_generic_identifier_lower in [
+                    node_short_name,
+                    node_long_name,
+                    str(node_num),
+                    node_user_id.lower(),
+                ]:
+                    NodeInfoUtils.logger.debug(
+                        f"[lookup_nodes] Node found by name/ID: {n['user']['shortName']} - {n['num']}"
+                    )
                     nodes.append(n)
         return nodes
 
@@ -46,9 +65,13 @@ class NodeInfoUtils:
         NodeInfoUtils.logger.debug(f"[lookup_node] Looking up node: {node_generic_identifier}")
         nodes = NodeInfoUtils.lookup_nodes(interface, node_generic_identifier)
         if len(nodes) > 1:
-            NodeInfoUtils.logger.warning(f"[lookup_node] Multiple nodes found matching {node_generic_identifier}. Returning the first match.")
+            NodeInfoUtils.logger.warning(
+                f"[lookup_node] Multiple nodes found matching {node_generic_identifier}. Returning the first match."
+            )
         if len(nodes) > 0:
-            NodeInfoUtils.logger.debug(f"[lookup_node] Found {len(nodes)} nodes matching {node_generic_identifier}")
+            NodeInfoUtils.logger.debug(
+                f"[lookup_node] Found {len(nodes)} nodes matching {node_generic_identifier}"
+            )
             return nodes[0]
         return None
 
@@ -64,20 +87,21 @@ class NodeInfoUtils:
             str: The time since the node was last heard in a human-readable format.
         """
         from datetime import datetime, timezone
+
         now_time = datetime.now(timezone.utc)
         delta = now_time - last_heard_time
         seconds = delta.total_seconds()
-        if seconds < 60: # Less than a minute, return seconds
+        if seconds < SECONDS_PER_MINUTE:
             return f"{int(seconds)}s"
-        elif seconds < 3600: # Less than an hour, return minutes
-            return f"{int(seconds // 60)}m"
-        elif seconds < 86400: # Less than a day, return hours
-            return f"{int(seconds // 3600)}h"
-        elif seconds < 604800: # Less than a week, return days
-            return f"{int(seconds // 86400)}d"
-        elif seconds < 2592000: # Less than a month, return weeks
-            return f"{int(seconds // 604800)}w"
-        elif seconds < 31536000: # Less than a year, return months
-            return f"{int(seconds // 2592000)}m"
-        else: # More than a year, return years
-            return f"{int(seconds // 31536000)}y"
+        elif seconds < SECONDS_PER_HOUR:
+            return f"{int(seconds // SECONDS_PER_MINUTE)}m"
+        elif seconds < SECONDS_PER_DAY:
+            return f"{int(seconds // SECONDS_PER_HOUR)}h"
+        elif seconds < SECONDS_PER_WEEK:
+            return f"{int(seconds // SECONDS_PER_DAY)}d"
+        elif seconds < SECONDS_PER_MONTH:
+            return f"{int(seconds // SECONDS_PER_WEEK)}w"
+        elif seconds < SECONDS_PER_YEAR:
+            return f"{int(seconds // SECONDS_PER_MONTH)}m"
+        else:
+            return f"{int(seconds // SECONDS_PER_YEAR)}y"

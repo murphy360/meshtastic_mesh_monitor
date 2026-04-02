@@ -1,25 +1,27 @@
 # 2025-09-29: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 
-from datetime import datetime, timedelta, timezone
-import requests
-from typing import Dict, List, Any, Optional
 import xml.etree.ElementTree as ET
-from core.base_interfaces import FeedInterface
-from utils.logger import get_logger
-from utils.message_sender import MessageSender
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
+import requests
+from core.base_interfaces import FeedInterface
+from utils.message_sender import MessageSender
 
 
 class RSSInterface(FeedInterface):
     """
     Interface for accessing and monitoring RSS feeds.
     """
+
     message_sender: MessageSender
     interface: Any
     check_interval: timedelta
 
-    def __init__(self, discard_initial_items: bool = True, config_manager: Optional[Any] = None) -> None:
+    def __init__(
+        self, discard_initial_items: bool = True, config_manager: Any | None = None
+    ) -> None:
         """
         Initialize the RSS interface.
         Args:
@@ -32,16 +34,18 @@ class RSSInterface(FeedInterface):
             config_manager=config_manager,
             cache_duration_seconds=3600,  # Cache feed content for 1 hour
             default_poll_interval_seconds=3600,  # Poll every hour by default
-            discard_initial_items=discard_initial_items
+            discard_initial_items=discard_initial_items,
         )
         self.check_interval = timedelta(hours=1)  # Default check interval (kept for compatibility)
         self._load_feeds_from_config()
-        self.logger.debug(f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})")
+        self.logger.debug(
+            f"RSS Interface initialized with {len(self.feeds)} feeds (discard_initial_items={self.discard_initial_items})"
+        )
 
     def set_interface(self, interface: Any):
         """
         Set the mesh network interface for sending messages.
-        
+
         Args:
             interface: The mesh network interface object
         """
@@ -57,37 +61,46 @@ class RSSInterface(FeedInterface):
                     feed_id = feed_config.get("id")
                     feed_url = feed_config.get("url")
                     check_interval_hours = feed_config.get("check_interval_hours", 1)
-                    
+
                     if feed_id and feed_url:
                         # Use the base class method to add the feed
-                        self.add_feed(feed_id, feed_url, check_interval_hours * 3600)  # Convert to seconds
-                        
+                        self.add_feed(
+                            feed_id, feed_url, check_interval_hours * 3600
+                        )  # Convert to seconds
+
                         # Initialize RSS-specific tracking using base class attributes
-                        self.last_poll_time[feed_id] = datetime.now(timezone.utc) - timedelta(hours=check_interval_hours)
-                        self.previous_data[feed_id] = {}  # Use base class previous_data instead of previous_items
-                        
-                        self.logger.debug(f"Loaded RSS feed: {feed_config.get('name', feed_id)} ({feed_id})")
+                        self.last_poll_time[feed_id] = datetime.now(timezone.utc) - timedelta(
+                            hours=check_interval_hours
+                        )
+                        self.previous_data[feed_id] = (
+                            {}
+                        )  # Use base class previous_data instead of previous_items
+
+                        self.logger.debug(
+                            f"Loaded RSS feed: {feed_config.get('name', feed_id)} ({feed_id})"
+                        )
                     else:
-                        self.logger.warning(f"Invalid feed configuration: missing id or url - {feed_config}")
+                        self.logger.warning(
+                            f"Invalid feed configuration: missing id or url - {feed_config}"
+                        )
             except Exception as e:
                 self.logger.error(f"Error loading feeds from configuration: {e}")
         else:
             self.logger.warning("No configuration manager provided. No feeds loaded.")
 
-
-    def parse_feed(self, feed_content: str) -> List[Dict[str, str]]:
+    def parse_feed(self, feed_content: str) -> list[dict[str, str]]:
         """
         Parse RSS feed content and return list of items.
-        
+
         Args:
             feed_content: Raw RSS feed content as string
-            
+
         Returns:
             List of dictionaries containing parsed RSS items
         """
-        return self._parse_rss(feed_content.encode('utf-8'))
+        return self._parse_rss(feed_content.encode("utf-8"))
 
-    def _parse_rss(self, content: bytes) -> List[Dict[str, str]]:
+    def _parse_rss(self, content: bytes) -> list[dict[str, str]]:
         """
         Parse the RSS feed content.
 
@@ -97,129 +110,137 @@ class RSSInterface(FeedInterface):
         Returns:
             List[Dict[str, str]]: Parsed RSS items in a human-readable format
         """
-        
+
         self.logger.debug("Parsing RSS feed content")
         items = []
         try:
             root = ET.fromstring(content)
 
             # Find the channel element
-            channel = root.find('channel')
+            channel = root.find("channel")
             if channel is None:
                 # Sometimes the namespace is present, so try with namespace
-                channel = root.find('{*}channel')
+                channel = root.find("{*}channel")
             if channel is None:
                 self.logger.warning("No <channel> element found in RSS feed")
                 return items
 
             # Iterate over all <item> elements
-            for item_elem in channel.findall('item'):
+            for item_elem in channel.findall("item"):
                 item = {}
                 for child in item_elem:
                     tag = child.tag
                     # Remove namespace if present
-                    if '}' in tag:
-                        tag = tag.split('}', 1)[1]
+                    if "}" in tag:
+                        tag = tag.split("}", 1)[1]
                     # Store text content
-                    item[tag] = child.text.strip() if child.text else ''
+                    item[tag] = child.text.strip() if child.text else ""
                     # For <enclosure> tag, get the url attribute
-                    if tag == 'enclosure':
-                        item['enclosure_url'] = child.attrib.get('url', '')
-                        item['enclosure_type'] = child.attrib.get('type', '')
+                    if tag == "enclosure":
+                        item["enclosure_url"] = child.attrib.get("url", "")
+                        item["enclosure_type"] = child.attrib.get("type", "")
                 items.append(item)
         except Exception as e:
             self.logger.error(f"Error parsing RSS feed: {e}")
         return items
-        
 
-    def check_feed(self, feed_id: str) -> List[Dict[str, str]]:
+    def check_feed(self, feed_id: str) -> list[dict[str, str]]:
         """
         Check a specific RSS feed for new items.
-        
+
         Args:
             feed_id: The identifier of the feed to check
-            
+
         Returns:
             List[Dict[str, str]]: List of new items (may be empty on first check if discard_initial_items is True)
         """
         if feed_id not in self.feeds:
             self.logger.warning(f"Feed ID '{feed_id}' not found")
             return []
-        
+
         url = self.feeds[feed_id]
         new_items = []
-        
+
         try:
             response = requests.get(url, timeout=10)
-            response.raise_for_status()           
+            response.raise_for_status()
             items = self._parse_rss(response.content)
             self.logger.debug(f"Parsed {len(items)} items from feed '{feed_id}'")
             current_items = {}
-            
+
             # Process each item and find new ones
             for item in items:
-                if 'guid' in item:
-                    item_id = item['guid']
+                if "guid" in item:
+                    item_id = item["guid"]
                     current_items[item_id] = item
                     # Add to new_items if not already seen
-                    if item_id not in self.previous_data[feed_id] and self.initial_check_complete[feed_id]:
+                    if (
+                        item_id not in self.previous_data[feed_id]
+                        and self.initial_check_complete[feed_id]
+                    ):
                         new_items.append(item)
                         self.logger.debug(f"Adding new RSS item: {item.get('title', 'No Title')}")
-            
+
             # Update previous items using base class attribute
             self.previous_data[feed_id] = current_items
             self.last_poll_time[feed_id] = datetime.now(timezone.utc)
-            
+
             # Mark initial check as complete
             if not self.initial_check_complete[feed_id]:
                 self.initial_check_complete[feed_id] = True
-                self.logger.debug(f"Initial RSS check of feed '{feed_id}' complete, discarding {len(items)} existing items") 
+                self.logger.debug(
+                    f"Initial RSS check of feed '{feed_id}' complete, discarding {len(items)} existing items"
+                )
             elif len(new_items) > 0:
-                self.logger.info(f"📰 RSS: Found {len(new_items)} new items in feed '{feed_id}'")  # Important: new items discovered
+                self.logger.info(
+                    f"📰 RSS: Found {len(new_items)} new items in feed '{feed_id}'"
+                )  # Important: new items discovered
             else:
                 self.logger.debug(f"RSS check of feed '{feed_id}' complete, no new items")
-            
+
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching RSS feed '{feed_id}': {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error checking feed '{feed_id}': {e}")
-        
+
         return new_items
-    
+
     def check_feeds_if_needed(self, channel: int, destination: str):
         """
         Check all configured RSS feeds if the check interval has elapsed.
-        
+
         Args:
             channel: Channel ID for sending messages
-            destination: Destination ID for messages (usually "^all")
+            destination: Destination ID for messages (usually BROADCAST_DESTINATION)
         """
 
         now = datetime.now(timezone.utc)
-        
+
         for feed_id, last_check in self.last_poll_time.items():
             feed_interval = self.poll_intervals.get(feed_id, self.default_poll_interval)
             if now - last_check >= feed_interval:
                 self.logger.debug(f"Checking RSS feed '{feed_id}' for updates")
                 new_items = self.check_feed(feed_id)
-                
+
                 if new_items:
                     for item in new_items:
-                        message = f"📰 New RSS Item Detected 📰\n\n"
+                        message = "📰 New RSS Item Detected 📰\n\n"
                         message += f"Feed: {feed_id.replace('_', ' ')}\n"
                         message += f"Title: {item.get('title', 'No Title')}\n"
                         message += f"Link: {item.get('link', 'No Link')}\n"
                         message += f"Description: {item.get('description', 'No Description')}\n"
                         message += f"Published: {item.get('pubDate', 'No Date')}\n"
                         # Use MessageSender to send the message
-                        self.message_sender.send_llm_message(self.interface, message, channel, destination)
+                        self.message_sender.send_llm_message(
+                            self.interface, message, channel, destination
+                        )
                 else:
                     self.logger.debug(f"No new items found in RSS feed '{feed_id}'")
 
-    def poll_for_updates(self) -> Dict[str, Any]:
+    def poll_for_updates(self) -> dict[str, Any]:
         """
         Poll all feeds for updates.
-        
+
         Returns:
             Dictionary containing update information
         """
@@ -231,22 +252,18 @@ class RSSInterface(FeedInterface):
                     updates[feed_id] = {
                         "success": True,
                         "new_items": new_items,
-                        "count": len(new_items)
+                        "count": len(new_items),
                     }
                     self._update_poll_time(feed_id)
                 except Exception as e:
-                    updates[feed_id] = {
-                        "success": False,
-                        "error": str(e),
-                        "count": 0
-                    }
+                    updates[feed_id] = {"success": False, "error": str(e), "count": 0}
         return updates
 
     def test_connection(self) -> bool:
         """Test if the interface can connect to at least one feed."""
         if not self.feeds:
             return False
-        
+
         # Test the first feed
         first_feed_id = next(iter(self.feeds))
         try:

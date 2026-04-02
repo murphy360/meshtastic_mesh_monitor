@@ -5,8 +5,12 @@ Retrieves the forecast from the NWS API based on the local node's position
 and broadcasts it to the configured weather channel via Gemini.
 """
 
-from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 from datetime import datetime, timezone
+from typing import ClassVar
+
+from core.constants import BROADCAST_DESTINATION
+
+from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 
 
 class WeatherUpdatesScheduledEvent(BaseScheduledEvent):
@@ -16,14 +20,14 @@ class WeatherUpdatesScheduledEvent(BaseScheduledEvent):
     enabled = True
     schedule_type = ScheduleType.CRON
     # 5:30 AM EST = 10:30 UTC, noon EST = 17:00 UTC, 6 PM EST = 23:00 UTC
-    cron_expressions = ["30 10 * * *", "0 17,23 * * *"]
+    cron_expressions: ClassVar[list[str]] = ["30 10 * * *", "0 17,23 * * *"]
 
     def execute(self) -> bool:
         try:
             self.logger.info(f"🌤️ {self.name} - Executing at {datetime.now(timezone.utc)}")
 
-            tcp_interface = self.interfaces.get('tcp_interface') if self.interfaces else None
-            weather_interface = self.interfaces.get('weather') if self.interfaces else None
+            tcp_interface = self.interfaces.get("tcp_interface") if self.interfaces else None
+            weather_interface = self.interfaces.get("weather") if self.interfaces else None
 
             if not tcp_interface or not weather_interface:
                 self.logger.error("Missing tcp_interface or weather interface")
@@ -32,16 +36,16 @@ class WeatherUpdatesScheduledEvent(BaseScheduledEvent):
             local_node_info = tcp_interface.getMyNodeInfo()
             if (
                 not local_node_info
-                or 'position' not in local_node_info
-                or 'latitude' not in local_node_info['position']
-                or 'longitude' not in local_node_info['position']
+                or "position" not in local_node_info
+                or "latitude" not in local_node_info["position"]
+                or "longitude" not in local_node_info["position"]
             ):
                 self.logger.debug("Can't send forecast: Local node has no position information")
                 return False
 
-            wx_lat = local_node_info['position']['latitude']
-            wx_lon = local_node_info['position']['longitude']
-            node_short_name = local_node_info['user']['shortName']
+            wx_lat = local_node_info["position"]["latitude"]
+            wx_lon = local_node_info["position"]["longitude"]
+            node_short_name = local_node_info["user"]["shortName"]
 
             forecast_text = weather_interface.get_forecast_string(wx_lat, wx_lon)
             if not forecast_text:
@@ -49,10 +53,14 @@ class WeatherUpdatesScheduledEvent(BaseScheduledEvent):
                 return False
 
             node_location = self.location_utils.find_location_by_coordinates(wx_lat, wx_lon)
-            message = f"Weather forecast for {node_short_name} ({node_location}):\n\n{forecast_text}"
+            message = (
+                f"Weather forecast for {node_short_name} ({node_location}):\n\n{forecast_text}"
+            )
 
             weather_channel = self.config_manager.get_weather_channel()
-            self.message_sender.send_weather_message(tcp_interface, message, weather_channel, "^all")
+            self.message_sender.send_weather_message(
+                tcp_interface, message, weather_channel, BROADCAST_DESTINATION
+            )
 
             self.logger.info("✅ Weather forecast sent successfully")
             return True

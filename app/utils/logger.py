@@ -1,4 +1,3 @@
-
 # 2025-10-01: Clean code review: This file was reviewed for clean code standards.
 # in accordance with standards listed in docs/generic_clean_code_review_prompt.md.
 """
@@ -15,14 +14,14 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-
-
 # TODO: Add type hints to all method signatures for clarity and maintainability.
 # TODO: Add/expand docstrings for utility functions and any non-obvious logic.
 # TODO: Consider more robust error handling for file operations and environment variable parsing.
 
+
 class MeshMonitorLogger:
     """Centralized logger configuration for consistent logging across the application."""
+
     _instance = None
 
     def __init__(self):
@@ -36,14 +35,16 @@ class MeshMonitorLogger:
             cls._instance = cls()
         return cls._instance
 
-    def setup_logging(self,
-                     log_level: str = None,
-                     log_format: str = None,
-                     log_to_file: bool = None,
-                     log_file_path: str = None,
-                     log_file_max_size: int = None,
-                     log_file_backup_count: int = None,
-                     enable_console: bool = None):
+    def setup_logging(
+        self,
+        log_level: str | None = None,
+        log_format: str | None = None,
+        log_to_file: bool | None = None,
+        log_file_path: str | None = None,
+        log_file_max_size: int | None = None,
+        log_file_backup_count: int | None = None,
+        enable_console: bool | None = None,
+    ):
         """
         Configure logging for the application with environment variable support.
         Args:
@@ -61,21 +62,35 @@ class MeshMonitorLogger:
             return self.logger
 
         # Environment variable defaults with fallbacks
-        log_level = log_level or os.getenv('LOG_LEVEL', 'INFO')
-        log_format = log_format or os.getenv('LOG_FORMAT',
-            '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
-        log_to_file = log_to_file if log_to_file is not None else os.getenv('LOG_TO_FILE', 'true').lower() == 'true'
-        log_file_path = log_file_path or os.getenv('LOG_FILE_PATH', self._get_default_log_path())
+        log_level = log_level or os.getenv("LOG_LEVEL", "INFO")
+        log_format = log_format or os.getenv(
+            "LOG_FORMAT",
+            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+        )
+        log_to_file = (
+            log_to_file
+            if log_to_file is not None
+            else os.getenv("LOG_TO_FILE", "true").lower() == "true"
+        )
+        log_file_path = log_file_path or os.getenv("LOG_FILE_PATH", self._get_default_log_path())
         self.current_log_file_path = log_file_path
 
-        log_file_max_size = log_file_max_size or int(os.getenv('LOG_FILE_MAX_SIZE', '10485760'))  # 10MB
-        log_file_backup_count = log_file_backup_count or int(os.getenv('LOG_FILE_BACKUP_COUNT', '5'))
-        enable_console = enable_console if enable_console is not None else os.getenv('LOG_CONSOLE', 'true').lower() == 'true'
+        log_file_max_size = log_file_max_size or int(
+            os.getenv("LOG_FILE_MAX_SIZE", "10485760")
+        )  # 10MB
+        log_file_backup_count = log_file_backup_count or int(
+            os.getenv("LOG_FILE_BACKUP_COUNT", "5")
+        )
+        enable_console = (
+            enable_console
+            if enable_console is not None
+            else os.getenv("LOG_CONSOLE", "true").lower() == "true"
+        )
 
         # Validate log level
         numeric_level = getattr(logging, log_level.upper(), None)
         if not isinstance(numeric_level, int):
-            raise ValueError(f'Invalid log level: {log_level}')
+            raise ValueError(f"Invalid log level: {log_level}")
 
         # Create formatter
         formatter = logging.Formatter(log_format)
@@ -104,7 +119,7 @@ class MeshMonitorLogger:
                 log_file_path,
                 maxBytes=log_file_max_size,
                 backupCount=log_file_backup_count,
-                encoding='utf-8'
+                encoding="utf-8",
             )
             file_handler.setLevel(numeric_level)
             file_handler.setFormatter(formatter)
@@ -130,10 +145,10 @@ class MeshMonitorLogger:
 
     def _get_default_log_path(self) -> str:
         """Get the default log file path based on environment."""
-        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
         # Check if we're in a Docker container
-        if os.path.exists('/.dockerenv') or os.getenv('DOCKER_CONTAINER'):
+        if os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER"):
             return f"/data/mesh_monitor_{timestamp}.log"
 
         # For local development, use a logs directory in the project
@@ -141,7 +156,7 @@ class MeshMonitorLogger:
         logs_dir = project_root / "logs"
         return str(logs_dir / f"mesh_monitor_{timestamp}.log")
 
-    def get_logger(self, name: str = None) -> logging.Logger:
+    def get_logger(self, name: str | None = None) -> logging.Logger:
         """
         Get a logger instance with the specified name.
         Args:
@@ -163,19 +178,20 @@ class MeshMonitorLogger:
 
     def _configure_third_party_loggers(self):
         """Configure logging levels for noisy third-party libraries."""
-        third_party_level = os.getenv('THIRD_PARTY_LOG_LEVEL', 'ERROR').upper()
+        third_party_level = os.getenv("THIRD_PARTY_LOG_LEVEL", "ERROR").upper()
         try:
             numeric_level = getattr(logging, third_party_level)
         except AttributeError:
             numeric_level = logging.ERROR
             if self.logger:
-                self.logger.warning(f"Invalid THIRD_PARTY_LOG_LEVEL '{third_party_level}', using ERROR")
-        logging.getLogger('urllib3.connectionpool').setLevel(numeric_level)
-        logging.getLogger('requests.packages.urllib3').setLevel(numeric_level)
-        logging.getLogger('urllib3').setLevel(numeric_level)
-        logging.getLogger('requests').setLevel(numeric_level)
+                self.logger.warning(
+                    f"Invalid THIRD_PARTY_LOG_LEVEL '{third_party_level}', using ERROR"
+                )
+        logging.getLogger("urllib3.connectionpool").setLevel(numeric_level)
+        logging.getLogger("requests.packages.urllib3").setLevel(numeric_level)
+        logging.getLogger("urllib3").setLevel(numeric_level)
+        logging.getLogger("requests").setLevel(numeric_level)
         # Add more third-party loggers here as needed
-
 
 
 def setup_logging(**kwargs):
@@ -185,7 +201,8 @@ def setup_logging(**kwargs):
     """
     return MeshMonitorLogger.get_instance().setup_logging(**kwargs)
 
-def get_logger(name: str = None) -> logging.Logger:
+
+def get_logger(name: str | None = None) -> logging.Logger:
     """
     Get a logger instance.
     Args:
@@ -195,6 +212,7 @@ def get_logger(name: str = None) -> logging.Logger:
     """
     return MeshMonitorLogger.get_instance().get_logger(name)
 
+
 def get_current_log_file_path() -> str:
     """
     Get the path to the current log file used by the logger.
@@ -203,28 +221,27 @@ def get_current_log_file_path() -> str:
     """
     return MeshMonitorLogger.get_instance().get_current_log_file_path()
 
+
 def setup_development_logging():
     """Setup logging optimized for development with detailed output."""
     return setup_logging(
-        log_level='DEBUG',
-        log_format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s',
+        log_level="DEBUG",
+        log_format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s",
         log_to_file=True,
-        enable_console=True
+        enable_console=True,
     )
+
 
 def setup_production_logging():
     """Setup logging optimized for production with structured output."""
     return setup_logging(
-        log_level='INFO',
-        log_format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        log_level="INFO",
+        log_format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         log_to_file=True,
-        enable_console=True
+        enable_console=True,
     )
+
 
 def setup_quiet_logging():
     """Setup minimal logging for testing or quiet operation."""
-    return setup_logging(
-        log_level='WARNING',
-        log_to_file=True,
-        enable_console=False
-    )
+    return setup_logging(log_level="WARNING", log_to_file=True, enable_console=False)

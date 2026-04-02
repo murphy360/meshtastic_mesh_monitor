@@ -5,12 +5,12 @@ class Node:
         self.longName = longName
         self.shortName = shortName
         self.lastHeard = None
-        self.titles = []
         self.historical_snr = []
         self.historical_rssi = []
         self.sentPackets = []
         self.receivedPackets = []
         self.historical_positions = []
+        self.position_updates = []
 
     def __str__(self):
         return f"Node: {self.shortName}"
@@ -21,15 +21,14 @@ class Node:
         elif packet["to"] == self.nodeNum:
             self.receivedPackets.append(packet)
 
-        
         self.lastHeard = packet["rxTime"]
-        self.historical_rssi.append(packet["rxSnr"])
+        self.historical_rssi.append(packet["rxRssi"])
         self.historical_snr.append(packet["rxSnr"])
         self.add_position_update(packet["decoded"]["position"])
 
     def get_activity(self):
         return self.historical_rssi
-    
+
     def update_position(self, time, lat, lon, alt):
         self.position_last_update = time
         self.lat = lat

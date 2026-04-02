@@ -6,8 +6,17 @@ gathers their latest telemetry, and sends a summary to the admin channel.
 Also monitors battery levels and sends alerts for critical/low battery.
 """
 
-from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 from datetime import datetime, timezone
+
+from core.constants import (
+    BATTERY_CLEAR_THRESHOLD,
+    BATTERY_CRITICAL_THRESHOLD,
+    BATTERY_LOW_THRESHOLD,
+    BATTERY_NOTIFICATION_THRESHOLD,
+    BROADCAST_DESTINATION,
+)
+
+from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 
 
 class NodeHealthReportScheduledEvent(BaseScheduledEvent):
@@ -24,7 +33,7 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
 
     def execute(self) -> bool:
         try:
-            tcp_interface = self.interfaces.get('tcp_interface') if self.interfaces else None
+            tcp_interface = self.interfaces.get("tcp_interface") if self.interfaces else None
             if not tcp_interface:
                 self.logger.error("Missing tcp_interface")
                 return False
@@ -59,7 +68,7 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
 
             report = " | ".join(report_lines)
             self.message_sender.send_llm_message(
-                tcp_interface, report, admin_channel, "^all"
+                tcp_interface, report, admin_channel, BROADCAST_DESTINATION
             )
 
             self.logger.info(
@@ -73,11 +82,11 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
 
     def _format_node_line(self, node_row):
         """Format a single node's status line from a DB row dict."""
-        name = node_row.get('shortname', '?')
-        battery = node_row.get('batteryLevel', '')
-        voltage = node_row.get('voltage', '')
-        last_heard = node_row.get('lastHeard', '')
-        uptime = node_row.get('uptimeSeconds', '')
+        name = node_row.get("shortname", "?")
+        battery = node_row.get("batteryLevel", "")
+        voltage = node_row.get("voltage", "")
+        last_heard = node_row.get("lastHeard", "")
+        uptime = node_row.get("uptimeSeconds", "")
 
         parts = [name]
         if battery:
@@ -96,7 +105,7 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
 
     def _check_battery_health(self, interface, node_row, admin_channel):
         """Check battery levels and send alerts for critical/low conditions."""
-        battery_str = node_row.get('batteryLevel', '')
+        battery_str = node_row.get("batteryLevel", "")
         if not battery_str:
             return
 
@@ -105,10 +114,10 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
         except (ValueError, TypeError):
             return
 
-        node_num = node_row.get('num', 'unknown')
-        short_name = node_row.get('shortname', 'Unknown')
+        node_num = node_row.get("num", "unknown")
+        short_name = node_row.get("shortname", "Unknown")
 
-        if battery_level < 5:
+        if battery_level < BATTERY_CRITICAL_THRESHOLD:
             alert_key = f"critical_battery_{node_num}"
             if alert_key not in self.active_health_alerts:
                 self.active_health_alerts[alert_key] = datetime.now(timezone.utc)
@@ -116,9 +125,10 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
                 self.message_sender.send_message(
                     interface,
                     f"Critical Alert: {short_name} has a critical battery level ({battery_level}%)",
-                    admin_channel, "^all"
+                    admin_channel,
+                    BROADCAST_DESTINATION,
                 )
-        elif battery_level < 10:
+        elif battery_level < BATTERY_LOW_THRESHOLD:
             alert_key = f"battery_{node_num}_warning"
             if alert_key not in self.active_health_alerts:
                 self.active_health_alerts[alert_key] = datetime.now(timezone.utc)
@@ -126,9 +136,10 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
                 self.message_sender.send_message(
                     interface,
                     f"Low Battery Warning: {short_name} has a low battery level ({battery_level}%)",
-                    admin_channel, "^all"
+                    admin_channel,
+                    BROADCAST_DESTINATION,
                 )
-        elif battery_level < 20:
+        elif battery_level < BATTERY_NOTIFICATION_THRESHOLD:
             alert_key = f"battery_{node_num}_notification"
             if alert_key not in self.active_health_alerts:
                 self.active_health_alerts[alert_key] = datetime.now(timezone.utc)
@@ -136,9 +147,10 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
                 self.message_sender.send_message(
                     interface,
                     f"Notification: {short_name} has a low battery ({battery_level}%)",
-                    admin_channel, "^all"
+                    admin_channel,
+                    BROADCAST_DESTINATION,
                 )
-        elif battery_level > 50:
+        elif battery_level > BATTERY_CLEAR_THRESHOLD:
             cleared = False
             for key in list(self.active_health_alerts.keys()):
                 if key.startswith(f"battery_{node_num}") or key == f"critical_battery_{node_num}":
@@ -149,5 +161,6 @@ class NodeHealthReportScheduledEvent(BaseScheduledEvent):
                 self.message_sender.send_llm_message(
                     interface,
                     f"Battery level is normal for node {short_name} - {battery_level}%",
-                    admin_channel, "^all"
+                    admin_channel,
+                    BROADCAST_DESTINATION,
                 )

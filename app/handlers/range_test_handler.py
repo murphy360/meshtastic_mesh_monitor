@@ -4,7 +4,9 @@
 """
 RangeTestHandler processes incoming range test packets and logs the event.
 """
+
 from handlers.base_handler import BaseHandler
+
 
 class RangeTestHandler(BaseHandler):
     """
@@ -13,6 +15,7 @@ class RangeTestHandler(BaseHandler):
         packet (dict): The received packet data.
         interface (object): The mesh network interface object.
     """
+
     def __init__(self) -> None:
         super().__init__()
 

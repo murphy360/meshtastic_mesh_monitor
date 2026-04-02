@@ -6,7 +6,6 @@ meshtastic_mesh_visualizer reads to display nodes on a map.
 """
 
 from .base_scheduled_event import BaseScheduledEvent, ScheduleType
-from datetime import datetime, timezone
 
 
 class MeshDataWriteScheduledEvent(BaseScheduledEvent):
@@ -28,7 +27,7 @@ class MeshDataWriteScheduledEvent(BaseScheduledEvent):
                 return False
 
             self.sitrep.write_mesh_data_to_file()
-            self.logger.debug(f"📁 Mesh Data Write: completed")
+            self.logger.debug("📁 Mesh Data Write: completed")
             return True
 
         except Exception as e:

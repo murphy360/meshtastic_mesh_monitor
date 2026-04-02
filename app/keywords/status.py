@@ -1,6 +1,9 @@
+import json
+
+from core.constants import BROADCAST_DESTINATION, LOCAL_NODE_ID
 from keywords.keyword_handler import KeywordHandler
 from meshtastic.protobuf import connection_status_pb2
-import json
+
 
 class StatusKeyword(KeywordHandler):
     def __init__(self):
@@ -13,14 +16,12 @@ class StatusKeyword(KeywordHandler):
         self.logger.info("[get_description] Providing description for status keyword.")
         return "Reports device connection status. Usage: status"
 
-
     def _protobuf_to_dict(self, message_instance):
         """Recursively convert protobuf message to dict."""
         if not hasattr(message_instance, "DESCRIPTOR"):
             return None
         result = {}
-        for field_name in message_instance.DESCRIPTOR.fields_by_name.keys():
-            field_descriptor = message_instance.DESCRIPTOR.fields_by_name[field_name]
+        for field_name in message_instance.DESCRIPTOR.fields_by_name:
             value = getattr(message_instance, field_name)
             if value is not None:
                 if hasattr(value, "DESCRIPTOR"):
@@ -34,12 +35,12 @@ class StatusKeyword(KeywordHandler):
         Handle the 'status' keyword. Reports device connection status using connection_status_pb2.
         """
         self.logger.info("[handle] StatusKeyword handler invoked.")
-        channel = packet['channel'] if 'channel' in packet else 0
-        local_node = interface.getNode('^local')
-        if 'to' in packet and packet['to'] == local_node.nodeNum:
-            to_id = packet['from']
+        channel = packet.get("channel", 0)
+        local_node = interface.getNode(LOCAL_NODE_ID)
+        if "to" in packet and packet["to"] == local_node.nodeNum:
+            to_id = packet["from"]
         else:
-            to_id = "^all"
+            to_id = BROADCAST_DESTINATION
 
         # There is no getConnectionStatus() method, so we instantiate DeviceConnectionStatus and show its fields
         status = connection_status_pb2.DeviceConnectionStatus()

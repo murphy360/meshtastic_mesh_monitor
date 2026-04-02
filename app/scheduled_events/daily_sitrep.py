@@ -6,7 +6,6 @@ to the configured SITREP channel.
 """
 
 from .base_scheduled_event import BaseScheduledEvent, ScheduleType
-from datetime import datetime, timezone
 
 
 class DailySitrepScheduledEvent(BaseScheduledEvent):
@@ -28,7 +27,7 @@ class DailySitrepScheduledEvent(BaseScheduledEvent):
                 return False
 
             self.sitrep.send_sitrep_if_new_day()
-            self.logger.info(f"📊 Daily SITREP: check completed")
+            self.logger.info("📊 Daily SITREP: check completed")
             return True
 
         except Exception as e:

@@ -5,7 +5,9 @@
 DataHandler processes incoming data packets from the mesh network interface.
 It attempts to resolve the sending node, logs relevant information, and ignores packets from the local node.
 """
+
 from handlers.base_handler import BaseHandler
+
 
 class DataHandler(BaseHandler):
     """
@@ -14,6 +16,7 @@ class DataHandler(BaseHandler):
         packet (dict): The received packet data.
         interface (object): The mesh network interface object.
     """
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -26,25 +29,19 @@ class DataHandler(BaseHandler):
             interface (object): The mesh network interface object.
         """
         self.logger.info(f"[on_receive_data] Received data packet: {packet}")
-        from_node_num = packet['from']
-        node = None
-        node_short_name = "Unknown"
-        localNode = interface.getNode('^local')
-        # Try to get node from interface
-        if hasattr(interface, 'nodesByNum') and from_node_num in interface.nodesByNum:
-            node = interface.nodesByNum[from_node_num]
-        elif hasattr(interface, 'nodes') and from_node_num in [n['num'] for n in interface.nodes.values()]:
-            for n in interface.nodes.values():
-                if n['num'] == from_node_num:
-                    node = n
-                    break
+        from_node_num = packet["from"]
+        node = self.node_info_utils.lookup_node(interface, from_node_num)
+        node_short_name = self._get_node_short_name(node)
         if node is None:
-            self.logger.warning(f"[on_receive_data] onReceiveData: Node {from_node_num} not found, skipping data handling.")
+            self.logger.warning(
+                f"[on_receive_data] onReceiveData: Node {from_node_num} not found, skipping data handling."
+            )
             return
-        if localNode.nodeNum == from_node_num:
-            self.logger.info(f"[on_receive_data] Received data from local node {from_node_num}. Ignoring packet.")
-            # Ignore packets from local node
+        if self._is_local_node(interface, from_node_num):
+            self.logger.info(
+                f"[on_receive_data] Received data from local node {from_node_num}. Ignoring packet."
+            )
             return
-        if node and 'user' in node and 'shortName' in node['user']:
-            node_short_name = node['user']['shortName']
-            self.logger.info(f"[on_receive_data] Received data from {node_short_name} - {from_node_num}.")
+        self.logger.info(
+            f"[on_receive_data] Received data from {node_short_name} - {from_node_num}."
+        )

@@ -1,4 +1,6 @@
+from core.constants import BROADCAST_DESTINATION, LOCAL_NODE_ID
 from keywords.keyword_handler import KeywordHandler
+
 
 class RequestpositionKeyword(KeywordHandler):
     def __init__(self):
@@ -16,29 +18,35 @@ class RequestpositionKeyword(KeywordHandler):
         Handle the 'requestposition' keyword. Requests position from the specified node.
         """
         self.logger.info("[handle] RequestpositionKeyword handler invoked.")
-        channel = packet['channel'] if 'channel' in packet else 0
-        local_node = interface.getNode('^local')
-        if 'to' in packet and packet['to'] == local_node.nodeNum:
-            to_id = packet['from']
+        channel = packet.get("channel", 0)
+        local_node = interface.getNode(LOCAL_NODE_ID)
+        if "to" in packet and packet["to"] == local_node.nodeNum:
+            to_id = packet["from"]
         else:
-            to_id = "^all"
+            to_id = BROADCAST_DESTINATION
         # Extract message string from decoded payload
-        message_string = ''
-        if 'decoded' in packet and 'payload' in packet['decoded']:
-            message_bytes = packet['decoded']['payload']
-            message_string = message_bytes.decode('utf-8').strip()
+        message_string = ""
+        if "decoded" in packet and "payload" in packet["decoded"]:
+            message_bytes = packet["decoded"]["payload"]
+            message_string = message_bytes.decode("utf-8").strip()
         args = message_string.split()
         if len(args) < 2:
-            self.logger.info("[handle] Usage: requestposition <node short name> not enough args provided.")
+            self.logger.info(
+                "[handle] Usage: requestposition <node short name> not enough args provided."
+            )
             reply = "Usage: requestposition <node short name>"
         else:
             node_short_name = args[1]
             node = self.node_info_utils.lookup_node(interface, node_short_name)
             if node:
                 self.logger.info(f"[handle] Requesting position from node {node_short_name}.")
-                self.message_sender.send_position_request(interface, node['num'], channel)
+                self.message_sender.send_position_request(interface, node["num"], channel)
                 reply = f"Requested position from {node_short_name}"
             else:
-                self.logger.error(f"[handle] Node {node_short_name} not found in my database. Unable to request position.")
-                reply = f"Node {node_short_name} not found in my database. Unable to request position."
+                self.logger.error(
+                    f"[handle] Node {node_short_name} not found in my database. Unable to request position."
+                )
+                reply = (
+                    f"Node {node_short_name} not found in my database. Unable to request position."
+                )
         self.message_sender.send_message(interface, reply, channel, to_id)
