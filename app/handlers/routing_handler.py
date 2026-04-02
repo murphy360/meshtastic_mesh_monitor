@@ -32,14 +32,28 @@ class RoutingHandler(BaseHandler):
                 admin_channel_number (int): Admin channel number for message sending.
         """
         from_node_num = packet["from"]
+        to_node_num = packet.get("to")
         node = self.node_info_utils.lookup_node(interface, from_node_num)
         node_short_name = self._get_node_short_name(node)
         routing_data = packet.get("decoded", {}).get("routing", {})
         error_reason = routing_data.get("errorReason", "NONE")
-        self.logger.info(
-            f"[on_receive_routing] onReceiveRouting called for node {node_short_name} - {from_node_num} "
-            f"errorReason={error_reason}"
-        )
+        request_id = packet.get("decoded", {}).get("requestId")
+        hop_limit = packet.get("hopLimit")
+        hop_start = packet.get("hopStart")
+        channel = packet.get("channel")
+
+        if error_reason == "NONE":
+            self.logger.debug(
+                f"[on_receive_routing] Routing ACK from {node_short_name} ({from_node_num}) "
+                f"to={to_node_num} requestId={request_id} channel={channel} "
+                f"hops={hop_start - hop_limit if hop_start and hop_limit else 'unknown'}"
+            )
+        else:
+            self.logger.warning(
+                f"[on_receive_routing] Routing error from {node_short_name} ({from_node_num}): "
+                f"errorReason={error_reason} to={to_node_num} requestId={request_id} "
+                f"channel={channel} hopLimit={hop_limit} hopStart={hop_start}"
+            )
         if node is None:
             self.logger.warning(
                 f"[on_receive_routing] onReceiveRouting: Node {from_node_num} not found, skipping routing handling."
@@ -49,7 +63,13 @@ class RoutingHandler(BaseHandler):
             if error_reason != "NONE":
                 self.logger.warning(
                     f"[on_receive_routing] Local node routing error: {error_reason} "
-                    f"(to={packet.get('to')}, decoded={packet.get('decoded', {}).get('requestId')})"
+                    f"to={to_node_num} requestId={request_id} channel={channel} "
+                    f"hopLimit={hop_limit} hopStart={hop_start}"
+                )
+            else:
+                self.logger.debug(
+                    f"[on_receive_routing] Local node routing ACK: "
+                    f"to={to_node_num} requestId={request_id} channel={channel}"
                 )
             return
         now = datetime.now(timezone.utc)
