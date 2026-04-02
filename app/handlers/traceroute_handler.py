@@ -82,17 +82,24 @@ class TracerouteHandler(BaseHandler):
         if "snrBack" in trace:
             originator_node = self.node_info_utils.lookup_node(interface, packet["to"])
             traced_node = self.node_info_utils.lookup_node(interface, packet["from"])
-            last_trace_time[traced_node["num"]] = datetime.now(timezone.utc)
-            self.logger.debug(
-                f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}"
-            )
+            if traced_node and isinstance(traced_node, dict):
+                last_trace_time[traced_node["num"]] = datetime.now(timezone.utc)
+                self.logger.debug(
+                    f"Setting last trace time for {self._get_node_short_name(traced_node)} to {last_trace_time[traced_node['num']]}"
+                )
+            else:
+                self.logger.warning(
+                    f"[on_receive_traceroute] Could not resolve traced node for {packet['from']}, skipping trace time update."
+                )
             for hop in trace["snrBack"]:
                 snr_back.append(hop)
             if "routeBack" in trace:
                 for hop in trace["routeBack"]:
                     node = self.node_info_utils.lookup_node(interface, hop)
                     if node:
-                        self.logger.debug(f"Adding node {node['user']['shortName']} to route back")
+                        self.logger.debug(
+                            f"Adding node {self._get_node_short_name(node)} to route back"
+                        )
                         route_back.append(node)
                     else:
                         self.logger.debug(f"Unknown node {hop} in route back")
@@ -122,7 +129,10 @@ class TracerouteHandler(BaseHandler):
             if "routeTo" in trace:
                 for hop in trace["routeTo"]:
                     node = self.node_info_utils.lookup_node(interface, hop)
-                    route_to.append(node)
+                    if node:
+                        route_to.append(node)
+                    else:
+                        route_to.append(hop)
             elif "route" in trace:
                 for hop in trace["route"]:
                     node = self.node_info_utils.lookup_node(interface, hop)
