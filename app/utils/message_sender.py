@@ -350,10 +350,11 @@ class MessageSender:
         self,
         interface,
         node_num,
-        channel,
+        trace_channel,
         hop_limit=2,
         to_id=BROADCAST_DESTINATION,
         original_message_id=None,
+        reply_channel=None,
     ):
         """
         Send a traceroute request to a specified node.
@@ -362,9 +363,14 @@ class MessageSender:
         Args:
             interface: The interface to interact with the mesh network.
             node_num (int): The number of the node to send the traceroute request to.
-            channel (int): The channel to send the request on.
+            trace_channel (int): The channel to send the traceroute on (e.g. public/LongFast).
             hop_limit (int): The maximum number of hops for the traceroute (default: 2).
+            to_id: The recipient for text replies.
+            original_message_id: The ID of the original message to reply to.
+            reply_channel (int | None): The channel for text replies. Defaults to trace_channel.
         """
+        if reply_channel is None:
+            reply_channel = trace_channel
         node = NodeInfoUtils.lookup_node(interface, node_num)
         node_name = DEFAULT_NODE_NAME
         if node and "user" in node and "shortName" in node["user"]:
@@ -373,7 +379,7 @@ class MessageSender:
         if original_message_id:
             self.send_llm_reply(
                 interface,
-                channel,
+                reply_channel,
                 original_message_id,
                 to_id,
                 f"Sending traceroute request to node {node_name} - {node_num}",
@@ -382,11 +388,11 @@ class MessageSender:
         def _do_trace():
             try:
                 self.logger.info(
-                    f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit} on channel {channel}"
+                    f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit} on channel {trace_channel}"
                 )
-                interface.sendTraceRoute(node_num, hop_limit, channel)
+                interface.sendTraceRoute(node_num, hop_limit, trace_channel)
                 self.logger.info(
-                    f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}"
+                    f"Traceroute request sent to node {node_num} on channel {trace_channel} with hop limit {hop_limit}"
                 )
             except Exception as e:
                 if "Timed out waiting for traceroute" in str(e):
@@ -398,10 +404,10 @@ class MessageSender:
 
                 if original_message_id:
                     self.send_llm_reply(
-                        interface, channel, original_message_id, to_id, user_response
+                        interface, reply_channel, original_message_id, to_id, user_response
                     )
                 else:
-                    self.send_llm_message(interface, user_response, channel, to_id)
+                    self.send_llm_message(interface, user_response, reply_channel, to_id)
 
         thread = threading.Thread(target=_do_trace, daemon=True)
         thread.start()

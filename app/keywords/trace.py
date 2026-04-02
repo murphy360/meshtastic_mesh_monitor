@@ -35,7 +35,13 @@ class TraceKeyword(KeywordHandler):
 
             try:
                 self.message_sender.send_trace_route(
-                    interface, node["num"], public_channel, hop_limit, to_id, original_message_id
+                    interface,
+                    node["num"],
+                    public_channel,
+                    hop_limit,
+                    to_id,
+                    original_message_id,
+                    reply_channel=channel,
                 )
                 self.logger.info(
                     f"[handle] Traceroute request sent to message_sender {node_identifier} - {node['num']} with hop_limit {hop_limit}"
