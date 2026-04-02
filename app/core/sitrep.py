@@ -485,11 +485,13 @@ class SITREP:
                 precision_bits = node.get("position", {}).get("precisionBits", 0)
                 last_heard = node.get("lastHeard", 0)
                 hops_away = node.get("hopsAway", -1)
-                role = node.get("role", DEFAULT_NODE_NAME)
 
                 node_num = node.get("num")
                 user_info = node.get("user", {})
                 short_name = user_info.get("shortName")
+                role = user_info.get("role", DEFAULT_NODE_NAME)
+
+                self.logger.debug(f"Node {short_name}: role={role} (raw user_info keys: {list(user_info.keys())})")
 
                 if self.localNode and self.localNode.nodeNum == node_num:
                     mesh_data["nodes"][0]["lat"] = latitude
