@@ -462,14 +462,10 @@ class MessageSender:
             f"Sending reply to node {to_id} with original message ID {original_message_id}"
         )
         try:
-            # Prepare reply as a Data protobuf, ensure UTF-8 encoding and set reply_id
-            from meshtastic.protobuf import mesh_pb2, portnums_pb2
+            from meshtastic.protobuf import portnums_pb2
 
-            data_message = mesh_pb2.Data(
-                payload=reply_text.strip().encode("utf-8"), reply_id=original_message_id
-            )
             sent_packet = interface.sendData(
-                data_message,
+                reply_text.strip().encode("utf-8"),
                 destinationId=to_id,
                 channelIndex=channel,
                 portNum=portnums_pb2.TEXT_MESSAGE_APP,
@@ -494,20 +490,20 @@ class MessageSender:
             f"Sending thumbs up to node {to_id} with original message ID {original_message_id}"
         )
         try:
-            # Prepare thumbs up as a Data protobuf, ensure UTF-8 encoding and set reply_id
             from meshtastic.protobuf import mesh_pb2, portnums_pb2
 
-            data_message = mesh_pb2.Data(
-                payload="👍".encode(), reply_id=original_message_id, emoji=True
-            )
-            sent_packet = interface.sendData(
-                data_message,
-                destinationId=to_id,
-                channelIndex=channel,
-                portNum=portnums_pb2.TEXT_MESSAGE_APP,
-                wantResponse=False,
-                wantAck=False,
-                replyId=original_message_id,
+            meshPacket = mesh_pb2.MeshPacket()
+            meshPacket.channel = channel
+            meshPacket.decoded.payload = "👍".encode()
+            meshPacket.decoded.portnum = portnums_pb2.TEXT_MESSAGE_APP
+            meshPacket.decoded.want_response = False
+            meshPacket.decoded.reply_id = original_message_id
+            meshPacket.decoded.emoji = 1
+            meshPacket.id = interface._generatePacketId()
+            meshPacket.priority = mesh_pb2.MeshPacket.Priority.RELIABLE
+
+            sent_packet = interface._sendPacket(
+                meshPacket, destinationId=to_id
             )
             self.logger.info(f"Sent thumbs up packet: {sent_packet}")
         except Exception as e:
