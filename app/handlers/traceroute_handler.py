@@ -133,7 +133,7 @@ class TracerouteHandler(BaseHandler):
         route_to.append(traced_node)
         i = 0
         for node in route_to:
-            if "user" in node:
+            if isinstance(node, dict) and "user" in node:
                 message_string += f"{node['user']['shortName']}"
             else:
                 message_string += f"{node}"
@@ -145,7 +145,10 @@ class TracerouteHandler(BaseHandler):
             if i < len(snr_back):
                 message_string += f" -> ({snr_back[i]}dB) "
                 i += 1
-            message_string += f"{node['user']['shortName']}"
+            if isinstance(node, dict) and "user" in node:
+                message_string += f"{node['user']['shortName']}"
+            else:
+                message_string += f"{node}"
         if message_string.endswith(" ->"):
             message_string = message_string[:-3]
         route_full = route_to + route_back
