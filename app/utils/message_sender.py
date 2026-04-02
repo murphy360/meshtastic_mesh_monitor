@@ -388,19 +388,31 @@ class MessageSender:
         def _do_trace():
             try:
                 self.logger.info(
-                    f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit} on channel {trace_channel}"
+                    f"[traceroute] Starting traceroute to {node_name} ({node_num}) "
+                    f"hop_limit={hop_limit} trace_channel={trace_channel} reply_channel={reply_channel}"
+                )
+                node_count = len(interface.nodes) if interface.nodes else 0
+                wait_factor = max(
+                    1, min(node_count - 1 if node_count > 1 else hop_limit + 1, hop_limit + 1)
+                )
+                self.logger.info(
+                    f"[traceroute] Node count={node_count}, estimated wait_factor={wait_factor} — "
+                    f"this may block for a while"
                 )
                 interface.sendTraceRoute(node_num, hop_limit, trace_channel)
                 self.logger.info(
-                    f"Traceroute request sent to node {node_num} on channel {trace_channel} with hop limit {hop_limit}"
+                    f"[traceroute] Completed traceroute to {node_name} ({node_num}) on channel {trace_channel}"
                 )
             except Exception as e:
+                self.logger.error(
+                    f"[traceroute] Exception during traceroute to {node_name} ({node_num}): {type(e).__name__}: {e}"
+                )
                 if "Timed out waiting for traceroute" in str(e):
                     user_response = f"Timed out waiting for traceroute response from {node_name}. Try again later."
-                    self.logger.warning(user_response)
+                    self.logger.warning(f"[traceroute] {user_response}")
                 else:
                     user_response = f"Error sending traceroute request to {node_name}: {e}"
-                    self.logger.error(f"Error sending traceroute request: {e}")
+                    self.logger.error(f"[traceroute] {user_response}")
 
                 if original_message_id:
                     self.send_llm_reply(
