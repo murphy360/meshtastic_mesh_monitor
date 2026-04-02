@@ -83,8 +83,12 @@ class TracerouteHandler(BaseHandler):
             if 'routeBack' in trace:
                 for hop in trace['routeBack']:
                     node = self.node_info_utils.lookup_node(interface, hop)
-                    self.logger.debug(f"Adding node {node['user']['shortName']} to route back")
-                    route_back.append(node)
+                    if node:
+                        self.logger.debug(f"Adding node {node['user']['shortName']} to route back")
+                        route_back.append(node)
+                    else:
+                        self.logger.debug(f"Unknown node {hop} in route back")
+                        route_back.append(hop)
             route_back.append(originator_node)
         else:
                 self.logger.info(f"[on_receive_traceroute] Traced by node: {node_short_name}")
