@@ -122,13 +122,14 @@ class SITREP:
         return
 
     def add_trace(self, trace):
-        # self.logger.info(f"Adding trace: {trace}")
         # Iterate through list of nodes in trace and use add_extra_connection to add connections
         for i in range(len(trace) - 1):
-            # self.logger.info(f"Adding extra connection between {trace[i]['user']['shortName']} and {trace[i + 1]['user']['shortName']}")
-            self.add_extra_connection(
-                trace[i]["user"]["shortName"], trace[i + 1]["user"]["shortName"]
-            )
+            node_a = trace[i]
+            node_b = trace[i + 1]
+            name_a = node_a.get("user", {}).get("shortName") if isinstance(node_a, dict) else None
+            name_b = node_b.get("user", {}).get("shortName") if isinstance(node_b, dict) else None
+            if name_a and name_b:
+                self.add_extra_connection(name_a, name_b)
 
     def add_extra_connection(self, node1_short_name, node2_short_name):
         # add dictionary entry for node1_short_name with node2_short_name as value
