@@ -1,5 +1,7 @@
-from keywords.keyword_handler import KeywordHandler
+from core.constants import BROADCAST_DESTINATION, LOCAL_NODE_ID
 from core.database import SQLiteHelper
+from keywords.keyword_handler import KeywordHandler
+
 
 class SetaircraftKeyword(KeywordHandler):
 
@@ -10,21 +12,21 @@ class SetaircraftKeyword(KeywordHandler):
     def handle(self, interface, packet):
         self.logger.info("[handle] SetaircraftKeyword handler invoked.")
 
-        channel = packet['channel'] if 'channel' in packet else 0
-        local_node = interface.getNode('^local')
-        if 'to' in packet and packet['to'] == local_node.nodeNum:
-            to_id = packet['from']
+        channel = packet.get("channel", 0)
+        local_node = interface.getNode(LOCAL_NODE_ID)
+        if "to" in packet and packet["to"] == local_node.nodeNum:
+            to_id = packet["from"]
         else:
-            to_id = "^all"
+            to_id = BROADCAST_DESTINATION
 
         # Extract message string from decoded payload
-        message_string = ''
-        if 'decoded' not in packet or 'payload' not in packet['decoded']:
+        message_string = ""
+        if "decoded" not in packet or "payload" not in packet["decoded"]:
             self.logger.error("[handle] No decoded payload found in packet.")
             return
 
-        message_bytes = packet['decoded']['payload']
-        message_string = message_bytes.decode('utf-8').strip()
+        message_bytes = packet["decoded"]["payload"]
+        message_string = message_bytes.decode("utf-8").strip()
         args = message_string.split()
 
         node_identifier = args[1] if len(args) > 1 else None
@@ -34,17 +36,33 @@ class SetaircraftKeyword(KeywordHandler):
 
         if not node:
             self.logger.error(f"[handle] Node {node_identifier} not found")
-            self.message_sender.send_message(interface, f"Node {node_identifier} not found", channel, to_id)
+            self.message_sender.send_message(
+                interface, f"Node {node_identifier} not found", channel, to_id
+            )
             return
 
-        if set_as_aircraft not in ['true', 'false']:
-            self.logger.error(f"[handle] Invalid argument for set_as_aircraft: {set_as_aircraft}. Must be 'true' or 'false'.")
-            self.message_sender.send_message(interface, f"Invalid argument for set_as_aircraft: {set_as_aircraft}. Must be 'true' or 'false'.", channel, to_id)
+        if set_as_aircraft not in ["true", "false"]:
+            self.logger.error(
+                f"[handle] Invalid argument for set_as_aircraft: {set_as_aircraft}. Must be 'true' or 'false'."
+            )
+            self.message_sender.send_message(
+                interface,
+                f"Invalid argument for set_as_aircraft: {set_as_aircraft}. Must be 'true' or 'false'.",
+                channel,
+                to_id,
+            )
             return
 
-        self.logger.info(f"[handle] Setting aircraft status for node {node['user']['shortName']} to {set_as_aircraft}")
+        self.logger.info(
+            f"[handle] Setting aircraft status for node {node['user']['shortName']} to {set_as_aircraft}"
+        )
         self.db_helper.set_aircraft(node, set_as_aircraft)
-        self.message_sender.send_message(interface, f"Node {node_identifier} aircraft status set to {set_as_aircraft}", channel, to_id)
+        self.message_sender.send_message(
+            interface,
+            f"Node {node_identifier} aircraft status set to {set_as_aircraft}",
+            channel,
+            to_id,
+        )
 
     def get_description(self):
         self.logger.info("[get_description] Providing description for setaircraft keyword.")

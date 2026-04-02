@@ -5,54 +5,54 @@ This is a simple test task that executes every minute, logs a heartbeat,
 and sends a message to the admin channel. Useful for verifying the scheduler is working.
 """
 
-from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 from datetime import datetime, timezone
+
+from core.constants import BROADCAST_DESTINATION
+
+from .base_scheduled_event import BaseScheduledEvent, ScheduleType
 
 
 class TestHeartbeatScheduledEvent(BaseScheduledEvent):
     """
     Simple test task that logs and sends a heartbeat every minute.
-    
+
     Demonstrates:
     - Interval-based scheduling (not CRON)
     - Sending messages to a specific channel
     - Using ConfigManager to get channel numbers
     - Minimal task implementation
     """
-    
+
     # Task configuration
     name = "Test Heartbeat"
     enabled = True
     schedule_type = ScheduleType.INTERVAL
     interval_minutes = 60  # Every hour
-    
+
     def execute(self) -> bool:
         """
         Execute the test heartbeat - log and send message to admin channel.
-        
+
         Returns:
             bool: True if successful, False if failed
         """
         try:
             timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
             self.logger.info(f"🫀 Test Heartbeat - {timestamp}")
-            
+
             # Send message to admin channel using LLM
             if self.message_sender and self.interfaces and self.config_manager:
-                tcp_interface = self.interfaces.get('tcp_interface')
+                tcp_interface = self.interfaces.get("tcp_interface")
                 if tcp_interface:
                     admin_channel = self.config_manager.get_admin_channel()
                     message = f"🫀 Heartbeat - {timestamp} UTC"
-                    
+
                     self.message_sender.send_llm_message(
-                        tcp_interface,
-                        message,
-                        admin_channel,
-                        "^all"
+                        tcp_interface, message, admin_channel, BROADCAST_DESTINATION
                     )
-            
+
             return True
-        
+
         except Exception as e:
             self.logger.error(f"Error in test heartbeat: {e}")
             return False

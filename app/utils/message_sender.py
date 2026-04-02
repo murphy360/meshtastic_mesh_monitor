@@ -1,12 +1,25 @@
-from utils.logger import get_logger
-from interfaces.gemini_interface import GeminiInterface
-import time
-import threading
-import queue
-from meshtastic import config_pb2, mesh_pb2, portnums_pb2
-from utils.node_info_utils import NodeInfoUtils
-from utils.location_utils import LocationUtils
 import base64
+import queue
+import threading
+import time
+
+from core.constants import (
+    BROADCAST_DESTINATION,
+    DEFAULT_NODE_NAME,
+    LOCAL_NODE_ID,
+    MESSAGE_CHUNK_SIZE,
+    MESSAGE_MAX_LENGTH,
+    MESSAGE_QUEUE_DELAY_SECONDS,
+    MESSAGE_RETRY_BACKOFF_SECONDS,
+    MESSAGE_SEND_MAX_RETRIES,
+)
+from interfaces.gemini_interface import GeminiInterface
+from meshtastic import config_pb2, mesh_pb2, portnums_pb2
+
+from utils.location_utils import LocationUtils
+from utils.logger import get_logger
+from utils.node_info_utils import NodeInfoUtils
+
 
 class MessageSender:
     _instance = None
@@ -18,7 +31,7 @@ class MessageSender:
             if cls._instance is None:
                 cls._instance = cls()
         return cls._instance
-    
+
     def send_node_info_simple(self, interface, public_channel_number=0):
         """
         Send the local node info to the mesh network on the specified channel using local_node.sendNodeInfo if available.
@@ -26,22 +39,25 @@ class MessageSender:
             interface: The mesh network interface.
             public_channel_number (int): The channel to send the info on.
         """
-        self.logger.info(f"[send_node_info_simple] Sending local node info on channel {public_channel_number}")
-        local_node = interface.getNode('^local')
+        self.logger.info(
+            f"[send_node_info_simple] Sending local node info on channel {public_channel_number}"
+        )
+        local_node = interface.getNode(LOCAL_NODE_ID)
         if local_node:
-            if hasattr(local_node, 'sendNodeInfo'):
+            if hasattr(local_node, "sendNodeInfo"):
                 local_node.sendNodeInfo(public_channel_number)
                 self.logger.info("[send_node_info_simple] Node info sent successfully.")
             else:
-                self.logger.error("[send_node_info_simple] local_node does not have sendNodeInfo method.")
+                self.logger.error(
+                    "[send_node_info_simple] local_node does not have sendNodeInfo method."
+                )
         else:
             self.logger.error("[send_node_info_simple] Local node not found.")
-    
 
     logger = get_logger(__name__)
 
     def __init__(self):
-        self.logger.debug(f"Initializing MessageSender")
+        self.logger.debug("Initializing MessageSender")
         self.gemini_interface = GeminiInterface.get_instance()
         self._message_queue = queue.Queue()
         self._stop_event = threading.Event()
@@ -55,7 +71,7 @@ class MessageSender:
                 if item:
                     interface, message, channel, to_id = item
                     self._send_message_now(interface, message, channel, to_id)
-                    time.sleep(3)
+                    time.sleep(MESSAGE_QUEUE_DELAY_SECONDS)
             except queue.Empty:
                 continue
 
@@ -67,15 +83,17 @@ class MessageSender:
         """
         Send a message via LLM (if implemented).
         """
-        self.logger.info(f"send_llm_message called with message: {message}, channel: {channel}, to_id: {to_id}")
-        if to_id != "^all":
+        self.logger.info(
+            f"send_llm_message called with message: {message}, channel: {channel}, to_id: {to_id}"
+        )
+        if to_id != BROADCAST_DESTINATION:
             to_node = NodeInfoUtils.lookup_node(interface, to_id)
-            if to_node and 'user' in to_node and 'shortName' in to_node['user']:
-                node_name = to_node['user']['shortName']
+            if to_node and "user" in to_node and "shortName" in to_node["user"]:
+                node_name = to_node["user"]["shortName"]
                 message = f"{node_name}, {message}"
                 response = self.gemini_interface.generate_response(message, channel, node_name)
                 return
-            
+
         response = self.gemini_interface.generate_response(message, channel)
 
         if response:
@@ -104,10 +122,15 @@ class MessageSender:
         Enqueue a message to be sent to a specified channel and node, chunking if necessary.
         """
         self.logger.info(f"Queueing message: {message}, channel: {channel}, to_id: {to_id}")
-        if len(message) > 240:
-            message_chunks = [message[i:i + 200] for i in range(0, len(message), 200)]
+        if len(message) > MESSAGE_MAX_LENGTH:
+            message_chunks = [
+                message[i : i + MESSAGE_CHUNK_SIZE]
+                for i in range(0, len(message), MESSAGE_CHUNK_SIZE)
+            ]
             total_messages = len(message_chunks)
-            self.logger.info(f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of 200 characters each.")
+            self.logger.info(
+                f"Message is too long ({len(message)} characters). Splitting into {total_messages} chunks of {MESSAGE_CHUNK_SIZE} characters each."
+            )
             current_chunk = 1
             for chunk in message_chunks:
                 chunk = f"({current_chunk}/{total_messages}) {chunk}"
@@ -117,28 +140,39 @@ class MessageSender:
             self._message_queue.put((interface, message, channel, to_id))
 
     def _send_message_now(self, interface, message, channel, to_id):
-        self.logger.info(f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}")
-        max_retries = 3
+        self.logger.info(
+            f"Sending message: {message} to channel {channel} and node {to_id}. Length: {len(message)}"
+        )
+        max_retries = MESSAGE_SEND_MAX_RETRIES
         for attempt in range(1, max_retries + 1):
             try:
-                sent_message = interface.sendText(message, channelIndex=channel, destinationId=to_id)
+                sent_message = interface.sendText(
+                    message, channelIndex=channel, destinationId=to_id
+                )
                 self.logger.info(f"Sent message: {sent_message}")
                 return
             except Exception as e:
                 if "Data payload too big" in str(e):
                     self.logger.error("Message too long to send. Please shorten the message.")
-                    if hasattr(self, 'send_llm_message'):
-                        self.send_llm_message(interface, f"[Message too long to send. Please shorten further] {message}.", channel, to_id)
+                    if hasattr(self, "send_llm_message"):
+                        self.send_llm_message(
+                            interface,
+                            f"[Message too long to send. Please shorten further] {message}.",
+                            channel,
+                            to_id,
+                        )
                     return
                 if attempt < max_retries:
-                    wait_time = attempt * 5
-                    self.logger.warning(f"Error sending message (attempt {attempt}/{max_retries}): {e} - retrying in {wait_time}s")
+                    wait_time = attempt * MESSAGE_RETRY_BACKOFF_SECONDS
+                    self.logger.warning(
+                        f"Error sending message (attempt {attempt}/{max_retries}): {e} - retrying in {wait_time}s"
+                    )
                     time.sleep(wait_time)
                 else:
-                    self.logger.error(f"Error sending message after {max_retries} attempts: {e} - message dropped")
+                    self.logger.error(
+                        f"Error sending message after {max_retries} attempts: {e} - message dropped"
+                    )
                     return
-           
-            
 
     def send_node_info(self, interface, public_channel_number=1, admin_channel_number=2):
         """
@@ -152,31 +186,33 @@ class MessageSender:
         self.logger.info(f"Sending node info on public channel {public_channel_number}")
         try:
             user = mesh_pb2.User()
-            local_node_user = interface.nodesByNum[interface.localNode.nodeNum]['user']
-            user.id = local_node_user['id']
-            user.long_name = local_node_user['longName']
-            user.short_name = local_node_user['shortName']
-            user.hw_model = mesh_pb2.HardwareModel.Value(local_node_user['hwModel'])
+            local_node_user = interface.nodesByNum[interface.localNode.nodeNum]["user"]
+            user.id = local_node_user["id"]
+            user.long_name = local_node_user["longName"]
+            user.short_name = local_node_user["shortName"]
+            user.hw_model = mesh_pb2.HardwareModel.Value(local_node_user["hwModel"])
             self.logger.info(f"User ID: {user.id}")
-            user.public_key = base64.b64decode(local_node_user['publicKey'])
-            if 'role' in local_node_user and local_node_user['role']:
+            user.public_key = base64.b64decode(local_node_user["publicKey"])
+            if local_node_user.get("role"):
                 self.logger.info(f"User role: {local_node_user['role']}")
-                user.role = config_pb2.Config.DeviceConfig.Role.Value(local_node_user['role'])
+                user.role = config_pb2.Config.DeviceConfig.Role.Value(local_node_user["role"])
             interface.sendData(
                 user,
                 destinationId=public_channel_number,
                 portNum=portnums_pb2.NODEINFO_APP,
                 wantAck=False,
-                wantResponse=True
+                wantResponse=True,
             )
             self.logger.info(f"Node info sent to public channel {public_channel_number}")
         except Exception as e:
-            self.logger.error(f"Error sending node info to public channel {public_channel_number}: {e}")
+            self.logger.error(
+                f"Error sending node info to public channel {public_channel_number}: {e}"
+            )
             sender = MessageSender.get_instance()
             message = f"Error sending node info to public channel: {e}"
-            sender.send_message(interface, message, admin_channel_number, "^all")
+            sender.send_message(interface, message, admin_channel_number, BROADCAST_DESTINATION)
             return
-        
+
     def send_position_request(self, interface, node_num, public_channel_number=0):
         """
         Send a position request to a specified node.
@@ -188,18 +224,24 @@ class MessageSender:
         """
         self.logger.info(f"Sending position request to node {node_num}")
         try:
-            local_node = interface.getNode('^local')
+            local_node = interface.getNode(LOCAL_NODE_ID)
             if local_node is None:
-                self.logger.error("[send_position_request] Local node not found. Cannot send position request.")
+                self.logger.error(
+                    "[send_position_request] Local node not found. Cannot send position request."
+                )
                 return
-            
+
             location_utils = LocationUtils()
-            local_node_lat, local_node_lon, local_node_alt = location_utils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
-            
+            local_node_lat, local_node_lon, local_node_alt = (
+                location_utils.get_lat_lon_alt_by_node_num(interface, local_node.nodeNum)
+            )
+
             if local_node_lat is None or local_node_lon is None:
-                self.logger.error("[send_position_request] Local node position not available. Cannot send position request.")
+                self.logger.error(
+                    "[send_position_request] Local node position not available. Cannot send position request."
+                )
                 return
-            
+
             self.send_position(
                 interface=interface,
                 latitude=local_node_lat,
@@ -207,13 +249,22 @@ class MessageSender:
                 altitude=local_node_alt if local_node_alt is not None else 0,
                 want_response=True,
                 channel=public_channel_number,
-                to_id=node_num
+                to_id=node_num,
             )
 
         except Exception as e:
             self.logger.error(f"Error sending position request: {e}")
-    
-    def send_position(self, interface, latitude, longitude, altitude, want_response=False, channel=0, to_id="^all"):
+
+    def send_position(
+        self,
+        interface,
+        latitude,
+        longitude,
+        altitude,
+        want_response=False,
+        channel=0,
+        to_id=BROADCAST_DESTINATION,
+    ):
         """
         Send a position message to the specified channel and node.
 
@@ -225,7 +276,9 @@ class MessageSender:
             channel (int): The channel to send the position on (default: 0).
             to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
         """
-        self.logger.info(f"Sending position to {to_id} on channel {channel}: lat={latitude}, lon={longitude}, alt={altitude}")
+        self.logger.info(
+            f"Sending position to {to_id} on channel {channel}: lat={latitude}, lon={longitude}, alt={altitude}"
+        )
         try:
             interface.sendPosition(
                 latitude=latitude,
@@ -233,11 +286,11 @@ class MessageSender:
                 altitude=altitude,
                 destinationId=to_id,
                 wantResponse=want_response,
-                channelIndex=channel
+                channelIndex=channel,
             )
         except Exception as e:
             self.logger.error(f"Error sending position: {e}")
-    
+
     def send_llm_message_with_url(self, interface, message, channel, to_id, url):
         """
         Send a message to the LLM with a URL and receive a response.
@@ -248,7 +301,9 @@ class MessageSender:
             to_id (str): The ID of the recipient.
             url (str): The URL to append to the message.
         """
-        self.logger.info(f"send_llm_message_with_url called with message: {message}, channel: {channel}, to_id: {to_id}, url: {url}")
+        self.logger.info(
+            f"send_llm_message_with_url called with message: {message}, channel: {channel}, to_id: {to_id}, url: {url}"
+        )
 
         # Generate response using Gemini interface
         response_text = self.gemini_interface.generate_response(message, channel)
@@ -262,7 +317,7 @@ class MessageSender:
 
         self.send_message(interface, response_text, channel, to_id)
         # wait 3 seconds to avoid overwhelming the network
-        time.sleep(3)
+        time.sleep(MESSAGE_QUEUE_DELAY_SECONDS)
         self.send_message(interface, f"Link: {url}", channel, to_id)
 
     def send_direct_reply(self, interface, message, channel, from_id):
@@ -283,15 +338,23 @@ class MessageSender:
             self.logger.warning(f"Node not found for from_id {from_id}, sending default response")
             self.send_message(interface, response_text, channel, from_id)
             return
-        if 'user' in node and 'shortName' in node['user']:
+        if "user" in node and "shortName" in node["user"]:
             self.logger.info(f"Node found: {node['user']['shortName']} - {node['num']}")
-            short_name = node['user']['shortName']
+            short_name = node["user"]["shortName"]
             response_text = self.gemini_interface.generate_response(message, channel, short_name)
-        
+
         self.logger.debug(f"Response: {response_text}")
         self.send_message(interface, response_text, channel, from_id)
 
-    def send_trace_route(self, interface, node_num, channel, hop_limit=2, to_id="^all", original_message_id=None):
+    def send_trace_route(
+        self,
+        interface,
+        node_num,
+        channel,
+        hop_limit=2,
+        to_id=BROADCAST_DESTINATION,
+        original_message_id=None,
+    ):
         """
         Send a traceroute request to a specified node.
         Runs in a background thread to avoid blocking packet callbacks.
@@ -303,18 +366,28 @@ class MessageSender:
             hop_limit (int): The maximum number of hops for the traceroute (default: 2).
         """
         node = NodeInfoUtils.lookup_node(interface, node_num)
-        node_name = "Unknown"
-        if node and 'user' in node and 'shortName' in node['user']:
-            node_name = node['user']['shortName']
+        node_name = DEFAULT_NODE_NAME
+        if node and "user" in node and "shortName" in node["user"]:
+            node_name = node["user"]["shortName"]
 
         if original_message_id:
-            self.send_llm_reply(interface, channel, original_message_id, to_id, f"Sending traceroute request to node {node_name} - {node_num}")
+            self.send_llm_reply(
+                interface,
+                channel,
+                original_message_id,
+                to_id,
+                f"Sending traceroute request to node {node_name} - {node_num}",
+            )
 
         def _do_trace():
             try:
-                self.logger.info(f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit} on channel {channel}")
+                self.logger.info(
+                    f"Sending traceroute request to node {node_name} - {node_num} with hop limit {hop_limit} on channel {channel}"
+                )
                 interface.sendTraceRoute(node_num, hop_limit, channel)
-                self.logger.info(f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}")
+                self.logger.info(
+                    f"Traceroute request sent to node {node_num} on channel {channel} with hop limit {hop_limit}"
+                )
             except Exception as e:
                 if "Timed out waiting for traceroute" in str(e):
                     user_response = f"Timed out waiting for traceroute response from {node_name}. Try again later."
@@ -324,7 +397,9 @@ class MessageSender:
                     self.logger.error(f"Error sending traceroute request: {e}")
 
                 if original_message_id:
-                    self.send_llm_reply(interface, channel, original_message_id, to_id, user_response)
+                    self.send_llm_reply(
+                        interface, channel, original_message_id, to_id, user_response
+                    )
                 else:
                     self.send_llm_message(interface, user_response, channel, to_id)
 
@@ -341,7 +416,9 @@ class MessageSender:
             to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
             reply_text (str): The text of the reply message.
         """
-        self.logger.info(f"send_llm_reply called with original_message_id: {original_message_id}, to_id: {to_id}, reply_text: {reply_text}")
+        self.logger.info(
+            f"send_llm_reply called with original_message_id: {original_message_id}, to_id: {to_id}, reply_text: {reply_text}"
+        )
         response = self.gemini_interface.generate_response(reply_text, channel)
         if response:
             self.logger.info(f"LLM Reply Response: {response}")
@@ -360,13 +437,15 @@ class MessageSender:
             to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
             reply_text (str): The text of the reply message.
         """
-        self.logger.info(f"Sending reply to node {to_id} with original message ID {original_message_id}")
+        self.logger.info(
+            f"Sending reply to node {to_id} with original message ID {original_message_id}"
+        )
         try:
             # Prepare reply as a Data protobuf, ensure UTF-8 encoding and set reply_id
             from meshtastic.protobuf import mesh_pb2, portnums_pb2
+
             data_message = mesh_pb2.Data(
-                payload=reply_text.strip().encode("utf-8"),
-                reply_id=original_message_id
+                payload=reply_text.strip().encode("utf-8"), reply_id=original_message_id
             )
             sent_packet = interface.sendData(
                 data_message,
@@ -375,13 +454,12 @@ class MessageSender:
                 portNum=portnums_pb2.TEXT_MESSAGE_APP,
                 wantResponse=False,
                 wantAck=False,
-                replyId=original_message_id
-
+                replyId=original_message_id,
             )
             self.logger.info(f"Sent reply packet: {sent_packet}")
         except Exception as e:
             self.logger.error(f"Error sending reply: {e}")
-               
+
     def send_thumbs_up_reply(self, interface, channel, original_message_id, to_id):
         """
         Send a thumbs up reaction to a message using sendData with replyId.
@@ -391,14 +469,15 @@ class MessageSender:
             original_message_id (str|int): The ID of the original message to react to.
             to_id (str|int): The ID of the recipient. '^all' for all nodes, or a specific node ID.
         """
-        self.logger.info(f"Sending thumbs up to node {to_id} with original message ID {original_message_id}")
+        self.logger.info(
+            f"Sending thumbs up to node {to_id} with original message ID {original_message_id}"
+        )
         try:
             # Prepare thumbs up as a Data protobuf, ensure UTF-8 encoding and set reply_id
             from meshtastic.protobuf import mesh_pb2, portnums_pb2
+
             data_message = mesh_pb2.Data(
-                payload="👍".encode("utf-8"),
-                reply_id=original_message_id,
-                emoji=True
+                payload="👍".encode(), reply_id=original_message_id, emoji=True
             )
             sent_packet = interface.sendData(
                 data_message,
@@ -407,8 +486,8 @@ class MessageSender:
                 portNum=portnums_pb2.TEXT_MESSAGE_APP,
                 wantResponse=False,
                 wantAck=False,
-                replyId=original_message_id
+                replyId=original_message_id,
             )
             self.logger.info(f"Sent thumbs up packet: {sent_packet}")
         except Exception as e:
-            self.logger.error(f"Error sending thumbs up: {e}")     
+            self.logger.error(f"Error sending thumbs up: {e}")

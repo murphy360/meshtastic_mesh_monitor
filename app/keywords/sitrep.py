@@ -1,5 +1,6 @@
-from keywords.keyword_handler import KeywordHandler
 from core.sitrep import SITREP
+from keywords.keyword_handler import KeywordHandler
+
 
 class SitrepKeyword(KeywordHandler):
     def __init__(self):
@@ -20,24 +21,14 @@ class SitrepKeyword(KeywordHandler):
         """
         self.logger.info("[handle] SitrepKeyword handler invoked.")
 
-        # Get local node info
-        local_node = interface.getNode('^local')
         sitrep = SITREP.get_instance()
         sitrep.set_interface(interface)
         sitrep.update_sitrep()
 
-        channel = packet.get('channel', 0)
-        from_node_num = packet['from']
-        to_id = packet.get('to', '^all')
-
-        # Determine if direct message or channel message
-        if to_id == local_node.nodeNum:
-            # Direct message, reply directly
-            reply_to = from_node_num
-        else:
-            # Channel message, reply to channel
-            reply_to = '^all'
+        channel, reply_to = self._get_reply_target(packet, interface)
 
         # Send each SITREP line as a message
-        self.logger.info(f"[handle] Sending SITREP report to channel {channel}, reply_to {reply_to}")
+        self.logger.info(
+            f"[handle] Sending SITREP report to channel {channel}, reply_to {reply_to}"
+        )
         sitrep.send_report(channel, reply_to)

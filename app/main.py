@@ -1,45 +1,59 @@
-from utils.node_info_utils import NodeInfoUtils
 import os
-import time
 import threading
-import geopy
-from geopy import distance
+import time
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+
 import meshtastic
 import meshtastic.tcp_interface
-from meshtastic.protobuf import mesh_pb2
-from meshtastic import BROADCAST_NUM
-from core.database import SQLiteHelper
-from pubsub import pub
-from core.sitrep import SITREP
-from datetime import datetime, timezone, timedelta
-from collections import defaultdict
-from interfaces.gemini_interface import GeminiInterface
-from interfaces.weather_interface import WeatherGovInterface
-from interfaces.rss_interface import RSSInterface
-from interfaces.web_scraper_interface import WebScraperInterface
-from utils.logger import get_logger
-from utils.message_sender import MessageSender
-from utils.location_utils import LocationUtils
 from config.config_manager import ConfigManager
-from handlers.text_handler import TextHandler
-from handlers.position_handler import PositionHandler
+from core.constants import (
+    BROADCAST_DESTINATION,
+    CONFIG_WRITE_DELAY_SECONDS,
+    DEFAULT_NODE_NAME,
+    DEFAULT_SERIAL_DEVICE,
+    DEFAULT_TCP_SERVER,
+    HEARTBEAT_FAILURE_THRESHOLD,
+    INITIAL_DISCOVERY_TIMEOUT_SECONDS,
+    INITIAL_TRACE_OFFSET_SECONDS,
+    LOCAL_NODE_ID,
+    LOG_SEPARATOR,
+    MAIN_LOOP_INTERVAL_SECONDS,
+    POSITION_ALTITUDE_TOLERANCE,
+    POSITION_COORDINATE_TOLERANCE,
+    TRACE_INTERVAL_HOURS,
+    USER_AGENT_STRING,
+)
+from core.database import SQLiteHelper
+from core.sitrep import SITREP
 from handlers.data_handler import DataHandler
-from handlers.user_handler import UserHandler
-from handlers.telemetry_handler import TelemetryHandler
 from handlers.neighbor_info_handler import NeighborInfoHandler
 from handlers.node_info_handler import NodeInfoHandler
-from handlers.routing_handler import RoutingHandler
-from handlers.traceroute_handler import TracerouteHandler
-from handlers.waypoint_handler import WaypointHandler
+from handlers.position_handler import PositionHandler
 from handlers.range_test_handler import RangeTestHandler
+from handlers.routing_handler import RoutingHandler
+from handlers.telemetry_handler import TelemetryHandler
+from handlers.text_handler import TextHandler
+from handlers.traceroute_handler import TracerouteHandler
+from handlers.user_handler import UserHandler
+from handlers.waypoint_handler import WaypointHandler
+from interfaces.gemini_interface import GeminiInterface
+from interfaces.rss_interface import RSSInterface
+from interfaces.weather_interface import WeatherGovInterface
+from interfaces.web_scraper_interface import WebScraperInterface
+from pubsub import pub
 from scheduled_events.scheduled_events_service import ScheduledEventsService
+from utils.location_utils import LocationUtils
+from utils.logger import get_logger
+from utils.message_sender import MessageSender
+from utils.node_info_utils import NodeInfoUtils
 
 # Initialize unified logging system
 logger = get_logger(__name__)
 
-logger.info("=" * 60)
+logger.info(LOG_SEPARATOR)
 logger.info("🚀 STARTING MESH MONITOR")
-logger.info("=" * 60)
+logger.info(LOG_SEPARATOR)
 
 db_helper = SQLiteHelper.get_instance()
 sitrep = SITREP()
@@ -49,18 +63,17 @@ sitrep = SITREP()
 # Global variables
 localNode = ""
 
-TCP_SERVER = os.getenv('TCP_SERVER', 'meshtastic.local')  # Default to meshtastic.local if not set
-connect_timeout = 60 # seconds
+TCP_SERVER = os.getenv("TCP_SERVER", DEFAULT_TCP_SERVER)
+connect_timeout = MAIN_LOOP_INTERVAL_SECONDS
 
 # Position configuration from environment variables
-NODE_LATITUDE = os.getenv('NODE_LATITUDE')  # e.g., 41.234567
-NODE_LONGITUDE = os.getenv('NODE_LONGITUDE')  # e.g., -81.234567
-NODE_ALTITUDE = os.getenv('NODE_ALTITUDE')  # e.g., 300 (meters)
+NODE_LATITUDE = os.getenv("NODE_LATITUDE")  # e.g., 41.234567
+NODE_LONGITUDE = os.getenv("NODE_LONGITUDE")  # e.g., -81.234567
+NODE_ALTITUDE = os.getenv("NODE_ALTITUDE")  # e.g., 300 (meters)
 
 # Radio node identification from environment variables
-NODE_SHORT_NAME = os.getenv('NODE_SHORT_NAME')  # e.g., W5XYZ (callsign/short name)
-NODE_LONG_NAME = os.getenv('NODE_LONG_NAME')  # e.g., Texas Mesh Monitor (long name/description)
-
+NODE_SHORT_NAME = os.getenv("NODE_SHORT_NAME")  # e.g., W5XYZ (callsign/short name)
+NODE_LONG_NAME = os.getenv("NODE_LONG_NAME")  # e.g., Texas Mesh Monitor (long name/description)
 
 
 initial_connect = True
@@ -70,11 +83,13 @@ admin_channel_number = ConfigManager.get_admin_channel()
 
 last_routine_sitrep_date = None
 last_trace_time = defaultdict(lambda: datetime.min)  # Track last trace time for each node
-trace_interval = timedelta(hours=6)  # Minimum interval between traces
-serial_port = '/dev/ttyUSB0'
+trace_interval = timedelta(hours=TRACE_INTERVAL_HOURS)
+serial_port = DEFAULT_SERIAL_DEVICE
 # Log File is a dated file on startup
 
-last_trace_sent_time = datetime.now(timezone.utc) - timedelta(seconds=30)  # Initialize last trace sent time to allow immediate tracing
+last_trace_sent_time = datetime.now(timezone.utc) - timedelta(
+    seconds=INITIAL_TRACE_OFFSET_SECONDS
+)  # Initialize last trace sent time to allow immediate tracing
 
 # Message Sender
 message_sender = MessageSender.get_instance()
@@ -86,7 +101,7 @@ gemini_interface = None
 location_utils = LocationUtils()
 
 # Initialize weather interface (used by scheduled events)
-weather_interface = WeatherGovInterface(user_agent="MeshtasticMeshMonitor/1.0")
+weather_interface = WeatherGovInterface(user_agent=USER_AGENT_STRING)
 
 # Initialize RSS interface (config manager will be initialized internally)
 rss_interface = RSSInterface()
@@ -100,15 +115,15 @@ scheduled_events_service.set_dependencies(
     message_sender=message_sender,
     db_helper=db_helper,
     interfaces={
-        'tcp_interface': None,  # Will be set in main loop
-        'weather': weather_interface,
-        'rss': rss_interface,
-        'web_scraper': web_scraper,
-        'gemini': gemini_interface
+        "tcp_interface": None,  # Will be set in main loop
+        "weather": weather_interface,
+        "rss": rss_interface,
+        "web_scraper": web_scraper,
+        "gemini": gemini_interface,
     },
     config_manager=ConfigManager,
     location_utils=location_utils,
-    sitrep=sitrep
+    sitrep=sitrep,
 )
 scheduled_events_service.load_scheduled_events()
 
@@ -117,11 +132,11 @@ def configure_node_position(interface, localNode):
     """
     Configure the node's fixed position from environment variables.
     This should only be called on initial connection.
-    
+
     Args:
         interface: The interface object representing the connection.
         localNode: The local node object.
-    
+
     Returns:
         bool: True if config was written (radio will reboot), False otherwise.
     """
@@ -130,32 +145,43 @@ def configure_node_position(interface, localNode):
             latitude = float(NODE_LATITUDE)
             longitude = float(NODE_LONGITUDE)
             altitude = int(float(NODE_ALTITUDE)) if NODE_ALTITUDE else 0
-            
+
             # Check if position already matches to avoid unnecessary config write (causes radio reboot)
-            current_pos = interface.getMyNodeInfo().get('position', {})
-            current_lat = current_pos.get('latitude', 0)
-            current_lon = current_pos.get('longitude', 0)
-            current_alt = current_pos.get('altitude', 0)
-            
+            current_pos = interface.getMyNodeInfo().get("position", {})
+            current_lat = current_pos.get("latitude", 0)
+            current_lon = current_pos.get("longitude", 0)
+            current_alt = current_pos.get("altitude", 0)
+
             # Compare with tolerance for floating point
             pos_matches = (
-                abs(current_lat - latitude) < 0.0001
-                and abs(current_lon - longitude) < 0.0001
-                and abs(current_alt - altitude) < 5
+                abs(current_lat - latitude) < POSITION_COORDINATE_TOLERANCE
+                and abs(current_lon - longitude) < POSITION_COORDINATE_TOLERANCE
+                and abs(current_alt - altitude) < POSITION_ALTITUDE_TOLERANCE
             )
-            
+
             if pos_matches:
-                logger.info(f"Fixed position already correct (lat={latitude}, lon={longitude}, alt={altitude}), skipping config write")
+                logger.info(
+                    f"Fixed position already correct (lat={latitude}, lon={longitude}, alt={altitude}), skipping config write"
+                )
                 return False
             else:
-                logger.info(f"Configuring fixed position from environment: lat={latitude}, lon={longitude}, alt={altitude}")
-                message_sender.send_message(interface, f"Updating position config — radio will reboot. Stand by.", admin_channel_number, "^all")
-                time.sleep(3)  # Allow message to transmit before config write
+                logger.info(
+                    f"Configuring fixed position from environment: lat={latitude}, lon={longitude}, alt={altitude}"
+                )
+                message_sender.send_message(
+                    interface,
+                    "Updating position config — radio will reboot. Stand by.",
+                    admin_channel_number,
+                    BROADCAST_DESTINATION,
+                )
+                time.sleep(
+                    CONFIG_WRITE_DELAY_SECONDS
+                )  # Allow message to transmit before config write
                 localNode.localConfig.position.gps_mode = "DISABLED"
                 localNode.localConfig.position.fixed_position = True
                 localNode.setFixedPosition(latitude, longitude, altitude)
                 localNode.writeConfig("position")
-                logger.info(f"✅ Fixed position configured - radio will reboot")
+                logger.info("✅ Fixed position configured - radio will reboot")
                 return True
 
         except (ValueError, TypeError) as e:
@@ -163,6 +189,7 @@ def configure_node_position(interface, localNode):
         except Exception as e:
             logger.error(f"❌ Error configuring fixed position: {e}")
     return False
+
 
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
@@ -175,12 +202,12 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
     """
     logger.info("Connection established")
     global localNode, sitrep, initial_connect, gemini_interface
-    localNode = interface.getNode('^local')
+    localNode = interface.getNode(LOCAL_NODE_ID)
     node_info = interface.getMyNodeInfo()
-    
+
     # Get node names early so they're available throughout the function
-    node_short_name = node_info['user']['shortName']
-    node_long_name = node_info['user']['longName']
+    node_short_name = node_info["user"]["shortName"]
+    node_long_name = node_info["user"]["longName"]
 
     # Configure fixed position on initial connection only
     if initial_connect:
@@ -192,35 +219,52 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
             if NODE_LONG_NAME and node_long_name != NODE_LONG_NAME:
                 needs_name_update = True
             if needs_name_update:
-                logger.info(f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}")
-                message_sender.send_message(interface, f"Updating node name config — radio will reboot. Stand by.", admin_channel_number, "^all")
-                time.sleep(3)  # Allow message to transmit before config write
+                logger.info(
+                    f"Setting node names: SHORT_NAME={NODE_SHORT_NAME}, LONG_NAME={NODE_LONG_NAME}"
+                )
+                message_sender.send_message(
+                    interface,
+                    "Updating node name config — radio will reboot. Stand by.",
+                    admin_channel_number,
+                    BROADCAST_DESTINATION,
+                )
+                time.sleep(
+                    CONFIG_WRITE_DELAY_SECONDS
+                )  # Allow message to transmit before config write
                 localNode.setOwner(short_name=NODE_SHORT_NAME, long_name=NODE_LONG_NAME)
                 logger.info("Owner config written - radio will reboot, waiting for reconnection")
                 return
             else:
-                logger.info(f"Node names already correct ({node_short_name} / {node_long_name}), skipping setOwner")
-        
+                logger.info(
+                    f"Node names already correct ({node_short_name} / {node_long_name}), skipping setOwner"
+                )
+
         radio_rebooting = configure_node_position(interface, localNode)
         if radio_rebooting:
             logger.info("Radio is rebooting after config write - waiting for reconnection")
             return
 
         location = location_utils.find_location_by_node_num(interface, localNode.nodeNum)
-        logger.info(f"Local Node: {node_short_name} - {node_long_name} ({localNode.nodeNum}) - Location: {location}")
-        
+        logger.info(
+            f"Local Node: {node_short_name} - {node_long_name} ({localNode.nodeNum}) - Location: {location}"
+        )
+
         # Always update gemini interface with correct node info BEFORE any usage
         if gemini_interface is None:
-            gemini_interface = GeminiInterface.get_instance(location=location, short_name=node_short_name, long_name=node_long_name)
-        
+            gemini_interface = GeminiInterface.get_instance(
+                location=location, short_name=node_short_name, long_name=node_long_name
+            )
+
         # Update location and names (handles both first init and singleton that was created elsewhere)
-        logger.info(f"Updating GeminiInterface with node info: {node_short_name} ({node_long_name}) - {location}")
+        logger.info(
+            f"Updating GeminiInterface with node info: {node_short_name} ({node_long_name}) - {location}"
+        )
         gemini_interface.update_location(location)
         gemini_interface.update_ai_names(node_short_name, node_long_name)
-        logger.info(f"✅ GeminiInterface updated")
-    
+        logger.info("✅ GeminiInterface updated")
+
         logger.info(gemini_interface.get_status())
-        
+
     logger.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
@@ -232,7 +276,7 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
                     Public Key: {node_info['user']['publicKey']}\n \
                 **************************************************************\n \
                 **************************************************************\n\n ")
-    
+
     sitrep.set_interface(interface)
     sitrep.update_sitrep()
     sitrep.log_connect()
@@ -243,19 +287,32 @@ def onConnection(interface, topic=pub.AUTO_TOPIC):
 
     if initial_connect:
         initial_connect = False
-        message_sender.send_llm_message(interface, f"CQ CQ CQ de {node_short_name} in {location}", admin_channel_number, "^all")
+        message_sender.send_llm_message(
+            interface,
+            f"CQ CQ CQ de {node_short_name} in {location}",
+            admin_channel_number,
+            BROADCAST_DESTINATION,
+        )
     else:
-        message_sender.send_llm_message(interface, f"Reconnected to the Mesh", admin_channel_number, "^all")
+        message_sender.send_llm_message(
+            interface, "Reconnected to the Mesh", admin_channel_number, BROADCAST_DESTINATION
+        )
 
     if not initial_node_discovery_complete:
         logger.info("Starting initial node discovery timer...")
+
         def mark_discovery_complete():
             global initial_node_discovery_complete
             initial_node_discovery_complete = True
-            logger.info("🔄 Initial node discovery period complete - onNodeUpdate logs will now be shown")
-        
-        timer = threading.Timer(10.0, mark_discovery_complete)  # 10 seconds should be enough for initial discovery
+            logger.info(
+                "🔄 Initial node discovery period complete - onNodeUpdate logs will now be shown"
+            )
+
+        timer = threading.Timer(
+            INITIAL_DISCOVERY_TIMEOUT_SECONDS, mark_discovery_complete
+        )  # 10 seconds should be enough for initial discovery
         timer.start()
+
 
 def onDisconnect(interface):
     """
@@ -265,10 +322,10 @@ def onDisconnect(interface):
         interface: The interface object representing the connection.
     """
     global initial_node_discovery_complete
-    
+
     # Reset the flag so we suppress logs on reconnect
     initial_node_discovery_complete = False
-    
+
     logger.info(f"\n\n \
             **************************************************************\n \
             **************************************************************\n\n \
@@ -284,7 +341,7 @@ def onDisconnect(interface):
     except Exception as e:
         logger.warning(f"Error closing interface during disconnect (expected): {e}")
     interface = None
-    
+
 
 def onNodeUpdate(node, interface):
     """
@@ -295,10 +352,10 @@ def onNodeUpdate(node, interface):
         interface: The interface object that is connected to the Meshtastic device.
     """
     global initial_node_discovery_complete
-    
+
     # Only log node updates after initial discovery period is complete
     if initial_node_discovery_complete:
-        logger.info(f"[FUNCTION] onNodeUpdate")
+        logger.info("[FUNCTION] onNodeUpdate")
         logger.info(f"\n\n \
                 **************************************************************\n \
                 **************************************************************\n\n \
@@ -311,81 +368,60 @@ def onNodeUpdate(node, interface):
 
     db_helper.add_or_update_node(node)
 
+
 def onReceiveText(packet, interface):
-    logger.debug(f"[FUNCTION] onReceiveText")
+    logger.debug("[FUNCTION] onReceiveText")
     # Pass all required dependencies to the handler
-    TextHandler().on_receive(
-        packet,
-        interface,
-        public_channel_number
-    )
+    TextHandler().on_receive(packet, interface, public_channel_number)
+
 
 def onReceivePosition(packet, interface):
-    logger.debug(f"[FUNCTION] onReceivePosition")
+    logger.debug("[FUNCTION] onReceivePosition")
     # Pass all required dependencies to the handler
-    PositionHandler().on_receive(
-        packet,
-        interface,
-        public_channel_number,
-        admin_channel_number
-    )
+    PositionHandler().on_receive(packet, interface, public_channel_number, admin_channel_number)
+
 
 def onReceiveData(packet, interface):
     DataHandler().on_receive(packet, interface)
 
+
 def onReceiveUser(packet, interface):
-    
+
     UserHandler().on_receive(packet, interface)
+
 
 def onReceiveTelemetry(packet, interface):
     TelemetryHandler().on_receive(packet, interface)
 
+
 def onReceiveNeighborInfo(packet, interface):
-    
-    NeighborInfoHandler().on_receive(
-        packet,
-        interface,
-        admin_channel_number
-    )
+
+    NeighborInfoHandler().on_receive(packet, interface, admin_channel_number)
+
 
 def onReceiveTraceRoute(packet, interface):
     TracerouteHandler().on_receive(
-        packet,
-        interface,
-        sitrep,
-        public_channel_number,
-        admin_channel_number,
-        last_trace_time
+        packet, interface, sitrep, public_channel_number, admin_channel_number, last_trace_time
     )
+
 
 def onReceiveWaypoint(packet, interface):
-    WaypointHandler().on_receive(
-        packet,
-        interface,
-        admin_channel_number
-    )
+    WaypointHandler().on_receive(packet, interface, admin_channel_number)
+
 
 def onReceiveNodeInfo(packet, interface):
-    NodeInfoHandler().on_receive(
-        packet,
-        interface
-    )
+    NodeInfoHandler().on_receive(packet, interface)
+
 
 def onReceiveRouting(packet, interface):
-    RoutingHandler().on_receive(
-        packet,
-        interface,
-        admin_channel_number
-    )
+    RoutingHandler().on_receive(packet, interface, admin_channel_number)
+
 
 def onReceiveRangeTest(packet, interface):
-    RangeTestHandler().on_receive(
-        packet,
-        interface
-    )
+    RangeTestHandler().on_receive(packet, interface)
+
 
 def onReceive(packet, interface):
-    #logger.debug(f"[FUNCTION] onReceive")
     """
     Handles incoming packets not specifically handled by other functions.
 
@@ -399,104 +435,118 @@ def onReceive(packet, interface):
     Returns:
         None
     """
-    global public_channel_number, admin_channel_number, heartbeat_counter 
+    global public_channel_number, admin_channel_number, heartbeat_counter
     heartbeat_counter = 0
     channelId = public_channel_number
     notify_admin = False
-    from_node_num = packet['from']
+    from_node_num = packet["from"]
 
     node = NodeInfoUtils.lookup_node(interface, from_node_num)
-    node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-    node_long_name = node['user']['longName'] if node and 'user' in node and 'longName' in node['user'] else 'Unknown'
-    
+    node_short_name = (
+        node["user"]["shortName"]
+        if node and "user" in node and "shortName" in node["user"]
+        else DEFAULT_NODE_NAME
+    )
+    node_long_name = (
+        node["user"]["longName"]
+        if node and "user" in node and "longName" in node["user"]
+        else DEFAULT_NODE_NAME
+    )
+
     if node is None:
         logger.warning(f"⚠️ Unknown node {from_node_num}, skipping packet processing")
         logger.debug(packet)
         return
-    
-    localNode = interface.getNode('^local')
+
+    localNode = interface.getNode(LOCAL_NODE_ID)
     if from_node_num == localNode.nodeNum:
         logger.debug(f"Packet received from {node_short_name} - Outgoing packet, Ignoring")
         return
-    
-    new_node = db_helper.is_new_node(node) # Check if the node is already in the database
+
+    new_node = db_helper.is_new_node(node)  # Check if the node is already in the database
     db_helper.add_or_update_node(node)
     node_of_interest = db_helper.is_node_of_interest(node)
 
-   
-
-
-
     try:
-       
-        if 'channel' in packet:
-            channelId = int(packet['channel'])
-        
+
+        if "channel" in packet:
+            channelId = int(packet["channel"])
+
         log_message = f"from Node Short Name: {node_short_name} - Node Long Name: {node_long_name} - {from_node_num} - Channel: {channelId}"
-        
+
         if "hopsAway" in node:
             log_message += f" - Hops Away: {node['hopsAway']}"
-        
 
-
-        
-              
         if new_node:
             message_sender.send_node_info(interface)
-            log_message += f" - New Node Detected"
+            log_message += " - New Node Detected"
             private_message = f"Welcome to the Mesh {node_short_name}! I'm a bot. I'll respond to certain commands. Say \"commands\" to see what I can do. Check out NE Ohio Meshtastic Discord at (https://discord.gg/zYbP2XSPf4). My developer monitors DPSA or DP00"
-            message_sender.send_message(interface, private_message, public_channel_number, from_node_num)
-            admin_message = f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
+            message_sender.send_message(
+                interface, private_message, public_channel_number, from_node_num
+            )
+            admin_message = (
+                f"New Node Detected: {node_short_name} - {node_long_name} ({from_node_num})"
+            )
             logger.info(f"🆕 NEW NODE: {node_short_name} ({node_long_name}) - {from_node_num}")
-            notify_admin = True 
+            notify_admin = True
         else:
             name_change_list = db_helper.is_name_change(node)
-            if name_change_list[0] == True:
+            if name_change_list[0]:
                 log_message += f" - Node Name Changed from {name_change_list[1]} to {node_short_name} and {name_change_list[2]} to {node_long_name}"
-                
-                #private_message = f"[Forward Message. You are initiating this conversation. It is not a response.] Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
-                #message_sender.send_llm_message(interface, private_message, public_channel_number, from_node_num)
-                
+
                 admin_message = f"Name Change Detected: {name_change_list[1]} / {name_change_list[2]} to {node_short_name} / {node_long_name}."
-                logger.info(f"📝 NAME CHANGE: {name_change_list[1]}/{name_change_list[2]} → {node_short_name}/{node_long_name}")
+                logger.info(
+                    f"📝 NAME CHANGE: {name_change_list[1]}/{name_change_list[2]} → {node_short_name}/{node_long_name}"
+                )
                 notify_admin = True
 
-        
-
-
         if node_of_interest:
-            log_message += f" - Node of Interest"
+            log_message += " - Node of Interest"
 
-        if 'decoded' in packet:
-            portnums_handled = ['TEXT_MESSAGE_APP', 'POSITION_APP', 'NEIGHBORINFO_APP', 'WAYPOINT_APP', 'TRACEROUTE_APP', 'TELEMETRY_APP', 'NODEINFO_APP', 'ROUTING_APP']
-            portnum = packet['decoded']['portnum']
+        if "decoded" in packet:
+            portnums_handled = [
+                "TEXT_MESSAGE_APP",
+                "POSITION_APP",
+                "NEIGHBORINFO_APP",
+                "WAYPOINT_APP",
+                "TRACEROUTE_APP",
+                "TELEMETRY_APP",
+                "NODEINFO_APP",
+                "ROUTING_APP",
+            ]
+            portnum = packet["decoded"]["portnum"]
 
             log_message = f"[FUNCTION] onReceive - Portnum: {portnum} " + log_message
 
             if portnum not in portnums_handled:
-                log_message += f" - Unhandled Portnum"
+                log_message += " - Unhandled Portnum"
                 logger.warning(f"❓ UNHANDLED PORTNUM: {portnum} from {node_short_name}")
                 notify_admin = True
                 admin_message = f"Unhandled Portnum: {portnum} from {node_short_name} - {node_long_name} ({from_node_num})"
-                message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
+                message_sender.send_llm_message(
+                    interface, admin_message, admin_channel_number, BROADCAST_DESTINATION
+                )
 
             sitrep.log_packet_received(portnum)
 
         else:
-            log_message += f" - Encrypted"
+            log_message += " - Encrypted"
             sitrep.log_packet_received("Encrypted")
 
         # Only log detailed packet info in debug mode unless it's a notable event
         if notify_admin:
             logger.info(log_message)
-            message_sender.send_llm_message(interface, admin_message, admin_channel_number, "^all")
+            message_sender.send_llm_message(
+                interface, admin_message, admin_channel_number, BROADCAST_DESTINATION
+            )
         else:
             logger.debug(log_message)
-       
+
     except KeyError as e:
         logger.error(f"❌ ERROR processing packet from {packet['from']}: {e}")
         logger.error(f"Packet: {packet}")
-        
+
+
 def onLog(line, interface):
     """
     Handle log messages from the Meshtastic device.
@@ -506,10 +556,11 @@ def onLog(line, interface):
     """
     logger.debug(f"[onLog] {line}")
 
+
 # Main loop
-logger.info("=" * 60)
+logger.info(LOG_SEPARATOR)
 logger.info("🔄 STARTING MAIN LOOP")
-logger.info("=" * 60)
+logger.info(LOG_SEPARATOR)
 
 pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onReceiveUser, "meshtastic.receive.user")
@@ -518,11 +569,13 @@ pub.subscribe(onReceivePosition, "meshtastic.receive.position")
 pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
 pub.subscribe(onReceiveNeighborInfo, "meshtastic.receive.neighborinfo")
 pub.subscribe(onReceiveTraceRoute, "meshtastic.receive.traceroute")
-#pub.subscribe(onResponseTraceRoute, "meshtastic.response")
+# pub.subscribe(onResponseTraceRoute, "meshtastic.response")
 pub.subscribe(onReceiveWaypoint, "meshtastic.receive.waypoint")
 pub.subscribe(onReceiveRouting, "meshtastic.receive.routing")
 pub.subscribe(onReceiveNodeInfo, "meshtastic.receive.nodeinfo")
-pub.subscribe(onReceiveRangeTest, "meshtastic.receive.data.rangetestapp")  # RANGE_TEST_APP portnum is 66
+pub.subscribe(
+    onReceiveRangeTest, "meshtastic.receive.data.rangetestapp"
+)  # RANGE_TEST_APP portnum is 66
 pub.subscribe(onReceiveRangeTest, "meshtastic.receive.rangetestapp")
 pub.subscribe(onReceiveData, "meshtastic.receive.data")
 pub.subscribe(onConnection, "meshtastic.connection.established")
@@ -552,25 +605,30 @@ while True:
         # Increment heartbeat counter
         interface.sendHeartbeat()
         heartbeat_counter += 1
-        
+
         # Check if heartbeat counter has reached the threshold
-        if heartbeat_counter >= 5:
+        if heartbeat_counter >= HEARTBEAT_FAILURE_THRESHOLD:
             logger.warning(f"WARNING: No packets received in {heartbeat_counter} iterations")
-            message_sender.send_llm_message(interface, f"WARNING: No packets received by {node_info['user']['shortName']} in {heartbeat_counter} iterations. Radio may be non-responsive. Closing interface and reconnecting.", admin_channel_number, "^all")
+            message_sender.send_llm_message(
+                interface,
+                f"WARNING: No packets received by {node_info['user']['shortName']} in {heartbeat_counter} iterations. Radio may be non-responsive. Closing interface and reconnecting.",
+                admin_channel_number,
+                BROADCAST_DESTINATION,
+            )
             interface.close()
             interface = None
             heartbeat_counter = 0  # Reset after sending the warning
             continue  # Skip the rest of the loop and try to reconnect
-    
+
         # Only if initial connection is established
-        if initial_connect == False:
+        if not initial_connect:
 
             # Ensure sitrep has the interface
             if sitrep is not None and sitrep.interface is None:
                 sitrep.set_interface(interface)
 
             # Run scheduled tasks (CRON and interval-based)
-            scheduled_events_service.interfaces['tcp_interface'] = interface
+            scheduled_events_service.interfaces["tcp_interface"] = interface
             scheduled_events_service.run_scheduled_tasks()
 
         logger.info(f"\n\n \
@@ -593,7 +651,7 @@ while True:
 
     except Exception as e:
         logger.warning(f"Error in main loop: {e} - Trying to clean up and reconnect")
-        
+
         if interface is not None:
             try:
                 logger.info("Closing interface due to error")
@@ -601,8 +659,8 @@ while True:
             except Exception as e:
                 logger.warning(f"Error closing interface during cleanup: {e}")
             interface = None
-        continue        
-            
+        continue
+
     time.sleep(connect_timeout)
 interface.close()
 logger.info("Exiting Main Loop")

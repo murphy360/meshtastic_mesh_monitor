@@ -1,5 +1,7 @@
-from keywords.keyword_handler import KeywordHandler
 import base64
+
+from core.constants import BROADCAST_DESTINATION, LOCAL_NODE_ID
+from keywords.keyword_handler import KeywordHandler
 
 
 class ChannelsKeyword(KeywordHandler):
@@ -20,10 +22,10 @@ class ChannelsKeyword(KeywordHandler):
         """
         if not psk_bytes:
             return "default"
-        
+
         # Convert to base64 (this is what the Meshtastic GUI expects)
         try:
-            return base64.b64encode(psk_bytes).decode('utf-8')
+            return base64.b64encode(psk_bytes).decode("utf-8")
         except Exception:
             return str(psk_bytes)
 
@@ -32,43 +34,47 @@ class ChannelsKeyword(KeywordHandler):
         Handle the 'channels' keyword. Lists all non-admin channels with their PSK keys.
         """
         self.logger.info("[handle] ChannelsKeyword handler invoked.")
-        
-        local_node = interface.getNode('^local')
-        
+
+        local_node = interface.getNode(LOCAL_NODE_ID)
+
         # Determine response recipient
-        if 'to' in packet and packet['to'] == local_node.nodeNum:
-            to_id = packet['from']
+        if "to" in packet and packet["to"] == local_node.nodeNum:
+            to_id = packet["from"]
         else:
-            to_id = "^all"
-        
-        channel = packet.get('channel', 0)
-        
+            to_id = BROADCAST_DESTINATION
+
+        channel = packet.get("channel", 0)
+
         # Find public channels (those with a name and not "Admin")
         try:
-            channels = local_node.channels if hasattr(local_node, 'channels') else []
-            
+            channels = local_node.channels if hasattr(local_node, "channels") else []
+
             public_channels = []
             for idx, ch in enumerate(channels):
-                if ch and hasattr(ch, 'settings'):
+                if ch and hasattr(ch, "settings"):
                     # Channel is public if it has a name and is NOT named "Admin"
-                    ch_name = ch.settings.name if hasattr(ch.settings, 'name') else None
-                    if ch_name and ch_name.lower() != 'admin':
-                        ch_psk = ch.settings.psk if hasattr(ch.settings, 'psk') else None
+                    ch_name = ch.settings.name if hasattr(ch.settings, "name") else None
+                    if ch_name and ch_name.lower() != "admin":
+                        ch_psk = ch.settings.psk if hasattr(ch.settings, "psk") else None
                         psk_str = self._psk_to_string(ch_psk)
                         public_channels.append((idx, ch_name, psk_str))
-            
+
             if not public_channels:
-                self.message_sender.send_message(interface, "No public channels available.", channel, to_id)
+                self.message_sender.send_message(
+                    interface, "No public channels available.", channel, to_id
+                )
             else:
                 # Build a single message with all channels
                 message_lines = ["Public Channels:"]
                 for idx, name, psk in public_channels:
                     self.logger.info(f"[handle] Channel {idx}: name='{name}', psk='{psk}'")
                     message_lines.append(f"{name}: {psk}")
-                
+
                 message = "\n".join(message_lines)
                 self.logger.info(f"[handle] Sending combined channel list: {message}")
                 self.message_sender.send_message(interface, message, channel, to_id)
         except Exception as e:
             self.logger.error(f"[handle] Error listing channels: {e}", exc_info=True)
-            self.message_sender.send_message(interface, f"Error listing channels: {str(e)}", channel, to_id)
+            self.message_sender.send_message(
+                interface, f"Error listing channels: {e!s}", channel, to_id
+            )

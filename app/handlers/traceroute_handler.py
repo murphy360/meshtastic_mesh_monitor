@@ -10,9 +10,11 @@ TracerouteHandler processes traceroute packets, builds route and SNR lists, and 
 # - Route parsing: The handler extracts the route from the packet, which may be a list of node numbers representing the path taken. It builds a readable trace path for logging and sitrep updates.
 # - SNR parsing: The handler parses SNR (Signal-to-Noise Ratio) values from the packet, which may be embedded as a list or dict. These are used for network diagnostics and are logged for each hop.
 ###############################################################
+from datetime import datetime, timezone
+
+from core.constants import BROADCAST_DESTINATION, DEFAULT_NODE_NAME, LOCAL_NODE_ID
 from handlers.base_handler import BaseHandler
 
-from datetime import datetime, timezone
 
 class TracerouteHandler(BaseHandler):
     """
@@ -25,6 +27,7 @@ class TracerouteHandler(BaseHandler):
         admin_channel_number (int): Admin channel number.
         last_trace_time (dict): Dictionary of last trace times per node.
     """
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -35,7 +38,7 @@ class TracerouteHandler(BaseHandler):
         sitrep: object,
         public_channel_number: int,
         admin_channel_number: int,
-        last_trace_time: dict
+        last_trace_time: dict,
     ) -> None:
         """
         Processes a received traceroute packet, builds route and SNR lists,
@@ -49,66 +52,89 @@ class TracerouteHandler(BaseHandler):
             last_trace_time (dict): Dictionary of last trace times per node.
         """
         self.logger.info(f"[on_receive_traceroute] Received traceroute packet: {packet}")
-        from_node_num = packet['from']
+        from_node_num = packet["from"]
         node = self.node_info_utils.lookup_node(interface, from_node_num)
-        node_short_name = node['user']['shortName'] if node and 'user' in node and 'shortName' in node['user'] else 'Unknown'
-        self.logger.info(f"[on_receive_traceroute] onReceiveTraceroute called for node {node_short_name} - {from_node_num}")
-        localNode = interface.getNode('^local')
+        node_short_name = self._get_node_short_name(node)
+        self.logger.info(
+            f"[on_receive_traceroute] onReceiveTraceroute called for node {node_short_name} - {from_node_num}"
+        )
         if node is None:
-            self.logger.warning(f"[on_receive_traceroute] onReceiveTraceroute: Node {from_node_num} not found, skipping traceroute handling.")
+            self.logger.warning(
+                f"[on_receive_traceroute] onReceiveTraceroute: Node {from_node_num} not found, skipping traceroute handling."
+            )
             return
-        if localNode.nodeNum == from_node_num:
-            # Ignore packets from local node
+        if self._is_local_node(interface, from_node_num):
             return
-        trace = packet['decoded']['traceroute']
+        localNode = interface.getNode(LOCAL_NODE_ID)
+        trace = packet["decoded"]["traceroute"]
         route_to = []
         snr_towards = []
         route_back = []
         snr_back = []
         message_string = ""
-        originator_node = self.node_info_utils.lookup_node(interface, packet['from'])
-        traced_node = self.node_info_utils.lookup_node(interface, packet['to'])
+        originator_node = self.node_info_utils.lookup_node(interface, packet["from"])
+        traced_node = self.node_info_utils.lookup_node(interface, packet["to"])
 
         self.logger.info(f"[on_receive_traceroute] {packet}")
 
         self.logger.debug(f"Trace Route Packet: {trace}")
 
-        if 'snrBack' in trace:
-            originator_node = self.node_info_utils.lookup_node(interface, packet['to'])
-            traced_node = self.node_info_utils.lookup_node(interface, packet['from'])
-            last_trace_time[traced_node['num']] = datetime.now(timezone.utc)
-            self.logger.debug(f"Setting last trace time for {traced_node['user']['shortName']} to {last_trace_time[traced_node['num']]}")
-            for hop in trace['snrBack']:
+        if "snrBack" in trace:
+            originator_node = self.node_info_utils.lookup_node(interface, packet["to"])
+            traced_node = self.node_info_utils.lookup_node(interface, packet["from"])
+            if traced_node and isinstance(traced_node, dict):
+                last_trace_time[traced_node["num"]] = datetime.now(timezone.utc)
+                self.logger.debug(
+                    f"Setting last trace time for {self._get_node_short_name(traced_node)} to {last_trace_time[traced_node['num']]}"
+                )
+            else:
+                self.logger.warning(
+                    f"[on_receive_traceroute] Could not resolve traced node for {packet['from']}, skipping trace time update."
+                )
+            for hop in trace["snrBack"]:
                 snr_back.append(hop)
-            if 'routeBack' in trace:
-                for hop in trace['routeBack']:
+            if "routeBack" in trace:
+                for hop in trace["routeBack"]:
                     node = self.node_info_utils.lookup_node(interface, hop)
                     if node:
-                        self.logger.debug(f"Adding node {node['user']['shortName']} to route back")
+                        self.logger.debug(
+                            f"Adding node {self._get_node_short_name(node)} to route back"
+                        )
                         route_back.append(node)
                     else:
                         self.logger.debug(f"Unknown node {hop} in route back")
                         route_back.append(hop)
             route_back.append(originator_node)
         else:
-                self.logger.info(f"[on_receive_traceroute] Traced by node: {node_short_name}")
-                if packet['to'] == localNode.nodeNum:
-                    self.logger.warning(f"[on_receive_traceroute] Traceroute received from {node_short_name} - responding")
-                    admin_message = f"Traceroute received from {node_short_name}"
-                    self.message_sender.send_message(interface, admin_message, admin_channel_number, "^all")
-                    reply_message = f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
-                    self.message_sender.send_llm_message(interface, reply_message, public_channel_number, from_node_num)
-                    self.db_helper.set_node_of_interest(node, True)
-        if 'snrTowards' in trace:
-            for hop in trace['snrTowards']:
+            self.logger.info(f"[on_receive_traceroute] Traced by node: {node_short_name}")
+            if packet["to"] == localNode.nodeNum:
+                self.logger.warning(
+                    f"[on_receive_traceroute] Traceroute received from {node_short_name} - responding"
+                )
+                admin_message = f"Traceroute received from {node_short_name}"
+                self.message_sender.send_message(
+                    interface, admin_message, admin_channel_number, BROADCAST_DESTINATION
+                )
+                reply_message = (
+                    f"Hello {node_short_name}, I saw that trace! I'm keeping my eye on you."
+                )
+                self.message_sender.send_llm_message(
+                    interface, reply_message, public_channel_number, from_node_num
+                )
+                self.db_helper.set_node_of_interest(node, True)
+        if "snrTowards" in trace:
+            for hop in trace["snrTowards"]:
                 snr_towards.append(hop)
             route_to.append(originator_node)
-            if 'routeTo' in trace:
-                for hop in trace['routeTo']:
+            if "routeTo" in trace:
+                for hop in trace["routeTo"]:
                     node = self.node_info_utils.lookup_node(interface, hop)
-                    route_to.append(node)
-            elif 'route' in trace:
-                for hop in trace['route']:
+                    if node:
+                        route_to.append(node)
+                    else:
+                        route_to.append(hop)
+            elif "route" in trace:
+                for hop in trace["route"]:
                     node = self.node_info_utils.lookup_node(interface, hop)
                     if node:
                         route_to.append(node)
@@ -117,7 +143,7 @@ class TracerouteHandler(BaseHandler):
         route_to.append(traced_node)
         i = 0
         for node in route_to:
-            if 'user' in node:
+            if isinstance(node, dict) and "user" in node:
                 message_string += f"{node['user']['shortName']}"
             else:
                 message_string += f"{node}"
@@ -129,22 +155,30 @@ class TracerouteHandler(BaseHandler):
             if i < len(snr_back):
                 message_string += f" -> ({snr_back[i]}dB) "
                 i += 1
-            message_string += f"{node['user']['shortName']}"
+            if isinstance(node, dict) and "user" in node:
+                message_string += f"{node['user']['shortName']}"
+            else:
+                message_string += f"{node}"
         if message_string.endswith(" ->"):
             message_string = message_string[:-3]
         route_full = route_to + route_back
         sitrep.add_trace(route_full)
-        originator_name = originator_node.get('user', {}).get('shortName', 'Unknown') if isinstance(originator_node, dict) else str(originator_node)
-        destination_name = traced_node.get('user', {}).get('shortName', 'Unknown') if isinstance(traced_node, dict) else str(traced_node)
+        originator_name = (
+            originator_node.get("user", {}).get("shortName", DEFAULT_NODE_NAME)
+            if isinstance(originator_node, dict)
+            else str(originator_node)
+        )
+        destination_name = (
+            traced_node.get("user", {}).get("shortName", DEFAULT_NODE_NAME)
+            if isinstance(traced_node, dict)
+            else str(traced_node)
+        )
         self.db_helper.store_traceroute(
-            originator_name,
-            destination_name, 
-            route_to,
-            route_back,
-            snr_towards,
-            snr_back
+            originator_name, destination_name, route_to, route_back, snr_towards, snr_back
         )
         self.db_helper.update_node_connections(route_to, route_back, snr_towards, snr_back)
         self.logger.info(f"[on_receive_traceroute] Traceroute path: {message_string}")
-        self.message_sender.send_message(interface, message_string, admin_channel_number, "^all")
+        self.message_sender.send_message(
+            interface, message_string, admin_channel_number, BROADCAST_DESTINATION
+        )
         return

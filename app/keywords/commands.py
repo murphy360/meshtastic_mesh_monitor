@@ -1,16 +1,16 @@
-from keywords.keyword_handler import KeywordHandler
-from utils.message_sender import MessageSender
 import importlib
 import os
+
+from keywords.keyword_handler import KeywordHandler
+
 
 class CommandsKeyword(KeywordHandler):
 
     def __init__(self):
         super().__init__()
-        self.logger.info(f"[__init__] CommandsKeyword initialized.")
+        self.logger.info("[__init__] CommandsKeyword initialized.")
         self.keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
         self.keywords = self._load_keywords()
-        
 
     def _load_keywords(self):
         """
@@ -27,7 +27,11 @@ class CommandsKeyword(KeywordHandler):
                     # Find the handler class (assume only one subclass of KeywordHandler)
                     for attr in dir(module):
                         obj = getattr(module, attr)
-                        if isinstance(obj, type) and issubclass(obj, KeywordHandler) and obj is not KeywordHandler:
+                        if (
+                            isinstance(obj, type)
+                            and issubclass(obj, KeywordHandler)
+                            and obj is not KeywordHandler
+                        ):
                             keywords[keyword_name] = obj()
                 except Exception:
                     pass
@@ -46,12 +50,11 @@ class CommandsKeyword(KeywordHandler):
         - Full description of a specific keyword (if another keyword is present)
         """
         # Extract message string from decoded payload
-        message_string = ''
-        if 'decoded' in packet and 'payload' in packet['decoded']:
-            message_bytes = packet['decoded']['payload']
-            message_string = message_bytes.decode('utf-8').strip()
-        
-        channel = packet['channel'] if 'channel' in packet else 0
+        args = self._extract_message_args(packet)
+        if not args:
+            return
+
+        message_string = " ".join(args)
 
         args = message_string.split()
         # If only 'commands', list all commands
@@ -74,14 +77,7 @@ class CommandsKeyword(KeywordHandler):
         else:
             reply = "Usage: 'commands', 'commands describe', or 'commands <keyword>'"
 
-        local_node = interface.getNode('^local')
-        # Determine if this is a direct message or channel message
-        if 'to' in packet and packet['to'] == local_node.nodeNum:
-            # Direct message, reply directly
-            to_id = packet['from']
-        else:
-            # Channel message, reply to channel
-            to_id = "^all"
+        channel, to_id = self._get_reply_target(packet, interface)
 
-        self.logger.info(f"[HANDLE] Sending reply: {reply}")
+        self.logger.info(f"[handle] Sending reply: {reply}")
         self.message_sender.send_message(interface, reply, channel, to_id)
