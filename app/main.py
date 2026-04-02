@@ -282,7 +282,7 @@ def onDisconnect(interface):
             interface.close()
         interface = None
     except Exception as e:
-        logger.error(f"Error closing interface: {e}")
+        logger.warning(f"Error closing interface during disconnect (expected): {e}")
     interface = None
     
 
@@ -592,14 +592,14 @@ while True:
         **************************************************************\n\n ")
 
     except Exception as e:
-        logger.error(f"Error in main loop: {e} - Trying to clean up and reconnect")
+        logger.warning(f"Error in main loop: {e} - Trying to clean up and reconnect")
         
         if interface is not None:
             try:
                 logger.info("Closing interface due to error")
                 interface.close()
             except Exception as e:
-                logger.error(f"Error closing interface: {e}")
+                logger.warning(f"Error closing interface during cleanup: {e}")
             interface = None
         continue        
             

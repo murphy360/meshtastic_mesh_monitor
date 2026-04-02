@@ -111,17 +111,29 @@ class WeatherGovInterface(APIInterface):
             longitude: The longitude coordinate
             
         This method fetches the county, zone, city, and state for the given coordinates
-        and stores them in the instance variables.
+        and stores them in the instance variables. Results are cached per coordinate pair
+        (24-hour TTL) to avoid redundant API calls to /points/.
         """
         try:
-            points_endpoint = f"/points/{latitude},{longitude}"
-            response = self._make_request(points_endpoint)
+            # Round to 2 decimal places (~1.1 km) so GPS drift doesn't create redundant cache entries
+            snapped_lat = round(latitude, 2)
+            snapped_lon = round(longitude, 2)
+            points_cache_key = f"points_{snapped_lat}_{snapped_lon}"
+            cached_points = self._get_cached_data(points_cache_key)
             
-            if not response.get("success"):
-                self.logger.error(f"Error fetching location details: {response.get('error', 'Unknown error')}")
-                return
+            if cached_points:
+                metadata = cached_points
+            else:
+                points_endpoint = f"/points/{snapped_lat},{snapped_lon}"
+                response = self._make_request(points_endpoint)
+            
+                if not response.get("success"):
+                    self.logger.error(f"Error fetching location details: {response.get('error', 'Unknown error')}")
+                    return
                 
-            metadata = response["data"]
+                metadata = response["data"]
+                # Cache for 24 hours — points data for a coordinate never changes
+                self._cache_data(points_cache_key, metadata, 86400)
 
             if 'forecastZone' in metadata['properties']:
                 self.zone_url = metadata['properties']['forecastZone']

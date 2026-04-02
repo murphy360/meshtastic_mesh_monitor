@@ -37,7 +37,7 @@ class TraceKeyword(KeywordHandler):
 
             try:
                 self.message_sender.send_trace_route(interface, node['num'], channel, hop_limit, to_id, original_message_id)
-                self.logger.info(f"[handle] Traceroute request sent to node {node_identifier} - {node['num']} with hop_limit {hop_limit}")
+                self.logger.info(f"[handle] Traceroute request sent to message_sender {node_identifier} - {node['num']} with hop_limit {hop_limit}")
             except Exception as e:
                 self.logger.error(f"[handle] Error sending traceroute request to node {node_identifier}: {e}")
         else:
