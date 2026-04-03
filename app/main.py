@@ -523,9 +523,6 @@ def onReceive(packet, interface):
                 logger.warning(f"❓ UNHANDLED PORTNUM: {portnum} from {node_short_name}")
                 notify_admin = True
                 admin_message = f"Unhandled Portnum: {portnum} from {node_short_name} - {node_long_name} ({from_node_num})"
-                message_sender.send_llm_message(
-                    interface, admin_message, admin_channel_number, BROADCAST_DESTINATION
-                )
 
             sitrep.log_packet_received(portnum)
 
@@ -535,12 +532,13 @@ def onReceive(packet, interface):
 
         # Only log detailed packet info in debug mode unless it's a notable event
         if notify_admin:
-            logger.info(log_message)
             message_sender.send_llm_message(
                 interface, admin_message, admin_channel_number, BROADCAST_DESTINATION
             )
-        else:
-            logger.debug(log_message)
+        
+        logger.info(log_message)
+        log_message += f"Packet Details:\n {packet}"
+        logger.debug(log_message)
 
     except KeyError as e:
         logger.error(f"❌ ERROR processing packet from {packet['from']}: {e}")

@@ -10,6 +10,7 @@ from core.constants import (
     ACTIVE_NODE_THRESHOLD_MINUTES,
     BROADCAST_DESTINATION,
     DEFAULT_NODE_NAME,
+    INFRASTRUCTURE_ROLES,
     LOCAL_NODE_ID,
     MESH_DATA_FILE_PATH,
     SECONDS_PER_DAY,
@@ -52,11 +53,12 @@ class SITREP:
         self.sitrep_time = datetime.datetime.now()
         self.reportHeader = ""
         self.line1 = ""  # Local Nodes
-        self.line2 = ""  # Aircraft Tracks
-        self.line3 = ""  # Nodes of Interest
-        self.line4 = ""  # Packets Received
-        self.line5 = ""  # Uptime
-        self.line6 = ""  # Intentions
+        self.line2 = ""  # Infrastructure Nodes
+        self.line3 = ""  # Aircraft Tracks
+        self.line4 = ""  # Nodes of Interest
+        self.line5 = ""  # Packets Received
+        self.line6 = ""  # Uptime
+        self.line7 = ""  # Intentions
         self.reportFooter = ""
         self.lines = []
         self.nodes_of_interest = []
@@ -102,21 +104,25 @@ class SITREP:
             self.count_nodes_connected(ACTIVE_NODE_THRESHOLD_MINUTES)
         )
         self.lines.append(self.line1)
-        self.line2 = "Line 2: Aircraft Tracks: " + self.build_aircraft_tracks_report(2)
+        self.line2 = "Line 2: Infrastructure Nodes: " + str(
+            self.count_infrastructure_nodes(ACTIVE_NODE_THRESHOLD_MINUTES)
+        )
         self.lines.append(self.line2)
-        self.line3 = "Line 3: Nodes of Interest: " + self.build_node_of_interest_report(3)
+        self.line3 = "Line 3: Aircraft Tracks: " + self.build_aircraft_tracks_report(3)
         self.lines.append(self.line3)
-        self.line4 = "Line 4: Packets Received: " + str(self.count_packets_received())
+        self.line4 = "Line 4: Nodes of Interest: " + self.build_node_of_interest_report(4)
         self.lines.append(self.line4)
-        self.line5 = (
-            "Line 5: Uptime: "
+        self.line5 = "Line 5: Packets Received: " + str(self.count_packets_received())
+        self.lines.append(self.line5)
+        self.line6 = (
+            "Line 6: Uptime: "
             + self.get_node_uptime(self.shortName)
             + ". Reconnections: "
             + str(self.num_connections)
         )
-        self.lines.append(self.line5)
-        self.line6 = "Line 6: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
         self.lines.append(self.line6)
+        self.line7 = "Line 7: Intentions: Continue to track and report. Send 'Ping' to test connectivity. Send 'Sitrep' to request a report"
+        self.lines.append(self.line7)
         self.reportFooter = f"de {self.shortName} out"
         self.lines.append(self.reportFooter)
         return
@@ -605,6 +611,47 @@ class SITREP:
         else:
             self.logger.info(f"📡 SITREP: {self.nodes_connected} nodes active")  # Important summary
             response_string = str(self.nodes_connected)
+        return response_string
+
+    def count_infrastructure_nodes(self, time_threshold_minutes):
+        """
+        Count the number of infrastructure nodes (ROUTER, REPEATER, etc.) active within a time threshold.
+
+        Args:
+            time_threshold_minutes (int): The time threshold in minutes.
+
+        Returns:
+            str: The count and list of infrastructure nodes.
+        """
+        infra_count = 0
+        infra_names = []
+
+        for node in self.interface.nodes.values():
+            user_info = node.get("user", {})
+            short_name = user_info.get("shortName")
+            role = user_info.get("role", DEFAULT_NODE_NAME)
+            node_num = node.get("num")
+
+            if self.localNode and self.localNode.nodeNum == node_num:
+                continue
+
+            if role not in INFRASTRUCTURE_ROLES:
+                continue
+
+            last_heard = node.get("lastHeard")
+            if last_heard:
+                now = datetime.datetime.now()
+                time_difference_in_seconds = now.timestamp() - last_heard
+                if time_difference_in_seconds < (time_threshold_minutes * 60) and short_name:
+                    infra_count += 1
+                    infra_names.append(short_name)
+
+        if infra_count <= SITREP_MAX_NODES_TO_LIST:
+            response_string = str(infra_count) + " (" + " ".join(infra_names) + ")"
+        else:
+            response_string = str(infra_count)
+
+        self.logger.info(f"🏗️ SITREP: {infra_count} infrastructure nodes active")
         return response_string
 
     def log_connect(self):

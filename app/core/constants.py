@@ -53,6 +53,11 @@ GEMINI_MAX_MESSAGE_LENGTH = 200
 GEMINI_MAX_OUTPUT_TOKENS = 100
 
 # ---------------------------------------------------------------------------
+# Infrastructure node roles
+# ---------------------------------------------------------------------------
+INFRASTRUCTURE_ROLES = {"ROUTER", "ROUTER_CLIENT", "REPEATER", "ROUTER_LATE"}
+
+# ---------------------------------------------------------------------------
 # Aircraft detection thresholds
 # ---------------------------------------------------------------------------
 AIRCRAFT_GROUND_SPEED_THRESHOLD = 150  # m/s
