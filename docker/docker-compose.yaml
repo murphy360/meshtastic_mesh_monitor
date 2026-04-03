@@ -11,6 +11,8 @@ services:
       # - NODE_LATITUDE=41.234567
       # - NODE_LONGITUDE=-81.234567
       # - NODE_ALTITUDE=300
+      # Optional: Custom welcome message for new nodes (supports {node_short_name}, {node_long_name}, {from_node_num})
+      # - WELCOME_MESSAGE=Welcome to the Mesh {node_short_name}! Say "help" to see what I can do.
     ports:
       - 8080:8080
     volumes:

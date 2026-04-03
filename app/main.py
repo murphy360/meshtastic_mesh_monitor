@@ -480,7 +480,11 @@ def onReceive(packet, interface):
         if new_node:
             message_sender.send_node_info(interface)
             log_message += " - New Node Detected"
-            private_message = f"Welcome to the Mesh {node_short_name}! I'm a bot. I'll respond to certain commands. Say \"commands\" to see what I can do. Check out NE Ohio Meshtastic Discord at (https://discord.gg/zYbP2XSPf4). My developer monitors DPSA or DP00"
+            welcome_template = os.getenv(
+                "WELCOME_MESSAGE",
+                'Welcome to the Mesh {node_short_name}! I\'m a bot. I\'ll respond to certain commands. Say "commands" or "help" to see what I can do.'
+            )
+            private_message = welcome_template.format(node_short_name=node_short_name, node_long_name=node_long_name, from_node_num=from_node_num)
             message_sender.send_message(
                 interface, private_message, public_channel_number, from_node_num
             )
