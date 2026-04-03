@@ -377,12 +377,8 @@ class MessageSender:
             node_name = node["user"]["shortName"]
 
         if original_message_id:
-            self.send_llm_reply(
-                interface,
-                reply_channel,
-                original_message_id,
-                to_id,
-                f"Sending traceroute request to node {node_name} - {node_num}",
+            self.send_thumbs_up_reply(
+                interface, reply_channel, original_message_id, to_id
             )
 
         def _do_trace():
