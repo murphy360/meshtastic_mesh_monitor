@@ -7,8 +7,9 @@ TextHandler processes incoming text packets, extracts node info, and handles key
 
 import importlib
 import os
+import time
 
-from core.constants import LOCAL_NODE_ID
+from core.constants import KEYWORD_COOLDOWN_SECONDS, LOCAL_NODE_ID
 from handlers.base_handler import BaseHandler
 
 
@@ -20,6 +21,9 @@ class TextHandler(BaseHandler):
         interface (object): The mesh network interface object.
         public_channel_number (int, optional): Public channel number.
     """
+
+    # Class-level rate limit tracker: {node_num: last_keyword_timestamp}
+    _keyword_cooldowns: dict[int, float] = {}
 
     def __init__(self) -> None:
         super().__init__()
@@ -109,6 +113,18 @@ class TextHandler(BaseHandler):
         message = packet["decoded"]["payload"].decode("utf-8").strip().lower()
         potential_keywords = message.split()  # first word could be a keyword
         self.logger.info(f"[check_keywords] Checking for keywords in message: '{message}'")
+
+        # Rate limit: prevent a single node from spamming keyword commands
+        from_node_num = packet["from"]
+        now = time.time()
+        last_used = TextHandler._keyword_cooldowns.get(from_node_num, 0)
+        if now - last_used < KEYWORD_COOLDOWN_SECONDS:
+            remaining = int(KEYWORD_COOLDOWN_SECONDS - (now - last_used))
+            self.logger.info(
+                f"[check_keywords] Rate limited node {from_node_num} — {remaining}s cooldown remaining"
+            )
+            return False
+
         # Move up one directory from handlers to app, then into keywords
         keywords_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keywords")
         keyword_files = [
@@ -117,6 +133,7 @@ class TextHandler(BaseHandler):
         for keyword in keyword_files:
             if potential_keywords[0] == keyword:
                 self.logger.info(f"Keyword '{keyword}' detected, invoking handler.")
+                TextHandler._keyword_cooldowns[from_node_num] = now
                 try:
                     # Use simple module name for dynamic import
                     spec = importlib.util.spec_from_file_location(
