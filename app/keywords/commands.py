@@ -19,7 +19,7 @@ class CommandsKeyword(KeywordHandler):
         """
         keywords = {}
         for fname in os.listdir(self.keywords_dir):
-            if fname.endswith(".py") and fname not in ("__init__.py", "base.py", "commands.py"):
+            if fname.endswith(".py") and fname not in ("__init__.py", "base.py", "commands.py", "keyword_handler.py"):
                 keyword_name = fname[:-3]
                 module_path = f"keywords.{keyword_name}"
                 try:
@@ -31,6 +31,7 @@ class CommandsKeyword(KeywordHandler):
                             isinstance(obj, type)
                             and issubclass(obj, KeywordHandler)
                             and obj is not KeywordHandler
+                            and not issubclass(obj, CommandsKeyword)
                         ):
                             keywords[keyword_name] = obj()
                 except Exception:
